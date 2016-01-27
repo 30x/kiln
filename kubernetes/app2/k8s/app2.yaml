@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: app1
-        image: ubuntu/xenial
+        image: tnine/app2
         ports:
         - containerPort: 80
   selector:
