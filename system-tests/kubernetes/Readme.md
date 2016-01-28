@@ -7,7 +7,7 @@ environment.
 # Building images
 
 ```sh
-./buildandpush.sh
+./test_service_namespaces.sh
 ```
 
 This will remove any existing kubernetes services.  Build and push the latest docker image, then start

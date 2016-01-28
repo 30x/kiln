@@ -99,9 +99,7 @@ echo "About to execute command kubectl exec --namespace=app2 $APP2_POD_NAME -- c
 
 kubectl exec --namespace=app2 $APP2_POD_NAME -- curl --fail $APP1_SERVICE_IP
 
-STATUS=$?
-
-if [[ STATUS == 0 ]] ; then
+if [[ $? == 0 ]] ; then
   echo "FAILURE: Curl was successful, the pod in app 2 should not be allowed to call the service in the namespace app1"
 else
   echo "PASS:  The pod in app 2 cannot see the serice in namespace app 1"
