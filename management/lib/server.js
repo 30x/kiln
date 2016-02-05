@@ -1,18 +1,73 @@
 'use strict'
 const restify = require('restify');
+const fs = require('fs');
  
 
 const server = restify.createServer({
   name: 'myapp',
   version: '1.0.0'
 });
+
+/**
+ * configure the server options
+ */
 server.use(restify.acceptParser(server.acceptable));
-server.use(restify.queryParser());
-server.use(restify.bodyParser());
+/**
+ * Parse query params
+ */
+server.use( restify.queryParser() );
+/**
+ * only parse json body. TODO, check this for security
+ */
+server.use( restify.bodyParser() );
  
-server.get('/v1/management/heartbeat', function (req, res, next) {
+ /**
+  * Heartbeat for system liveliness
+  * TODO integrate with origin/k8s call to ensure e2e communication
+  */
+server.get('/v1/heartbeat', function (req, res, next) {
   res.send({status:'ok'});
   return next();
+});
+
+
+/**
+ * Get the logs
+ */
+server.get('/v1/logs/:mpname', function (req, res, next){
+    const mpName = req.mpname;
+    
+    res.send(util.format("logs go here for %s", mpName));
+    return next();
+});
+
+/**
+ * The endpoint where the Zip file is posted to
+ */
+server.post('/v1/deploy', function (req, res, next){
+    
+    //split for clarity
+    const someRandomeFileName = '/tmp/somerandomval.zip';
+    
+    const fileWriteStream = fs.createWriteStream(someRandomeFileName);
+    
+    const fileStream = req.pipe(fileWriteStream);
+    
+    fileStream.on('error', function(err){
+        console.log(err)
+    });
+
+    //once we're done writing the stream, render a response
+    fileStream.on('finish', function(){
+        //TODO: Real work here
+        
+        //send back the endpoint the caller should hit for the deployed application
+        res.send({endpoint:'http://endpointyouhit:8080'});
+        
+        return next();
+    });
+    
+  
 });
 
 

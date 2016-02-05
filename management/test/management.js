@@ -1,6 +1,7 @@
 'use strict'
 const should = require('should');
 const restify = require('restify');
+const fs = require('fs');
 const server = require('../lib/server.js');
  
 const port = 8080;
@@ -24,7 +25,7 @@ describe('management', function() {
     
   describe('#heartbeat()', function() {
     it('should get without error', function(done) {
-      client.get('/v1/management/heartbeat', function(err, req, res, data) {
+      client.get('/v1/heartbeat', function(err, req, res, data) {
                 if (err) {
                     throw new Error(err);
                 }
@@ -45,4 +46,34 @@ describe('management', function() {
             });
       });
     });
+    
+    describe('#upload()', function() {
+    it('happy path with zip', function(done) {
+        
+
+        const testPath = 'test/assets/test.zip';
+        fs.existsSync(testPath).should.equal(true);
+
+        
+        fs.createReadStream(testPath).pipe(client.post('/v1/deploy', function(err, req, res, data) {
+                if (err) {
+                    throw new Error(err);
+                }
+                
+                should(res).not.null();
+                should(res.statusCode).not.null();
+                should(res.statusCode).not.undefined();
+                res.statusCode.should.equal(200);
+                
+                
+                should(data).not.null();
+                should(data.endpoint).not.undefined();
+                data.endpoint.should.equal('http://endpointyouhit:8080');
+                    
+                    
+                done();
+                
+            }));  
+      });
+    }); 
   });
