@@ -9,7 +9,11 @@
   "author": "Todd Nine",
   "license": "Apache 2.0",
   "dependencies": {
-    "restify": "^4.0.3"
+    "envalid": "^0.2.0",
+    "restify": "^4.0.3",
+    "size-limit-stream": "^1.0.0",
+    "temp": "^0.8.3",
+    "uuid": "^2.0.1"
   },
   "devDependencies": {
     "mocha": "^2.4.5",

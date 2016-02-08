@@ -3,9 +3,14 @@ const should = require('should');
 const restify = require('restify');
 const fs = require('fs');
 const http = require('http');
-const server = require('../lib/server.js');
+const Server = require('../lib/server.js');
+
 
 const port = 8080;
+const tmpDir = '/tmp';
+
+const server = new Server(port, tmpDir);
+
 const url = 'http://localhost:' + port;
 
 const jsonClient = restify.createJsonClient({
@@ -19,7 +24,7 @@ describe('management', function () {
      * Start and stop the server before and after the test suites
      */
     before(function () {
-        server.listen(port)
+        server.listen()
     });
 
     after(function () {
