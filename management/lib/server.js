@@ -53,7 +53,7 @@ function Server(port, tmpDir, maxFileSize) {
   this.server.get('/v1/logs/:mpname', function (req, res, next) {
     const mpName = req.mpname;
 
-    res.send(util.format("logs go here for %s", mpName));
+    res.send(util.format('logs go here for %s', mpName));
     return next();
   });
 
@@ -68,22 +68,25 @@ function Server(port, tmpDir, maxFileSize) {
     const envName = req.params.env;
     const appName = req.params.app;
 
-    const revision =  req.header(revisionHeader);
+    const revision = req.header(revisionHeader);
 
     if (!orgName) {
-      return next(new restify.errors.BadRequestError("You must specify an org name"));
+      return next(new restify.BadRequestError({statusCode: 400, message: 'You must specify an org name'}));
     }
 
     if (!envName) {
-      return next(new restify.errors.BadRequestError("You must specify an env name"));
+      return next(new restify.BadRequestError({statusCode: 400, message: 'You must specify an env name'}));
     }
 
     if (!appName) {
-      return next(new restify.errors.BadRequestError("You must specify an app name"));
+      return next(new restify.BadRequestError({statusCode: 400, message: 'You must specify an app name'}));
     }
 
-    if(!revision){
-      return next(new restify.errors.BadRequestError("You must specify a version in x-apigee-script-container-rev header"));
+    if (!revision) {
+      return next(new restify.BadRequestError({
+        statusCode: 400,
+        message: 'You must specify a version in x-apigee-script-container-rev header'
+      }));
     }
 
     //limit our file size input
@@ -91,18 +94,27 @@ function Server(port, tmpDir, maxFileSize) {
     const tempFileName = io.createFileName(orgName, envName, appName, revision);
 
     const fileWriteStream = io.createInputStream(tempFileName, function (err) {
-      //return an error if we exceed the file size
-      io.unlinkTempFile(tempFileName);
-      return next(new restify.errors.InternalServerError(err));
+
+      if (err) {
+        //return an error if we exceed the file size
+        io.unlinkTempFile(tempFileName);
+        console.error('Unable to accept zip file.  %s', err);
+
+        return next(new restify.InternalServerError({statusCode: 500, message: 'Unable to accept zip file'}));
+      }
     });
 
     //pipe the request body to the file
     const fileStream = req.pipe(fileWriteStream);
 
     fileStream.on('error', function (err) {
-      //return an error
-      io.unlinkTempFile(tempFileName);
-      return next(new restify.errors.InternalServerError(err));
+      if (err) {
+
+        //return an error
+        console.error('Unable to create file stream %s', err);
+        io.unlinkTempFile(tempFileName);
+        return next(new restify.InternalServerError({statusCode: 500, message: 'Unable to accept zip file'}));
+      }
     });
 
     //once we're done writing the stream, render a response
@@ -110,15 +122,29 @@ function Server(port, tmpDir, maxFileSize) {
       const outputDirName = io.createOutputDirName(orgName, envName, appName, revision);
 
       //extract the zip file and validate it
-      io.extractZip(tempFileName, outputDirName, function(err){
-        if(err){
-          return next(new restify.errors.BadRequestError(err));
+      io.extractZip(tempFileName, outputDirName, function (err) {
+        if (err) {
+
+          console.error('Unable to extract zip file %s', err);
+
+
+
+          io.unlinkTempFile(tempFileName);
+          io.deleteExtractedZip(outputDirName);
+
+          return next(new restify.BadRequestError({statusCode: 400, message: 'Unable to extract zip file.  Ensure you have a valid zip file'}));
         }
 
         //validate the zip file
-        io.validateZip(outputDirName, function(err){
-          if(err){
-            return next(new restify.errors.BadRequestError(err));
+        io.validateZip(outputDirName, function (err) {
+          if (err) {
+
+            console.error('Unable to validate zip file %s', err);
+
+            io.unlinkTempFile(tempFileName);
+            io.deleteExtractedZip(outputDirName);
+
+            return next(new restify.BadRequestError({statusCode: 400, message: 'Unable to validate node application. ' + err.message} ));
           }
 
           //the json is valid, TODO deploy here

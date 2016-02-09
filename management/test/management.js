@@ -58,78 +58,155 @@ describe('management', function () {
   describe('#upload()', function () {
     it('happy path with zip', function (done) {
 
+      const client = new Client('localhost', port);
 
-      const testPath = 'test/assets/echo-test.zip';
-      fs.existsSync(testPath).should.equal(true);
-
-      const revision = 1;
-
-
-      const readStream = fs.createReadStream(testPath);
-
-      const headers = {};
-      headers['x-apigee-script-container-rev'] = 1;
-
-      var options = {
-        host: 'localhost'
-        , port: port
-        , path: '/v1/deploy/testOrg/testEnv/testApp'
-        , method: 'PUT'
-        , headers: headers
-      };
-
-      var req = http.request(options, function (res) {
-        //this feels a bit backwards, but these are evaluated AFTER the read stream has closed
-
-        var buffer = '';
-
-        //pipe body to a buffer
-        res.on('data', function (data) {
-          buffer += data;
-        });
-
-        res.on('end', function () {
-
-          should(res).not.null();
-          should(res.statusCode).not.null();
-          should(res.statusCode).not.undefined();
-          res.statusCode.should.equal(200);
+      client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/echo-test.zip', function (err, response, bodyBuffer) {
+        if (err) {
+          throw new Error(err);
+        }
+        should(response).not.null();
+        should(response.statusCode).not.null();
+        should(response.statusCode).not.undefined();
+        response.statusCode.should.equal(200);
 
 
-          const json = JSON.parse(buffer);
+        const json = JSON.parse(bodyBuffer);
 
-          should(json).not.null();
-          should(json.endpoint).not.undefined();
-          json.endpoint.should.equal('http://endpointyouhit:8080');
+        should(json).not.null();
+        should(json.endpoint).not.undefined();
+        json.endpoint.should.equal('http://endpointyouhit:8080');
 
-
-          done();
-        });
+        done();
 
       });
 
-      req.on('error', function (err) {
+
+    });
+
+    it('valid zip no package.json ', function (done) {
+
+      const client = new Client('localhost', port);
+
+      client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/text-file.zip', function (err, response, bodyBuffer) {
         if (err) {
           throw new Error(err);
         }
 
+        should(response).not.null();
+        should(response.statusCode).not.null();
+        should(response.statusCode).not.undefined();
+        response.statusCode.should.equal(400);
+
+
+        response.statusMessage.should.equal('no package.json defined');
+
+        done();
+
       });
 
-      //pipe the readstream into the request
-      readStream.pipe(req);
-
-
-      /**
-       * Close the request on the close of the read stream
-       */
-      readStream.on('close', function () {
-        req.end();
-        console.log('I finished.');
-      });
-
-      //note that if we end up with larger files, we may want to support the continue, much as S3 does
-      //https://nodejs.org/api/http.html#http_event_continue
 
     });
+
+
+    it('not a valid zip ', function (done) {
+
+          const client = new Client('localhost', port);
+
+          client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/not-a-zip.zip', function (err, response, bodyBuffer) {
+            if (err) {
+              throw new Error(err);
+            }
+
+            should(response).not.null();
+            should(response.statusCode).not.null();
+            should(response.statusCode).not.undefined();
+            response.statusCode.should.equal(400);
+
+
+            response.statusMessage.should.equal('not a zip file');
+
+            done();
+
+          });
+
+
+        });
   });
 });
+
+
+/**
+ *
+ * @constructor
+ */
+const Client = function (host, port) {
+  this.host = host;
+  this.port = port;
+}
+
+/**
+ * Post the zip file.  Callback is of the type
+ *
+ * function(err, response, bodyBuffer)
+ */
+Client.prototype.putZipFile = function (orgName, envName, appName, revision, zipFilePath, cb) {
+
+  fs.existsSync(zipFilePath).should.equal(true);
+
+  const readStream = fs.createReadStream(zipFilePath);
+
+  const headers = {};
+  headers['x-apigee-script-container-rev'] = revision;
+
+  var options = {
+    host: 'localhost'
+    , port: port
+    , path: '/v1/deploy/' + orgName + '/' + envName + '/' + appName
+    , method: 'PUT'
+    , headers: headers
+  };
+
+  var req = http.request(options, function (res) {
+    //this feels a bit backwards, but these are evaluated AFTER the read stream has closed
+
+    var buffer = '';
+
+    //pipe body to a buffer
+    res.on('data', function (data) {
+      buffer += data;
+    });
+
+    res.on('end', function () {
+
+      cb(null, res, buffer);
+
+    });
+
+  });
+
+  req.on('error', function (err) {
+    if (err) {
+      cb(err, null, null);
+    }
+
+  });
+
+  //pipe the readstream into the request
+  readStream.pipe(req);
+
+
+  /**
+   * Close the request on the close of the read stream
+   */
+  readStream.on('close', function () {
+    req.end();
+    console.log('I finished.');
+  });
+
+
+  //note that if we end up with larger files, we may want to support the continue, much as S3 does
+  //https://nodejs.org/api/http.html#http_event_continue
+
+
+};
+

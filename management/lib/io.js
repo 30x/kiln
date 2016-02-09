@@ -124,7 +124,8 @@ Io.prototype.validateZip = function (outputDir, cb) {
   fs.readFile(packageJson, 'utf8', function (err, data) {
     //couldn't read the file
     if (err) {
-      return cb("package.json could not be read.  Ensure it is in your upload");
+      console.log("Unable to read package.json: %s", err);
+      return cb(new Error("package.json could not be read.  Ensure it is in your upload"));
     }
 
     //parse the file
