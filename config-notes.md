@@ -1,7 +1,10 @@
 #Notes on Shipyard Work
 
-> You must be logged in as the default admin user to execute these steps.
-> `oc login -u admin -p test`
+###Login as Default Admin User
+
+```sh
+oc login -u admin -p test
+```
 
 ###Create `shipyard` Project
 
@@ -52,6 +55,17 @@ oc policy add-role-to-user cluster-admin foreman -n shipyard
 
 ```sh
 oc policy add-role-to-user admin foreman -n shipyard
+```
+###Login as `foreman` User
+
+```sh
+oc login -u foreman -p test
+```
+
+###Change to Shipyard Project
+
+```sh
+oc project shipyard
 ```
 
 ###Make a Binary Build
