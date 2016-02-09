@@ -17,7 +17,7 @@ const revisionHeader = 'x-apigee-script-container-rev';
 
 function Server(port, tmpDir, maxFileSize) {
   this.port = Number(port);
-  this.io = new Io(tmpDir, maxFileSize);
+  const io = new Io(tmpDir, maxFileSize);
 
   this.server = restify.createServer({
     name: 'shipyard',
@@ -68,33 +68,31 @@ function Server(port, tmpDir, maxFileSize) {
     const envName = req.params.env;
     const appName = req.params.app;
 
-
-
     const revision =  req.header(revisionHeader);
 
-    if (orgName.isNullOrUndefined()) {
-      return next(new restify.errors.BadRequestError("You must specify an org name"))
+    if (!orgName) {
+      return next(new restify.errors.BadRequestError("You must specify an org name"));
     }
 
-    if (envName.isNullOrUndefined()) {
-      return next(new restify.errors.BadRequestError("You must specify an env name"))
+    if (!envName) {
+      return next(new restify.errors.BadRequestError("You must specify an env name"));
     }
 
-    if (appName.isNullOrUndefined()) {
-      return next(new restify.errors.BadRequestError("You must specify an app name"))
+    if (!appName) {
+      return next(new restify.errors.BadRequestError("You must specify an app name"));
     }
 
-    if(revision.isNullOrUndefined()){
-      return next(new restify.errors.BadRequestError("You must specify a version in x-apigee-script-container-rev header"))
+    if(!revision){
+      return next(new restify.errors.BadRequestError("You must specify a version in x-apigee-script-container-rev header"));
     }
 
     //limit our file size input
 
-    const tempFileName = this.io.createFileName(orgName, envName, appName, revision);
+    const tempFileName = io.createFileName(orgName, envName, appName, revision);
 
-    const fileWriteStream = this.io.createInputStream(tempFileName, function (err) {
+    const fileWriteStream = io.createInputStream(tempFileName, function (err) {
       //return an error if we exceed the file size
-      this.io.unlinkTempFile(tempFileName);
+      io.unlinkTempFile(tempFileName);
       return next(new restify.errors.InternalServerError(err));
     });
 
@@ -103,22 +101,22 @@ function Server(port, tmpDir, maxFileSize) {
 
     fileStream.on('error', function (err) {
       //return an error
-      this.io.unlinkTempFile(tempFileName);
+      io.unlinkTempFile(tempFileName);
       return next(new restify.errors.InternalServerError(err));
     });
 
     //once we're done writing the stream, render a response
     fileStream.on('finish', function () {
-      const outputDirName = this.io.createOutputDirName(orgName, envName, appName, revision);
+      const outputDirName = io.createOutputDirName(orgName, envName, appName, revision);
 
       //extract the zip file and validate it
-      this.io.extractZip(tempFileName, outputDirName, function(err){
+      io.extractZip(tempFileName, outputDirName, function(err){
         if(err){
           return next(new restify.errors.BadRequestError(err));
         }
 
         //validate the zip file
-        this.io.validateZip(outputDirName, function(err){
+        io.validateZip(outputDirName, function(err){
           if(err){
             return next(new restify.errors.BadRequestError(err));
           }
@@ -127,8 +125,8 @@ function Server(port, tmpDir, maxFileSize) {
 
           //ignore errors on delete, if everything else is successful, we just want to log them.
 
-          this.io.unlinkTempFile(tempFileName);
-          this.io.deleteExtractedZip(outputDirName);
+          io.unlinkTempFile(tempFileName);
+          io.deleteExtractedZip(outputDirName);
 
 
           //send back the endpoint the caller should hit for the deployed application
@@ -153,10 +151,10 @@ module.exports = Server;
 
 
 Server.prototype.listen = function () {
-  const serverPointer = this.server;
+  const that = this;
 
-  serverPointer.listen(this.port, function () {
-    console.log('%s listening at %s', serverPointer.name, serverPointer.url);
+  that.server.listen(this.port, function () {
+    console.log('%s listening at %s', that.server.name, that.server.url);
   });
 };
 

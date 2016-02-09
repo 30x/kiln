@@ -8,6 +8,7 @@ const fs = require('fs');
 const limitStream = require('size-limit-stream');
 const pumpify = require('pumpify');
 const unzip = require('unzip');
+const rimraf = require('rimraf');
 
 const PACKAGE_JSON = 'package.json';
 
@@ -36,7 +37,7 @@ module.exports = Io;
 Io.prototype.createFileName = function (orgName, envName, appName, revision) {
   //we throw in a time uuid just in case we get double PUT.  Both requests can process, and first to finish will win
   //without creating a race condition on the file stream.
-  return this.createOutputDir(orgName, envName, appName, revision) + ".zip";
+  return this.createOutputDirName(orgName, envName, appName, revision) + ".zip";
 };
 
 /**
@@ -104,7 +105,7 @@ Io.prototype.extractZip = function (tempFileName, outputDir, cb) {
  * @param cb
  */
 Io.prototype.deleteExtractedZip = function(outputDir){
-  fs.rmdir(outputDir, function(err){
+  rimraf(outputDir, {}, function(err){
     if(err){
       console.error('Unable to remove directory at %s', outputDir);
       console.error(err);
@@ -132,13 +133,13 @@ Io.prototype.validateZip = function (outputDir, cb) {
     /**
      * Check the fields are present we need to run the application
      */
-    if (parsed.scripts.isNullOrUndefined()) {
+    if (!parsed.scripts) {
       return cb("scripts.run is required in package.json");
     }
 
 
-    if (parsed.scripts.run.isNullOrUndefined()) {
-      return cb("scripts.run is required in package.json");
+    if (!parsed.scripts.start) {
+      return cb("scripts.start is required in package.json");
     }
 
 
