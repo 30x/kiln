@@ -1,15 +1,23 @@
 'use strict'
+/**
+ * Imports
+ *
+ */
 const restify = require('restify');
-const fs = require('fs');
 const util = require('util');
-const uuid = require('uuid');
-const temp = require('temp').track();
-const limitStream = require('size-limit-stream');
+const Io = require('./io.js');
 
 
-function Server(port, tmpDir) {
-  this.port = port;
-  this.tmpDir = tmpDir;
+/**
+ * Constants
+ *
+ */
+const revisionHeader = 'x-apigee-script-container-rev';
+
+
+function Server(port, tmpDir, maxFileSize) {
+  this.port = Number(port);
+  this.io = new Io(tmpDir, maxFileSize);
 
   this.server = restify.createServer({
     name: 'shipyard',
@@ -52,43 +60,89 @@ function Server(port, tmpDir) {
   /**
    * The endpoint where the Zip file is posted to
    */
-  this.server.put('/v1/deploy/:name', function (req, res, next) {
+  this.server.put('/v1/deploy/:org/:env/:app', function (req, res, next) {
 
 
     //split for clarity
-    const assetName = req.params.name;
+    const orgName = req.params.org;
+    const envName = req.params.env;
+    const appName = req.params.app;
 
 
-    const tempFileName = tmpDir + '/' + assetName +'-'+ uuid.v1() +'.zip';
 
-    const fileWriteStream = fs.createWriteStream(tempFileName);
+    const revision =  req.header(revisionHeader);
 
+    if (orgName.isNullOrUndefined()) {
+      return next(new restify.errors.BadRequestError("You must specify an org name"))
+    }
+
+    if (envName.isNullOrUndefined()) {
+      return next(new restify.errors.BadRequestError("You must specify an env name"))
+    }
+
+    if (appName.isNullOrUndefined()) {
+      return next(new restify.errors.BadRequestError("You must specify an app name"))
+    }
+
+    if(revision.isNullOrUndefined()){
+      return next(new restify.errors.BadRequestError("You must specify a version in x-apigee-script-container-rev header"))
+    }
+
+    //limit our file size input
+
+    const tempFileName = this.io.createFileName(orgName, envName, appName, revision);
+
+    const fileWriteStream = this.io.createInputStream(tempFileName, function (err) {
+      //return an error if we exceed the file size
+      this.io.unlinkTempFile(tempFileName);
+      return next(new restify.errors.InternalServerError(err));
+    });
+
+    //pipe the request body to the file
     const fileStream = req.pipe(fileWriteStream);
 
     fileStream.on('error', function (err) {
       //return an error
+      this.io.unlinkTempFile(tempFileName);
       return next(new restify.errors.InternalServerError(err));
     });
 
     //once we're done writing the stream, render a response
     fileStream.on('finish', function () {
-      //TODO: Real work here
+      const outputDirName = this.io.createOutputDirName(orgName, envName, appName, revision);
 
-      /**
-       * Unlink the file. If it fails, log and ignore
-       */
-      fs.unlink(tempFileName, function(err){
+      //extract the zip file and validate it
+      this.io.extractZip(tempFileName, outputDirName, function(err){
         if(err){
-          console.log('Unable to delete temp file at %s', tempFileName);
+          return next(new restify.errors.BadRequestError(err));
         }
 
+        //validate the zip file
+        this.io.validateZip(outputDirName, function(err){
+          if(err){
+            return next(new restify.errors.BadRequestError(err));
+          }
+
+          //the json is valid, TODO deploy here
+
+          //ignore errors on delete, if everything else is successful, we just want to log them.
+
+          this.io.unlinkTempFile(tempFileName);
+          this.io.deleteExtractedZip(outputDirName);
+
+
+          //send back the endpoint the caller should hit for the deployed application
+          res.send({endpoint: 'http://endpointyouhit:8080'});
+
+          return next();
+
+
+        });
+
       });
-      //send back the endpoint the caller should hit for the deployed application
-      res.send({endpoint: 'http://endpointyouhit:8080'});
 
-      return next();
+
     });
-
 
 
   });
