@@ -54,21 +54,16 @@ oc policy add-role-to-user cluster-admin foreman -n shipyard
 oc policy add-role-to-user admin foreman -n shipyard
 ```
 
-###Get Shipyard Application
-
-Going to make a basic test application that will curl the origin api from a pod. 
-
-
 ###Make a Binary Build
 
 ```sh
 oc new-build --binary --name=origin-management-poc
 ```
 
-###Start the Build from Shipyard Directory
+###Start the Build from `config` Directory
 
 ```sh
-oc start-build origin-management-poc --from-dir=shipyard --follow
+oc start-build origin-management-poc --from-dir=config --follow
 ```
 
 ###Deploy the Build Using `oc new-app`
