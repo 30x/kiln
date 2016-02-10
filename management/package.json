@@ -14,6 +14,8 @@
     "restify": "^4.0.3",
     "rimraf": "^2.5.1",
     "size-limit-stream": "^1.0.0",
+    "superagent": "^1.7.2",
+    "temp": "^0.8.3",
     "unzip": "^0.1.11",
     "uuid": "^2.0.1"
   },
