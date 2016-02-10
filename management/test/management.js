@@ -79,10 +79,9 @@ describe('management', function () {
         done();
 
       });
-
-
     });
 
+    //test a valid zip with no package.json file
     it('valid zip no package.json ', function (done) {
 
       const client = new Client('localhost', port);
@@ -97,40 +96,86 @@ describe('management', function () {
         should(response.statusCode).not.undefined();
         response.statusCode.should.equal(400);
 
+        should(bodyBuffer).not.null();
 
-        response.statusMessage.should.equal('no package.json defined');
+        const json = JSON.parse(bodyBuffer);
+
+        should(json.message).not.null();
+
+        json.message.should.equal("Unable to validate node application. package.json could not be read.  Ensure it is in your upload.");
+
+        done();
 
         done();
 
       });
+    });
+
+    //test incorrect zip file encoding
+    it('not a valid zip ', function (done) {
+
+      const client = new Client('localhost', port);
+
+      client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/not-a-zip.zip', function (err, response, bodyBuffer) {
+        if (err) {
+          throw new Error(err);
+        }
+
+        should(response).not.null();
+        should(response.statusCode).not.null();
+        should(response.statusCode).not.undefined();
+        response.statusCode.should.equal(400);
 
 
+        should(bodyBuffer).not.null();
+
+        const json = JSON.parse(bodyBuffer);
+
+        should(json.message).not.null();
+
+        json.message.should.equal("Unable to extract zip file.  Ensure you have a valid zip file.");
+
+        done();
+
+      });
+    });
+
+    //test there's a run command in the package json
+    it('no run in package.json ', function (done) {
+
+      const client = new Client('localhost', port);
+
+      client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/echo-test-no-run.zip', function (err, response, bodyBuffer) {
+        if (err) {
+          throw new Error(err);
+        }
+
+        should(response).not.null();
+        should(response.statusCode).not.null();
+        should(response.statusCode).not.undefined();
+        response.statusCode.should.equal(400);
+
+
+        should(bodyBuffer).not.null();
+
+        const json = JSON.parse(bodyBuffer);
+
+        should(json.message).not.null();
+
+        json.message.should.equal("Unable to validate node application. scripts.start is required in package.json.");
+
+        done();
+
+      });
     });
 
 
-    it('not a valid zip ', function (done) {
-
-          const client = new Client('localhost', port);
-
-          client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/not-a-zip.zip', function (err, response, bodyBuffer) {
-            if (err) {
-              throw new Error(err);
-            }
-
-            should(response).not.null();
-            should(response.statusCode).not.null();
-            should(response.statusCode).not.undefined();
-            response.statusCode.should.equal(400);
 
 
-            response.statusMessage.should.equal('not a zip file');
-
-            done();
-
-          });
+    //TODO test file too large
+    //TODO Test missing header
 
 
-        });
   });
 });
 

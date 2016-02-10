@@ -125,7 +125,7 @@ Io.prototype.validateZip = function (outputDir, cb) {
     //couldn't read the file
     if (err) {
       console.log("Unable to read package.json: %s", err);
-      return cb(new Error("package.json could not be read.  Ensure it is in your upload"));
+      return cb(new Error("package.json could not be read.  Ensure it is in your upload."));
     }
 
     //parse the file
@@ -135,12 +135,12 @@ Io.prototype.validateZip = function (outputDir, cb) {
      * Check the fields are present we need to run the application
      */
     if (!parsed.scripts) {
-      return cb("scripts.run is required in package.json");
+      return cb(new Error("scripts.run is required in package.json."));
     }
 
 
     if (!parsed.scripts.start) {
-      return cb("scripts.start is required in package.json");
+      return cb(new Error("scripts.start is required in package.json."));
     }
 
 
