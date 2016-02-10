@@ -13,6 +13,12 @@ oc login -u admin -p test
 oc new-project shipyard
 ```
 
+###Change to Shipyard Project
+
+```sh
+oc project shipyard
+```
+
 ###Create Service Account Named `foreman` under `shipyard` Project
 
 Service Accounts are API objects. Can be created with `POST` requests or by using the `oc` cli.
@@ -42,30 +48,24 @@ oc create -f sa.json
 You must ssh into the vagrant box with `vagrant ssh` and use the `oadm` cli for this.
 
 ```sh
-oadm policy add-cluster-role-to-user cluster-admin foreman
+oadm policy add-cluster-role-to-user cluster-admin system:serviceaccount:shipyard:foreman
 ```
 
 >If `foreman` only needs `cluster-admin` Role on `shipyard` then
 
 ```sh
-oc policy add-role-to-user cluster-admin foreman -n shipyard
+oc policy add-role-to-user cluster-admin system:serviceaccount:shipyard:foreman -n shipyard
 ```
 
 ###Make `foreman` an admin on `shipyard` project
 
 ```sh
-oc policy add-role-to-user admin foreman -n shipyard
+oc policy add-role-to-user admin system:serviceaccount:shipyard:foreman -n shipyard
 ```
 ###Login as `foreman` User
 
 ```sh
 oc login -u foreman -p test
-```
-
-###Change to Shipyard Project
-
-```sh
-oc project shipyard
 ```
 
 ###Make a Binary Build
