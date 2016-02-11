@@ -6,6 +6,7 @@
 const restify = require('restify');
 const util = require('util');
 const Io = require('./io.js');
+const AppInfo = require('./appinfo.js');
 
 
 /**
@@ -17,7 +18,7 @@ const revisionHeader = 'x-apigee-script-container-rev';
 
 function Server(port, tmpDir, maxFileSize) {
   this.port = Number(port);
-  const io = new Io(tmpDir, maxFileSize);
+  const io = new Io();
 
   this.server = restify.createServer({
     name: 'shipyard',
@@ -89,15 +90,15 @@ function Server(port, tmpDir, maxFileSize) {
       }));
     }
 
+    const appInfo = new AppInfo(tmpDir, orgName, envName, appName, revision, maxFileSize);
+
     //limit our file size input
 
-    const tempFileName = io.createFileName(orgName, envName, appName, revision);
-
-    const fileWriteStream = io.createInputStream(tempFileName, function (err) {
+    const fileWriteStream = io.createZipFileStream(appInfo, function (err) {
 
       if (err) {
         //return an error if we exceed the file size
-        io.unlinkTempFile(tempFileName);
+        io.cleanup(appInfo);
         console.error('Unable to accept zip file.  %s', err);
 
         return next(new restify.errors.errorsHttpError({statusCode: 500, message: 'Unable to accept zip file'}));
@@ -112,37 +113,30 @@ function Server(port, tmpDir, maxFileSize) {
 
         //return an error
         console.error('Unable to create file stream %s', err);
-        io.unlinkTempFile(tempFileName);
+        io.cleanup(appInfo);
         return next(new restify.errors.InternalServerError({statusCode: 500, message: 'Unable to accept zip file'}));
       }
     });
 
     //once we're done writing the stream, render a response
     fileStream.on('finish', function () {
-      const outputDirName = io.createOutputDirName(orgName, envName, appName, revision);
-
       //extract the zip file and validate it
-      io.extractZip(tempFileName, outputDirName, function (err) {
+      io.extractZip(appInfo, function (err) {
         if (err) {
 
           console.error('Unable to extract zip file %s', err);
 
-
-
-          io.unlinkTempFile(tempFileName);
-          io.deleteExtractedZip(outputDirName);
-
+          io.cleanup(appInfo);
           return next(new restify.errors.BadRequestError({statusCode: 400, message: 'Unable to extract zip file.  Ensure you have a valid zip file.'}));
         }
 
         //validate the zip file
-        io.validateZip(outputDirName, function (err) {
+        io.validateZip(appInfo, function (err) {
           if (err) {
 
             console.error('Unable to validate zip file %s', err);
 
-            io.unlinkTempFile(tempFileName);
-            io.deleteExtractedZip(outputDirName);
+            io.cleanup(appInfo);
 
             return next(new restify.errors.BadRequestError({statusCode: 400, message: 'Unable to validate node application. ' + err.message} ));
           }
@@ -151,8 +145,7 @@ function Server(port, tmpDir, maxFileSize) {
 
           //ignore errors on delete, if everything else is successful, we just want to log them.
 
-          io.unlinkTempFile(tempFileName);
-          io.deleteExtractedZip(outputDirName);
+          io.cleanup(appInfo);
 
 
           //send back the endpoint the caller should hit for the deployed application
