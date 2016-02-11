@@ -15,8 +15,8 @@ const helpers = require('./helpers')
 /**
  * Creates an Kubernetes client.
  *
- * @param {~KubernetesClientConfig} [conf] - The client configuration *(If omitted, default values will be used that assume
- * the Kubernetes client is run within a Docker container, on Origin.)*
+ * @param {~KubernetesClientConfig} [conf] - The client configuration *(If omitted, default values will be used that
+ * assume the Kubernetes client is run within a Docker container, on Origin.)*
  *
  * @constructor
  */
@@ -33,9 +33,17 @@ function Client (conf) {
   }
 }
 
-Client.prototype.getServiceAccounts = function (done) {
+/**
+ * Returns all service accounts for the provided namespace.
+ *
+ * @param {string} namespace - The namespace *(analagous to an Origin project name)* to search
+ * @param {function} done - The error-first callback
+ *
+ * @see https://docs.openshift.org/latest/rest_api/kubernetes_v1.html#list-or-watch-objects-of-kind-serviceaccount
+ */
+Client.prototype.getServiceAccounts = function (namespace, done) {
   helpers.makeApiRequest(this.conf, {
-    path: '/serviceaccounts'
+    path: '/namespaces/' + namespace + '/serviceaccounts'
   }, (err, res) => {
     if (err)
       done(err)

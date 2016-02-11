@@ -33,6 +33,13 @@ function Client (conf) {
   }
 }
 
+/**
+ * Returns all projects for the cluster.  *(Must be ran as a cluster admin)*
+ *
+ * @param {function} done - The error-first callback
+ *
+ * @see https://docs.openshift.org/latest/rest_api/openshift_v1.html#list-objects-of-kind-project
+ */
 Client.prototype.getProjects = function (done) {
   helpers.makeApiRequest(this.conf, {
     path: '/projects'
