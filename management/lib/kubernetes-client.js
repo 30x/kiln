@@ -24,11 +24,11 @@ function Client (conf) {
   this.conf = conf || {}
 
   // Attempt to fill in defaults if/when necessary
-  if (conf) {
-    if (!conf.apiBase)
+  if (this.conf) {
+    if (!this.conf.apiBase)
       this.conf.apiBase = 'https://kubernetes.default.svc.cluster.local/api/v1'
 
-    if (!conf.apiToken)
+    if (!this.conf.apiToken)
       this.conf.apiToken = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/token', 'utf-8')
   }
 }
