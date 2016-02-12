@@ -19,7 +19,7 @@ describe('docker', function () {
   before(function (done) {
 
     appInfo = new AppInfo('/tmp', "orgName", "envName", "appName", 1, 104857600)
-    docker = new Docker()
+    docker = new Docker('localhost:5000')
     io = new Io()
 
     //override the zip file location so we don't have to copy the file
@@ -31,14 +31,8 @@ describe('docker', function () {
         return done(err)
       }
 
-      //copy the docker file to the output for packing
-      io.copyDockerfile(appInfo, function (err) {
 
-        if (err) {
-          return done(err)
-        }
-        done()
-      })
+      done()
 
 
     })
@@ -78,18 +72,18 @@ describe('docker', function () {
         should(dockerId).not.null()
         should(dockerId).not.undefined()
 
+        dockerId.should.equal(appInfo.tagName)
+
         done()
       })
 
     })
 
-    it('tag container', function (done) {
+    it('tag and push container', function (done) {
       done()
     })
 
-    it('push container', function (done) {
-      done()
-    })
+
   })
 })
 

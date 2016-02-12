@@ -4,12 +4,20 @@ const restify = require('restify')
 const fs = require('fs')
 const http = require('http')
 const Server = require('../lib/server.js')
+const Docker = require('../lib/docker.js')
 
 
 const port = 10001
 const tmpDir = '/tmp'
 
-const server = new Server(port, tmpDir)
+
+const dockerUrl =  'localhost:5000'
+
+const docker = new Docker(dockerUrl)
+
+const maxFileSize = 104857600
+
+const server = new Server(port, tmpDir, maxFileSize, docker)
 
 const url = 'http://localhost:' + port
 
@@ -106,7 +114,6 @@ describe('management', function () {
 
         done()
 
-        done()
 
       })
     })
@@ -206,7 +213,7 @@ Client.prototype.putZipFile = function (orgName, envName, appName, revision, zip
   var options = {
     host: 'localhost'
     , port: port
-    , path: '/v1/deploy/' + orgName + '/' + envName + '/' + appName
+    , path: '/v1/buildnodejs/' + orgName + '/' + envName + '/' + appName
     , method: 'PUT'
     , headers: headers
   }

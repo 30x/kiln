@@ -28,7 +28,9 @@ const Io = require('./io.js')
  * name>):2376/info
  * @constructor
  */
-function Docker() {
+function Docker(repositoryUrl) {
+
+  this.repositoryUrl = repositoryUrl;
 
   /**
    * Note this has only been tested with docker machine.  Will need tested when using local unix socket
@@ -105,49 +107,55 @@ Docker.prototype.createContainer = function (appInfo, cb) {
   //2) tar it up
   //3) send it off
 
+
   const docker = this.docker
   const io = this.io;
 
-  io.createTarFile(appInfo, function (err) {
-    if (err) {
+  io.copyDockerfile(appInfo, function (err) {
+
+    if(err){
       return cb(err)
     }
 
-    //no error creating the tar, build the image
-
-
-    const fileStream = io.getTarFileStream(appInfo)
-
-    docker.buildImage(fileStream, {t: appInfo.tagName}, function (err, stream) {
-
-
+    io.createTarFile(appInfo, function (err) {
       if (err) {
-        throw err
+        return cb(err)
       }
 
-      stream.pipe(process.stdout, {
-        end: true
-      });
-
-      stream.on('end', function () {
-        done();
-
-        //when we're done, get the container id
-        //docker.
-
-        const containerId = response.containerId
-
-        return cb(null, containerId)
-      });
+      //no error creating the tar, build the image
 
 
+      const fileStream = io.getTarFileStream(appInfo)
+
+      docker.buildImage(fileStream, {t: appInfo.tagName}, function (err, stream) {
+
+
+        if (err) {
+          throw err
+        }
+
+        stream.pipe(process.stdout, {
+          end: true
+        });
+
+        stream.on('end', function () {
+          //when we're done, get the container id
+          //docker.
+
+          return cb(null, appInfo.tagName)
+        });
+
+
+      })
     })
   })
 
 }
 
 /**
- * Pulls the image.  When complete, calls the callback.
+ * Pulls the image locally.  When complete, calls the callback.
+ * This should be used on startup to ensure all the node images
+ * we require are available locally for faster image creation
  * @param repoTag
  * @param cb
  */
@@ -159,6 +167,15 @@ Docker.prototype.initialize = function (repoTag, cb) {
     stream.pipe(process.stdout);
     stream.once('end', cb);
   });
+
+}
+
+/**
+ * Tag the image and deploy it to the configured repository.  On completion, the callback is invoked
+ * @param appInfo
+ * @param cb a Callback of the form (err, imagetag)
+ */
+Docker.prototype.tagAndDeploy = function (appInfo, cb) {
 
 }
 
