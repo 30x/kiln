@@ -9,6 +9,7 @@ const testConstants = require('./testconfig.js')
 const numGenerator = require('./numbergen.js')
 
 const restify = require('restify')
+const util = require('util')
 
 
 describe('docker', function () {
@@ -22,7 +23,7 @@ describe('docker', function () {
    */
   before(function (done) {
 
-    appInfo = new AppInfo(testConstants.tmpDir, "orgName", "envName", "appName" + numGenerator.randomInt(), 1, testConstants.maxFileSize)
+    appInfo = new AppInfo(testConstants.tmpDir, 'orgName', 'envName', 'appName' + numGenerator.randomInt(), 1, testConstants.maxFileSize)
     docker = new Docker(testConstants.dockerUrl)
     io = new Io()
 
@@ -79,13 +80,12 @@ describe('docker', function () {
         should(dockerInfo).not.null()
         should(dockerInfo).not.undefined()
 
+        console.log(util.inspect(dockerInfo))
+
         dockerInfo.containerName.should.equal(appInfo.containerName)
 
         dockerInfo.revision.should.equal(appInfo.revision)
 
-        dockerInfo.remoteTag.should.equal(appInfo.remoteTag)
-
-        dockerInfo.remoteContainer.should.equal(appInfo.remoteContainer)
 
         done()
       })
@@ -130,7 +130,7 @@ describe('docker', function () {
           // curl -X GET localhost:5000/v2/orgname_envname/appname14040/tags/list
 
           const jsonClient = restify.createJsonClient({
-            url: testConstants.dockerUrl,
+            url: 'http://'+testConstants.dockerUrl,
             version: '~1.0'
           })
 
@@ -147,6 +147,8 @@ describe('docker', function () {
             should(res.statusCode).not.undefined()
             res.statusCode.should.equal(200)
 
+            console.log('response of catalogs is %s', util.inspect(data))
+
 
             should(data).not.null()
             should(data.repositories).not.undefined()
@@ -156,7 +158,7 @@ describe('docker', function () {
 
             //now get the specific version and be sure it's there
 
-            const url = '/v2/' + appInfo.containerName + "/tags/list"
+            const url = '/v2/' + appInfo.containerName + '/tags/list'
 
             jsonClient.get(url, function (err, req, res, data) {
               if (err) {
@@ -169,10 +171,16 @@ describe('docker', function () {
               res.statusCode.should.equal(200)
 
 
+              console.log('response of tags is %s', util.inspect(data))
+
               should(data).not.null()
               should(data.tags).not.undefined()
               //should exist above a -1
-              data.tags.indexOf(appInfo.revision).should.above(-1)
+
+              console.log('revision is %s. Index is %d', appInfo.revision,data.tags.indexOf(appInfo.revision+"") )
+
+
+              data.tags.indexOf(appInfo.revision+"").should.above(-1)
 
 
               done()

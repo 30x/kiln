@@ -35,7 +35,7 @@ function Docker(repositoryUrl) {
     throw new Error('You must specify a repositoryUrl')
   }
 
-  this.repositoryUrl = repositoryUrl;
+  this.repositoryUrl = repositoryUrl
 
   /**
    * Note this has only been tested with docker machine.  Will need tested when using local unix socket
@@ -114,8 +114,8 @@ Docker.prototype.createContainer = function (appInfo, cb) {
 
 
   const docker = this.docker
-  const io = this.io;
-  const repositoryUrl = this.repositoryUrl;
+  const io = this.io
+  const repositoryUrl = this.repositoryUrl
 
   io.copyDockerfile(appInfo, function (err) {
 
@@ -142,6 +142,11 @@ Docker.prototype.createContainer = function (appInfo, cb) {
 
         if (err) {
           return cb(err)
+        }
+
+        if(!stream){
+          console.log("Stream is null or undefined, this is a bug in dockerode")
+          return cb(new Error("Unable to build image, stream response was " + stream))
         }
 
         stream.pipe(process.stdout, {
@@ -183,7 +188,11 @@ Docker.prototype.initialize = function (repoTag, cb) {
     if (err) {
       return cb(err)
     }
-    stream.pipe(process.stdout);
+
+    stream.pipe(process.stdout, {
+      end: true
+    })
+
     stream.on('end', function () {
       cb()
     })
@@ -199,9 +208,6 @@ Docker.prototype.initialize = function (repoTag, cb) {
 Docker.prototype.tagAndPush = function (appInfo, cb) {
 
   const docker = this.docker
-
-
-
 
 
   const image = docker.getImage(appInfo.containerTag)
@@ -236,6 +242,14 @@ Docker.prototype.tagAndPush = function (appInfo, cb) {
     const pushOptions = {tag: appInfo.revision}
 
     remoteImage.push(pushOptions, function (err, dataStream) {
+
+      console.log("Push result is err: %s dataStream %s", err, dataStream)
+
+      if(!dataStream){
+        console.log("Couldn't get a data stream, this is a bug in dockerode.  Repository is not available")
+        return cb(new Error("Cannot connect to remote repository at "+ repoTagUrl ))
+      }
+
       if (err) {
         return cb(err)
       }
@@ -255,7 +269,7 @@ Docker.prototype.tagAndPush = function (appInfo, cb) {
 
         //when we're done, get the container id
         //docker.
-        console.log('push complete. Returning tag name %s', appInfo.tagName)
+        console.log('push complete. Returning appInfo %s', util.inspect(appInfo))
 
         return cb(null, appInfo)
       })
