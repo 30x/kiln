@@ -5,25 +5,17 @@ const fs = require('fs')
 const http = require('http')
 const Server = require('../lib/server.js')
 const Docker = require('../lib/docker.js')
+const testConstants = require('./testconfig.js')
+const numGenerator = require('./numbergen.js')
 
 
-const port = 10001
-const tmpDir = '/tmp'
+const docker = new Docker(testConstants.dockerUrl)
 
 
-const dockerUrl =  'localhost:5000'
-
-const docker = new Docker(dockerUrl)
-
-
-const maxFileSize = 104857600
-
-const server = new Server(port, tmpDir, maxFileSize, docker)
-
-const url = 'http://localhost:' + port
+const server = new Server(testConstants.port, testConstants.tmpDir, testConstants.maxFileSize, docker)
 
 const jsonClient = restify.createJsonClient({
-  url: url,
+  url: testConstants.url,
   version: '~1.0'
 })
 
@@ -53,7 +45,7 @@ Client.prototype.putZipFile = function (orgName, envName, appName, revision, zip
 
   var options = {
     host: 'localhost'
-    , port: port
+    , port: testConstants.port
     , path: '/v1/buildnodejs/' + orgName + '/' + envName + '/' + appName
     , method: 'PUT'
     , headers: headers
@@ -104,15 +96,20 @@ Client.prototype.putZipFile = function (orgName, envName, appName, revision, zip
 }
 
 
-
 describe('management', function () {
   /**
    * Start and stop the server before and after the test suites
    */
   before(function (done) {
-    docker.initialize()
-    server.listen()
-    done()
+    docker.initialize(testConstants.defaultImage, function (err) {
+      //if (!err) {
+      //  throw err
+      //}
+
+      server.listen()
+      done()
+    })
+
   })
 
   after(function () {
@@ -146,9 +143,11 @@ describe('management', function () {
   describe('#upload()', function () {
     it('happy path with zip', function (done) {
 
-      const client = new Client('localhost', port)
+      const client = new Client('localhost', testConstants.port)
+      const appName = 'testApp'+numGenerator.randomInt()
+      const revision = 1
 
-      client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/echo-test.zip', function (err, response, bodyBuffer) {
+      client.putZipFile('testOrg', 'testEnv', appName, revision, 'test/assets/echo-test.zip', function (err, response, bodyBuffer) {
         if (err) {
           throw new Error(err)
         }
@@ -164,6 +163,10 @@ describe('management', function () {
         should(json.endpoint).not.undefined()
         json.endpoint.should.equal('http://endpointyouhit:8080')
 
+        const url = (testConstants.dockerUrl + "/testorg_testenv/"+appName+":"+revision).toLowerCase()
+
+        json.containerId.should.equal(url)
+
         done()
 
       })
@@ -172,9 +175,9 @@ describe('management', function () {
     //test a valid zip with no package.json file
     it('valid zip no package.json ', function (done) {
 
-      const client = new Client('localhost', port)
+      const client = new Client('localhost', testConstants.port)
 
-      client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/text-file.zip', function (err, response, bodyBuffer) {
+      client.putZipFile('testOrg', 'testEnv', 'testApp'+numGenerator.randomInt(), 1, 'test/assets/text-file.zip', function (err, response, bodyBuffer) {
         if (err) {
           throw new Error(err)
         }
@@ -201,9 +204,9 @@ describe('management', function () {
     //test incorrect zip file encoding
     it('not a valid zip ', function (done) {
 
-      const client = new Client('localhost', port)
+      const client = new Client('localhost', testConstants.port)
 
-      client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/not-a-zip.zip', function (err, response, bodyBuffer) {
+      client.putZipFile('testOrg', 'testEnv', 'testApp'+numGenerator.randomInt(), 1, 'test/assets/not-a-zip.zip', function (err, response, bodyBuffer) {
         if (err) {
           throw new Error(err)
         }
@@ -230,9 +233,9 @@ describe('management', function () {
     //test there's a run command in the package json
     it('no run in package.json ', function (done) {
 
-      const client = new Client('localhost', port)
+      const client = new Client('localhost', testConstants.port)
 
-      client.putZipFile('testOrg', 'testEnv', 'testApp', 1, 'test/assets/echo-test-no-run.zip', function (err, response, bodyBuffer) {
+      client.putZipFile('testOrg', 'testEnv', 'testApp'+numGenerator.randomInt(), 1, 'test/assets/echo-test-no-run.zip', function (err, response, bodyBuffer) {
         if (err) {
           throw new Error(err)
         }
@@ -255,8 +258,6 @@ describe('management', function () {
 
       })
     })
-
-
 
 
     //TODO test file too large

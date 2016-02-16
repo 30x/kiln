@@ -5,10 +5,9 @@ const uuid = require('uuid')
 const Docker = require('../lib/docker.js')
 const AppInfo = require('../lib/appinfo.js')
 const Io = require('../lib/io.js')
+const testConstants = require('./testconfig.js')
+const numGenerator = require('./numbergen.js')
 
-function randomInt () {
-    return Math.floor(Math.random() * (100000 - 0) + 0);
-}
 
 
 describe('docker', function () {
@@ -22,8 +21,8 @@ describe('docker', function () {
    */
   before(function (done) {
 
-    appInfo = new AppInfo('/tmp', "orgName", "envName", "appName"+randomInt(), 1, 104857600)
-    docker = new Docker('localhost:5000')
+    appInfo = new AppInfo(testConstants.tmpDir, "orgName", "envName", "appName" + numGenerator.randomInt(), 1, testConstants.maxFileSize)
+    docker = new Docker(testConstants.dockerUrl)
     io = new Io()
 
     //override the zip file location so we don't have to copy the file
@@ -54,7 +53,7 @@ describe('docker', function () {
       //downloading the initial onbuild can be slow
 
       this.timeout(120000);
-      docker.initialize('node:4.3.0-onbuild', function (err) {
+      docker.initialize(testConstants.defaultImage, function (err) {
 
         if (err) {
           done(err)
@@ -70,16 +69,22 @@ describe('docker', function () {
       //creating a container can be slow the first time it runs
       this.timeout(120000)
 
-      docker.createContainer(appInfo, function (err, dockerId) {
+      docker.createContainer(appInfo, function (err, dockerInfo) {
 
         if (err) {
           return done(err)
         }
 
-        should(dockerId).not.null()
-        should(dockerId).not.undefined()
+        should(dockerInfo).not.null()
+        should(dockerInfo).not.undefined()
 
-        dockerId.should.equal(appInfo.tagName)
+        dockerInfo.containerName.should.equal(appInfo.containerName)
+
+        dockerInfo.revision.should.equal(appInfo.revision)
+
+        dockerInfo.remoteTag.should.equal(appInfo.remoteTag)
+
+        dockerInfo.remoteContainer.should.equal(appInfo.remoteContainer)
 
         done()
       })
@@ -97,24 +102,36 @@ describe('docker', function () {
         should(dockerId).not.null()
         should(dockerId).not.undefined()
 
-        dockerId.should.equal(appInfo.tagName)
 
         //now the container is created, push it
 
-        docker.tagAndPush(appInfo, function (err, result) {
+        docker.tagAndPush(appInfo, function (err, dockerInfo) {
           if (err) {
             throw err
           }
 
-          result.should.equal(dockerId)
+          should(dockerInfo).not.null()
+          should(dockerInfo).not.undefined()
+
+          dockerInfo.containerName.should.equal(appInfo.containerName)
+
+          dockerInfo.revision.should.equal(appInfo.revision)
+
+          dockerInfo.remoteTag.should.equal(appInfo.remoteTag)
+
+          dockerInfo.remoteContainer.should.equal(appInfo.remoteContainer)
 
           //TODO connect to remote repository and validate image.  Validated by hand
+
+          //Get all images curl -X GET localhost:5000/v2/_catalog
+
+          //get tags for an image   curl -X GET localhost:5000/v2/<name>/tags/list
+          // curl -X GET localhost:5000/v2/orgname_envname/appname14040/tags/list
           done()
         })
       })
 
     })
-
 
 
   })

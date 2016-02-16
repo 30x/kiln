@@ -115,6 +115,7 @@ Docker.prototype.createContainer = function (appInfo, cb) {
 
   const docker = this.docker
   const io = this.io;
+  const repositoryUrl = this.repositoryUrl;
 
   io.copyDockerfile(appInfo, function (err) {
 
@@ -132,7 +133,12 @@ Docker.prototype.createContainer = function (appInfo, cb) {
 
       const fileStream = io.getTarFileStream(appInfo)
 
-      docker.buildImage(fileStream, {t: appInfo.tagName}, function (err, stream) {
+      const tagName = appInfo.containerTag
+
+      console.log('tag name is %s', tagName)
+
+
+      docker.buildImage(fileStream, {t: tagName}, function (err, stream) {
 
         if (err) {
           return cb(err)
@@ -153,7 +159,7 @@ Docker.prototype.createContainer = function (appInfo, cb) {
           //when we're done, get the container id
           //docker.
 
-          return cb(null, appInfo.tagName)
+          return cb(null, appInfo)
         })
 
 
@@ -175,11 +181,13 @@ Docker.prototype.initialize = function (repoTag, cb) {
 
   this.docker.pull(repoTag, function (err, stream) {
     if (err) {
-      return cb(err);
+      return cb(err)
     }
     stream.pipe(process.stdout);
-    stream.once('end', cb);
-  });
+    stream.on('end', function () {
+      cb()
+    })
+  })
 
 }
 
@@ -191,16 +199,19 @@ Docker.prototype.initialize = function (repoTag, cb) {
 Docker.prototype.tagAndPush = function (appInfo, cb) {
 
   const docker = this.docker
-  const image = docker.getImage(appInfo.tagName)
+
+
+
+
+
+  const image = docker.getImage(appInfo.containerTag)
 
   if (!image) {
     return cb(new Error(util.format('could not find image with tag %s ', appInfo.tagName)))
   }
 
-
-  const repoTagUrl = appInfo.getRepoName(this.repositoryUrl)
-
-  //const options = {repo: repoTagUrl, force: 0, tag: appInfo.revision}
+  //tag our local copy with the remote
+  const repoTagUrl = appInfo.setRemoteContainerName(this.repositoryUrl).remoteContainer
 
   const options = {repo: repoTagUrl, force: 0, tag: appInfo.revision}
 
@@ -209,49 +220,50 @@ Docker.prototype.tagAndPush = function (appInfo, cb) {
 
   image.tag(options, function (err, data) {
 
-      console.log('err is %s', err)
+    console.log('err is %s', err)
 
+    if (err) {
+      return cb(err)
+    }
+
+    console.log('tag complete pushing')
+
+
+    //now we have to re-get my the previous repo value. Not sure why, just how docker works.
+
+    const remoteImage = docker.getImage(repoTagUrl)
+
+    const pushOptions = {tag: appInfo.revision}
+
+    remoteImage.push(pushOptions, function (err, dataStream) {
       if (err) {
         return cb(err)
       }
 
-      console.log('tag complete pushing')
-
-      //now we have to re-get my the previous repo value. Not sure why, just how docker works.
-
-      const remoteImage = docker.getImage(repoTagUrl)
-
-      const pushOptions = {tag: appInfo.revision}
-
-      remoteImage.push(pushOptions, function (err, dataStream) {
-        if (err) {
-          return cb(err)
-        }
-
-        dataStream.pipe(process.stdout, {
-          end: true
-        })
-
-        dataStream.on('error', function (err) {
-          //when we're done, get the container id
-          //docker.
-
-          return cb(err)
-        })
-
-        dataStream.on('end', function () {
-          //when we're done, get the container id
-          //docker.
-          console.log('push complete. Returning tag name %s', appInfo.tagName)
-
-          return cb(null, appInfo.tagName)
-        })
-
-
+      dataStream.pipe(process.stdout, {
+        end: true
       })
 
-    }
-  )
+      dataStream.on('error', function (err) {
+        //when we're done, get the container id
+        //docker.
+
+        return cb(err)
+      })
+
+      dataStream.on('end', function () {
+
+        //when we're done, get the container id
+        //docker.
+        console.log('push complete. Returning tag name %s', appInfo.tagName)
+
+        return cb(null, appInfo)
+      })
+
+
+    })
+  })
+
 
 }
 

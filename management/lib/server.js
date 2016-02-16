@@ -171,7 +171,7 @@ function Server(port, tmpDir, maxFileSize, dockerInstance) {
 
 
               //tag the image and push it to the repo
-              docker.tagAndPush(appInfo, function (err, containerId) {
+              docker.tagAndPush(appInfo, function (err, returnedInfo) {
 
                 //cleanup regardless of success or failure, we need to either way
                 io.cleanup(appInfo)
@@ -185,7 +185,7 @@ function Server(port, tmpDir, maxFileSize, dockerInstance) {
 
 
                 //send back the endpoint the caller should hit for the deployed application
-                res.send({endpoint: 'http://endpointyouhit:8080', containerId: containerId})
+                res.send({endpoint: 'http://endpointyouhit:8080', containerId: returnedInfo.remoteTag})
 
                 return next()
 

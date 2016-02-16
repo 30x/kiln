@@ -17,15 +17,14 @@ function AppInfo(tmpDir, orgName, envName, appName, revision, maxFileSize) {
 
   this.orgName = orgName
   this.envName = envName
-  this.appname = appName
+  this.appName = appName
   this.revision = revision
   this.maxFileSize = maxFileSize
 
   //this.tagName = orgName  + envName  + appName + ':' + revision
   this.containerName = (orgName + '_' + envName + '/' + appName).toLowerCase()
 
-  this.tagName = (orgName + '_' + envName + '/' + appName + ':' + revision).toLowerCase()
-
+  this.containerTag = this.containerName + ":" + this.revision
 
   this.outputDir = tmpDir + '/' + orgName + '_' + envName + '_' + appName + '_' + revision + '_' + uuid.v1()
 
@@ -36,6 +35,8 @@ function AppInfo(tmpDir, orgName, envName, appName, revision, maxFileSize) {
 
 module.exports = AppInfo
 
-AppInfo.prototype.getRepoName = function(repositoryUrl){
-  return repositoryUrl + "/" + this.containerName
+AppInfo.prototype.setRemoteContainerName = function (repositoryUrl) {
+  this.remoteContainer = repositoryUrl + "/" + this.containerName;
+  this.remoteTag = this.remoteContainer + ":" + this.revision
+  return {remoteContainer: this.remoteContainer, remoteTag: this.remoteTag};
 }
