@@ -10,7 +10,7 @@ consumes:
 produces:
   - application/json
 paths:
-  /shipyard/build/{org}/{env}/{app}:
+  /build/{org}/{env}/{app}:
     x-swagger-router-controller: build
     parameters:
       - $ref: '#/parameters/org'
@@ -32,7 +32,7 @@ paths:
             $ref: '#/definitions/Error'
       tags:
         - build
-  /shipyard/build/{org}/{env}/{app}/{version}:
+  /build/{org}/{env}/{app}/{version}:
     x-swagger-router-controller: build
     parameters:
       - $ref: '#/parameters/org'
@@ -55,7 +55,7 @@ paths:
             $ref: '#/definitions/Error'
       tags:
         - build
-  /shipyard/deploy/{org}/{env}/{app}:
+  /deploy/{org}/{env}/{app}:
     x-swagger-router-controller: deploy
     parameters:
       - $ref: '#/parameters/org'
@@ -75,7 +75,7 @@ paths:
             $ref: '#/definitions/Error'
       tags:
         - deploy
-  /shipyard/deploy/{org}/{env}/{app}/{version}:
+  /deploy/{org}/{env}/{app}/{version}:
     x-swagger-router-controller: deploy
     parameters:
       - $ref: '#/parameters/org'
