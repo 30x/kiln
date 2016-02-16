@@ -8,6 +8,7 @@ const Io = require('../lib/io.js')
 const testConstants = require('./testconfig.js')
 const numGenerator = require('./numbergen.js')
 
+const restify = require('restify')
 
 
 describe('docker', function () {
@@ -127,7 +128,58 @@ describe('docker', function () {
 
           //get tags for an image   curl -X GET localhost:5000/v2/<name>/tags/list
           // curl -X GET localhost:5000/v2/orgname_envname/appname14040/tags/list
-          done()
+
+          const jsonClient = restify.createJsonClient({
+            url: testConstants.dockerUrl,
+            version: '~1.0'
+          })
+
+
+          //now get them from the remote repo, make sure it actually worked
+
+          jsonClient.get('/v2/_catalog', function (err, req, res, data) {
+            if (err) {
+              throw new Error(err)
+            }
+
+            should(res).not.null()
+            should(res.statusCode).not.null()
+            should(res.statusCode).not.undefined()
+            res.statusCode.should.equal(200)
+
+
+            should(data).not.null()
+            should(data.repositories).not.undefined()
+            //should exist above a -1
+            data.repositories.indexOf(appInfo.containerName).should.above(-1)
+
+
+            //now get the specific version and be sure it's there
+
+            const url = '/v2/' + appInfo.containerName + "/tags/list"
+
+            jsonClient.get(url, function (err, req, res, data) {
+              if (err) {
+                throw new Error(err)
+              }
+
+              should(res).not.null()
+              should(res.statusCode).not.null()
+              should(res.statusCode).not.undefined()
+              res.statusCode.should.equal(200)
+
+
+              should(data).not.null()
+              should(data.tags).not.undefined()
+              //should exist above a -1
+              data.tags.indexOf(appInfo.revision).should.above(-1)
+
+
+              done()
+
+            })
+          })
+
         })
       })
 

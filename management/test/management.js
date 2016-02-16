@@ -101,6 +101,8 @@ describe('management', function () {
    * Start and stop the server before and after the test suites
    */
   before(function (done) {
+    //it can take a while to init the default image on a slower connection
+    this.timeout(120000);
     docker.initialize(testConstants.defaultImage, function (err) {
       //if (!err) {
       //  throw err
@@ -142,6 +144,9 @@ describe('management', function () {
 
   describe('#upload()', function () {
     it('happy path with zip', function (done) {
+
+      //creating the zip can take a while on slower connections, as well as pushing
+      this.timeout(120000);
 
       const client = new Client('localhost', testConstants.port)
       const appName = 'testApp'+numGenerator.randomInt()
