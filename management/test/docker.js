@@ -6,6 +6,10 @@ const Docker = require('../lib/docker.js')
 const AppInfo = require('../lib/appinfo.js')
 const Io = require('../lib/io.js')
 
+function randomInt () {
+    return Math.floor(Math.random() * (100000 - 0) + 0);
+}
+
 
 describe('docker', function () {
 
@@ -18,7 +22,7 @@ describe('docker', function () {
    */
   before(function (done) {
 
-    appInfo = new AppInfo('/tmp', "orgName", "envName", "appName", 1, 104857600)
+    appInfo = new AppInfo('/tmp', "orgName", "envName", "appName"+randomInt(), 1, 104857600)
     docker = new Docker('localhost:5000')
     io = new Io()
 
@@ -49,11 +53,11 @@ describe('docker', function () {
 
       //downloading the initial onbuild can be slow
 
-      this.timeout(60000);
+      this.timeout(120000);
       docker.initialize('node:4.3.0-onbuild', function (err) {
 
         if (err) {
-          throw err
+          done(err)
         }
 
         done()
@@ -63,10 +67,13 @@ describe('docker', function () {
 
     it('create container', function (done) {
 
+      //creating a container can be slow the first time it runs
+      this.timeout(120000)
+
       docker.createContainer(appInfo, function (err, dockerId) {
 
         if (err) {
-          throw err
+          return done(err)
         }
 
         should(dockerId).not.null()
@@ -80,8 +87,34 @@ describe('docker', function () {
     })
 
     it('tag and push container', function (done) {
-      done()
+      //create the container first
+      docker.createContainer(appInfo, function (err, dockerId) {
+
+        if (err) {
+          done(err)
+        }
+
+        should(dockerId).not.null()
+        should(dockerId).not.undefined()
+
+        dockerId.should.equal(appInfo.tagName)
+
+        //now the container is created, push it
+
+        docker.tagAndPush(appInfo, function (err, result) {
+          if (err) {
+            throw err
+          }
+
+          result.should.equal(dockerId)
+
+          //TODO connect to remote repository and validate image.  Validated by hand
+          done()
+        })
+      })
+
     })
+
 
 
   })

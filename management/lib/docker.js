@@ -3,6 +3,7 @@
 
 const Dockerode = require('dockerode')
 const fs = require('fs')
+const util = require('util')
 const Io = require('./io.js')
 
 /**
@@ -29,6 +30,10 @@ const Io = require('./io.js')
  * @constructor
  */
 function Docker(repositoryUrl) {
+
+  if (!repositoryUrl) {
+    throw new Error('You must specify a repositoryUrl')
+  }
 
   this.repositoryUrl = repositoryUrl;
 
@@ -113,7 +118,7 @@ Docker.prototype.createContainer = function (appInfo, cb) {
 
   io.copyDockerfile(appInfo, function (err) {
 
-    if(err){
+    if (err) {
       return cb(err)
     }
 
@@ -129,21 +134,27 @@ Docker.prototype.createContainer = function (appInfo, cb) {
 
       docker.buildImage(fileStream, {t: appInfo.tagName}, function (err, stream) {
 
-
         if (err) {
-          throw err
+          return cb(err)
         }
 
         stream.pipe(process.stdout, {
           end: true
-        });
+        })
+
+        stream.on('error', function (err) {
+          //when we're done, get the container id
+          //docker.
+
+          return cb(err)
+        })
 
         stream.on('end', function () {
           //when we're done, get the container id
           //docker.
 
           return cb(null, appInfo.tagName)
-        });
+        })
 
 
       })
@@ -163,7 +174,9 @@ Docker.prototype.initialize = function (repoTag, cb) {
 
 
   this.docker.pull(repoTag, function (err, stream) {
-    if (err) return cb(err);
+    if (err) {
+      return cb(err);
+    }
     stream.pipe(process.stdout);
     stream.once('end', cb);
   });
@@ -175,7 +188,70 @@ Docker.prototype.initialize = function (repoTag, cb) {
  * @param appInfo
  * @param cb a Callback of the form (err, imagetag)
  */
-Docker.prototype.tagAndDeploy = function (appInfo, cb) {
+Docker.prototype.tagAndPush = function (appInfo, cb) {
+
+  const docker = this.docker
+  const image = docker.getImage(appInfo.tagName)
+
+  if (!image) {
+    return cb(new Error(util.format('could not find image with tag %s ', appInfo.tagName)))
+  }
+
+
+  const repoTagUrl = appInfo.getRepoName(this.repositoryUrl)
+
+  //const options = {repo: repoTagUrl, force: 0, tag: appInfo.revision}
+
+  const options = {repo: repoTagUrl, force: 0, tag: appInfo.revision}
+
+  console.log('Tagging with options %s and image %s', util.inspect(options, false, null), util.inspect(image))
+
+
+  image.tag(options, function (err, data) {
+
+      console.log('err is %s', err)
+
+      if (err) {
+        return cb(err)
+      }
+
+      console.log('tag complete pushing')
+
+      //now we have to re-get my the previous repo value. Not sure why, just how docker works.
+
+      const remoteImage = docker.getImage(repoTagUrl)
+
+      const pushOptions = {tag: appInfo.revision}
+
+      remoteImage.push(pushOptions, function (err, dataStream) {
+        if (err) {
+          return cb(err)
+        }
+
+        dataStream.pipe(process.stdout, {
+          end: true
+        })
+
+        dataStream.on('error', function (err) {
+          //when we're done, get the container id
+          //docker.
+
+          return cb(err)
+        })
+
+        dataStream.on('end', function () {
+          //when we're done, get the container id
+          //docker.
+          console.log('push complete. Returning tag name %s', appInfo.tagName)
+
+          return cb(null, appInfo.tagName)
+        })
+
+
+      })
+
+    }
+  )
 
 }
 

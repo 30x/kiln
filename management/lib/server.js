@@ -73,115 +73,138 @@ function Server(port, tmpDir, maxFileSize, dockerInstance) {
   this.server.put('/v1/buildnodejs/:org/:env/:app', function (req, res, next) {
 
 
-    //split for clarity
-    const orgName = req.params.org
-    const envName = req.params.env
-    const appName = req.params.app
+      //split for clarity
+      const orgName = req.params.org
+      const envName = req.params.env
+      const appName = req.params.app
 
-    const revision = req.header(revisionHeader)
+      const revision = req.header(revisionHeader)
 
-    if (!orgName) {
-      return next(new restify.errors.BadRequestError({statusCode: 400, message: 'You must specify an org name'}))
-    }
-
-    if (!envName) {
-      return next(new restify.errors.BadRequestError({statusCode: 400, message: 'You must specify an env name'}))
-    }
-
-    if (!appName) {
-      return next(new restify.errors.BadRequestError({statusCode: 400, message: 'You must specify an app name'}))
-    }
-
-    if (!revision) {
-      return next(new restify.errors.BadRequestError({
-        statusCode: 400,
-        message: 'You must specify a version in x-apigee-script-container-rev header'
-      }))
-    }
-
-    const appInfo = new AppInfo(tmpDir, orgName, envName, appName, revision, maxFileSize)
-
-    //limit our file size input
-
-    const fileWriteStream = io.createZipFileStream(appInfo, function (err) {
-
-      if (err) {
-        //return an error if we exceed the file size
-        io.cleanup(appInfo)
-        console.error('Unable to accept zip file.  %s', err)
-
-        return next(new restify.errors.errorsHttpError({statusCode: 500, message: 'Unable to accept zip file'}))
+      if (!orgName) {
+        return next(new restify.errors.BadRequestError({statusCode: 400, message: 'You must specify an org name'}))
       }
-    })
 
-    //pipe the request body to the file
-    const fileStream = req.pipe(fileWriteStream)
-
-    fileStream.on('error', function (err) {
-      if (err) {
-
-        //return an error
-        console.error('Unable to create file stream %s', err)
-        io.cleanup(appInfo)
-        return next(new restify.errors.InternalServerError({statusCode: 500, message: 'Unable to accept zip file'}))
+      if (!envName) {
+        return next(new restify.errors.BadRequestError({statusCode: 400, message: 'You must specify an env name'}))
       }
-    })
 
-    //once we're done writing the stream, render a response
-    fileStream.on('finish', function () {
-      //extract the zip file and validate it
-      io.extractZip(appInfo, function (err) {
+      if (!appName) {
+        return next(new restify.errors.BadRequestError({statusCode: 400, message: 'You must specify an app name'}))
+      }
+
+      if (!revision) {
+        return next(new restify.errors.BadRequestError({
+          statusCode: 400,
+          message: 'You must specify a version in x-apigee-script-container-rev header'
+        }))
+      }
+
+      const appInfo = new AppInfo(tmpDir, orgName, envName, appName, revision, maxFileSize)
+
+      //limit our file size input
+
+      const fileWriteStream = io.createZipFileStream(appInfo, function (err) {
+
+        if (err) {
+          //return an error if we exceed the file size
+          io.cleanup(appInfo)
+          console.error('Unable to accept zip file.  %s', err)
+
+          return next(new restify.errors.errorsHttpError({statusCode: 500, message: 'Unable to accept zip file'}))
+        }
+      })
+
+      //pipe the request body to the file
+      const fileStream = req.pipe(fileWriteStream)
+
+      fileStream.on('error', function (err) {
         if (err) {
 
-          console.error('Unable to extract zip file %s', err)
-
+          //return an error
+          console.error('Unable to create file stream %s', err)
           io.cleanup(appInfo)
-          return next(new restify.errors.BadRequestError({
-            statusCode: 400,
-            message: 'Unable to extract zip file.  Ensure you have a valid zip file.'
-          }))
+          return next(new restify.errors.InternalServerError({statusCode: 500, message: 'Unable to accept zip file'}))
         }
+      })
 
-        //validate the zip file
-        io.validateZip(appInfo, function (err) {
+      //once we're done writing the stream, render a response
+      fileStream.on('finish', function () {
+        //extract the zip file and validate it
+        io.extractZip(appInfo, function (err) {
           if (err) {
 
-            console.error('Unable to validate zip file %s', err)
+            console.error('Unable to extract zip file %s', err)
 
             io.cleanup(appInfo)
-
             return next(new restify.errors.BadRequestError({
               statusCode: 400,
-              message: 'Unable to validate node application. ' + err.message
+              message: 'Unable to extract zip file.  Ensure you have a valid zip file.'
             }))
           }
 
-          //the json is valid, TODO deploy here
+          //validate the zip file
+          io.validateZip(appInfo, function (err) {
+            if (err) {
 
-          //ignore errors on delete, if everything else is successful, we just want to log them.
+              console.error('Unable to validate zip file %s', err)
+
+              io.cleanup(appInfo)
+
+              return next(new restify.errors.BadRequestError({
+                statusCode: 400,
+                message: 'Unable to validate node application. ' + err.message
+              }))
+            }
 
 
-          docker.createContainer(appInfo, function (err, containerId) {
-
-            io.cleanup(appInfo)
+            docker.createContainer(appInfo, function (err, containerId) {
 
 
-            //send back the endpoint the caller should hit for the deployed application
-            res.send({endpoint: 'http://endpointyouhit:8080', containerId: containerId})
+              //we failed to create, cleanup and fail
+              if (err) {
+                io.cleanup(appInfo)
+                return next(new restify.errors.BadRequestError({
+                  statusCode: 400,
+                  message: 'Unable to create docker container. ' + err.message
+                }))
+              }
 
-            return next()
+
+              //tag the image and push it to the repo
+              docker.tagAndPush(appInfo, function (err, containerId) {
+
+                //cleanup regardless of success or failure, we need to either way
+                io.cleanup(appInfo)
+
+                if (err) {
+                  return next(new restify.errors.BadRequestError({
+                    statusCode: 400,
+                    message: 'Unable to tag and push the docker container. ' + err.message
+                  }))
+                }
+
+
+                //send back the endpoint the caller should hit for the deployed application
+                res.send({endpoint: 'http://endpointyouhit:8080', containerId: containerId})
+
+                return next()
+
+              })
+
+
+            })
+
+
           })
 
-
         })
+
 
       })
 
 
-    })
-
-
-  })
+    }
+  )
 
 }
 
