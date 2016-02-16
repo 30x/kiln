@@ -226,9 +226,13 @@ Docker.prototype.tagAndPush = function (appInfo, cb) {
 
   image.tag(options, function (err, data) {
 
-    console.log('err is %s', err)
+    if(!data){
+      console.log('unable to get data stream, error communicating with docker')
+      return cb(new Error('unable to get data stream, error communicating with docker when tagging'))
+    }
 
     if (err) {
+      console.log('err is %s', err)
       return cb(err)
     }
 
