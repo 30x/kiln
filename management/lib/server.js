@@ -185,7 +185,7 @@ function Server(port, tmpDir, maxFileSize, dockerInstance) {
 
 
                 //send back the endpoint the caller should hit for the deployed application
-                res.send({endpoint: 'http://endpointyouhit:8080', containerId: returnedInfo.remoteTag})
+                res.send({remoteTag: returnedInfo.remoteTag, containerId: returnedInfo.containerTag})
 
                 return next()
 

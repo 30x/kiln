@@ -165,12 +165,15 @@ describe('management', function () {
         const json = JSON.parse(bodyBuffer)
 
         should(json).not.null()
-        should(json.endpoint).not.undefined()
-        json.endpoint.should.equal('http://endpointyouhit:8080')
+        should(json.containerId).not.undefined()
+
+        const expected = ('testOrg_testEnv/' + appName + ":" + revision).toLowerCase()
+
+        json.containerId.should.equal(expected)
 
         const url = (testConstants.dockerUrl + "/testorg_testenv/"+appName+":"+revision).toLowerCase()
 
-        json.containerId.should.equal(url)
+        json.remoteTag.should.equal(url)
 
         done()
 
