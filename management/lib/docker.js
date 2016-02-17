@@ -35,6 +35,8 @@ function Docker(repositoryUrl) {
     throw new Error('You must specify a repositoryUrl')
   }
 
+  console.log('docker repository url is %s', repositoryUrl)
+
   this.repositoryUrl = repositoryUrl
 
   /**
@@ -226,7 +228,9 @@ Docker.prototype.tagAndPush = function (appInfo, cb) {
 
   image.tag(options, function (err, data) {
 
-    if(!data){
+    console.log('err is %s and data is %s', err, util.inspect(data))
+
+    if(data === null || typeof data === "undefined"){
       console.log('unable to get data stream, error communicating with docker')
       return cb(new Error('unable to get data stream, error communicating with docker when tagging'))
     }

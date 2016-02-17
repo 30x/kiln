@@ -164,7 +164,7 @@ function Server(port, tmpDir, maxFileSize, dockerInstance) {
               if (err) {
                 io.cleanup(appInfo)
                 return next(new restify.errors.BadRequestError({
-                  statusCode: 400,
+                  statusCode: 500,
                   message: 'Unable to create docker container. ' + err.message
                 }))
               }
@@ -178,7 +178,7 @@ function Server(port, tmpDir, maxFileSize, dockerInstance) {
 
                 if (err) {
                   return next(new restify.errors.BadRequestError({
-                    statusCode: 400,
+                    statusCode: 500,
                     message: 'Unable to tag and push the docker container. ' + err.message
                   }))
                 }

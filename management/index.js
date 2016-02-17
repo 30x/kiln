@@ -1,33 +1,42 @@
-'use strict';
+'use strict'
+const util = require('util')
+const Server = require('./lib/server.js')
+const Docker = require('./lib/docker.js')
+const env = require('./lib/env.js')
 
-const app = require('connect')()
-const fs = require('fs')
-const http = require('http')
-const path = require('path')
-const swaggerTools = require('swagger-tools')
-const YAML = require('js-yaml')
 
-const serverPort = process.env.PORT || 3000
-const swaggerDoc = YAML.safeLoad(fs.readFileSync('./config/swagger.yaml', 'utf-8'))
+console.log('Environment is %s', util.inspect(process.env))
 
-// Initialize the Swagger middleware
-swaggerTools.initializeMiddleware(swaggerDoc, (middleware) => {
-  // Interpret Swagger resources and attach metadata to request - must be first in swagger-tools middleware chain
-  app.use(middleware.swaggerMetadata())
 
-  // Validate Swagger requests
-  app.use(middleware.swaggerValidator())
+const port = env.get('PORT', '3000')
+const tmpDir = env.get('TMP_DIR', '/tmp')
 
-  // Route validated requests to appropriate controller
-  app.use(middleware.swaggerRouter({
-    controllers: path.join(__dirname, 'controllers')
-  }))
+/**
+ * 100 megs is our default max
+ * 100*1024*1024 =  104857600
+ */
 
-  // Serve the Swagger documents and Swagger UI
-  app.use(middleware.swaggerUi())
 
-  // Start the server
-  http.createServer(app).listen(serverPort, function () {
-    console.log('Your server is listening on port %d (http://localhost:%d)', serverPort, serverPort)
-  })
+const maxFileSize = env.get('MAX_UPLOAD_SIZE', '104857600')
+
+const dockerUrl = env.get('SHIPYARD_REPO', 'localhost:5000')
+
+const defaultImage = env.get('SHIPYARD_DEFAULT_IMAGE', 'node:4.3.0-slim')
+
+const docker = new Docker(dockerUrl)
+
+console.log('initializing docker images')
+
+docker.initialize(defaultImage, function (err) {
+
+  if(err){
+    throw err
+  }
+
+  console.log('starting server')
+
+  const server = new Server(port, tmpDir, maxFileSize, docker)
+
+  server.listen()
+
 })
