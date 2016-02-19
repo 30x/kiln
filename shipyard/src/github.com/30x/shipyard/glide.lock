@@ -1,23 +1,21 @@
-hash: 4ba26f59370272c5ca8a8542d7b97651606060d693bcd866b6c27d24b3c69b42
-updated: 2016-02-19T15:20:05.49219728-07:00
+hash: 9a13d18b80f5d76b62304523b0f992ce48bd5373ca64216c825d50a9f389e36b
+updated: 2016-02-19T15:40:59.065856603-07:00
 imports:
-- name: github.com/docker/engine-api
-  version: 9fce4cd3fa3287f962842158509b0c438365397a
-  vcs: git
+- name: github.com/fsouza/go-dockerclient
+  version: d92e9b886690a7daa42daa3807d1829c6e6a9d0a
   subpackages:
-  - client
-  - types
-  - types/container
-  - types/filters
-  - types/network
-  - types/registry
-  - types/time
-  - types/blkiodev
-  - types/strslice
-- name: github.com/docker/go-connections
-  version: 34b5052da6b11e27f5f2e357b38b571ddddd3928
-  subpackages:
-  - nat
-- name: github.com/docker/go-units
-  version: 5d2041e26a699eaca682e2ea41c8f891e1060444
+  - external/github.com/docker/docker/opts
+  - external/github.com/docker/docker/pkg/archive
+  - external/github.com/docker/docker/pkg/fileutils
+  - external/github.com/docker/docker/pkg/homedir
+  - external/github.com/docker/docker/pkg/stdcopy
+  - external/github.com/hashicorp/go-cleanhttp
+  - external/github.com/Sirupsen/logrus
+  - external/github.com/docker/docker/pkg/idtools
+  - external/github.com/docker/docker/pkg/ioutils
+  - external/github.com/docker/docker/pkg/pools
+  - external/github.com/docker/docker/pkg/promise
+  - external/github.com/docker/docker/pkg/system
+  - external/github.com/opencontainers/runc/libcontainer/user
+  - external/golang.org/x/net/context
 devImports: []
