@@ -1,0 +1,8 @@
+package: github.com/30x/shipyard
+import:
+- package: github.com/docker/engine-api
+  subpackages:
+  - client
+  - types
+  vcs: git
+  version: v0.2.3

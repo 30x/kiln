@@ -34,3 +34,5 @@ node_modules
 management/.idea
 *.iml
 shipyard/.idea
+shipyard/pkg
+shipyard/bin
