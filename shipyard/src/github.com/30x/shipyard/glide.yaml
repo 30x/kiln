@@ -1,3 +1,4 @@
 package: github.com/30x/shipyard
 import:
 - package: github.com/fsouza/go-dockerclient
+- package: github.com/nu7hatch/gouuid

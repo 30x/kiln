@@ -1,14 +1,22 @@
-package main
+package shipyard
 
 import (
-    "github.com/30x/shipyard/docker"
     "log"
     "os"
 )
 
 func main() {
 
-    imageCreator, error := docker.NewImageCreator()
+    dockerImage :=  &DockerInfo{
+        TarFile: "/tmp/test.tar",
+        RepoName: "test",
+        ImageName: "test",
+        Version: "v1.0",
+    }
+
+    const remoteUrl = "http://localhost:5000"
+
+    imageCreator, error := NewImageCreator(remoteUrl)
 
     if(error != nil){
         log.Fatal( error)
@@ -16,6 +24,10 @@ func main() {
     }
 
     imageCreator.ListImages()
+
+    imageCreator.BuildImage(dockerImage)
+    imageCreator.TagImage(dockerImage)
+    imageCreator.PushImage(dockerImage)
 
 
 }
