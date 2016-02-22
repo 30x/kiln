@@ -3,13 +3,14 @@ package shipyard
 import (
 	"testing"
 	"os"
+	"io"
 )
 
 //TestCreateWorkspace Tests creating the temporary working directory
 func TestCreateWorkspace(t *testing.T) {
 	workspace, err := CreateNewWorkspace()
 
-	if(err != nil){
+	if (err != nil) {
 		t.Fatal("Should not return an error creating a valid workspace")
 	}
 
@@ -28,11 +29,87 @@ func TestNoPermissions(t *testing.T) {
 
 	workspace, err := CreateNewWorkspace()
 
-	if(workspace !=nil && err == nil){
+	if (workspace != nil && err == nil) {
 		t.Fatal("Should not have been able to create the directory")
 	}
 
 	//unset variable
 	os.Setenv(SHIPYARD_ENV_VARIABLE, "")
 
+}
+
+
+
+//TestNoPermissions Tests an error is correctly thrown when the system cant' create the directory
+func TestUnzip(t *testing.T) {
+
+	const validTestZip = "testresources/echo-test.zip"
+	workspace, err := CreateNewWorkspace()
+
+	if _, err := os.Stat(validTestZip); os.IsNotExist(err) {
+		t.Fatal("Could not find source file " + validTestZip)
+	}
+
+	if (err != nil) {
+		t.Fatal("Should not have been able to create the directory")
+	}
+
+
+
+
+	//create a symlink to a valid test zip into our zip workspace
+	err = copyFile(validTestZip, workspace.sourceZipFile)
+
+	if (err != nil) {
+		t.Fatal("Could not link test archive for verification of unzip", err)
+	}
+
+	err = workspace.ExtractZipFile()
+
+	if ( err != nil) {
+		t.Fatal("Could not extract zip file ", err)
+	}
+
+	//now validate the file
+
+	testFile := workspace.sourceDirectory + "/index.js"
+
+	if _, err := os.Stat(testFile); os.IsNotExist(err) {
+		t.Fatal("Could not find source file " + testFile)
+	}
+
+	testFile = workspace.sourceDirectory + "/package.json"
+
+	if _, err := os.Stat(testFile); os.IsNotExist(err) {
+		t.Fatal("Could not find source file " + testFile)
+	}
+
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	//defer closing
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	//defer closing
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+
+	if _, err = io.Copy(out, in); err != nil {
+		return err
+	}
+	err = out.Sync()
+	return err
 }
