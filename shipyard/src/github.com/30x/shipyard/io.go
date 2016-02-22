@@ -45,10 +45,10 @@ func CreateNewWorkspace() (*SourceInfo, error) {
 
 	uuid := uuidBinary.String()
 
-	rootDirectory := tmpDir + "/" + uuid
+	rootDirectory := tmpDir + "/shipyard/" + uuid
 	sourceDirectory := rootDirectory + "/source"
-	zipFileName := rootDirectory + ".zip"
-	targetTarName := rootDirectory + ".tar"
+	zipFileName := rootDirectory + "/input.zip"
+	targetTarName := rootDirectory + "/docker-data.tar"
 
 	sourceInfo := &SourceInfo{
 		rootDirectory: rootDirectory,

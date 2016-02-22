@@ -1,8 +1,9 @@
-hash: 03ca763b282689797c503a9c59fd89a89f82381e71e65ef93507a284d908128a
-updated: 2016-02-19T17:41:00.217005402-07:00
+hash: 2ef016df70cd8ae07f793756f607dca3b38be587c079d5d5a6b69d5ab1a50dda
+updated: 2016-02-22T14:31:52.145975614-07:00
 imports:
 - name: github.com/fsouza/go-dockerclient
   version: d92e9b886690a7daa42daa3807d1829c6e6a9d0a
+  vcs: git
   subpackages:
   - external/github.com/docker/docker/opts
   - external/github.com/docker/docker/pkg/archive
@@ -20,4 +21,5 @@ imports:
   - external/golang.org/x/net/context
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
+  vcs: git
 devImports: []

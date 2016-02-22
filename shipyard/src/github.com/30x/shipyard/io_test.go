@@ -19,6 +19,19 @@ func TestCreateWorkspace(t *testing.T) {
 		t.Fatal("Could not find directory " + workspace.sourceDirectory)
 	}
 
+	if _, err := os.Stat(workspace.rootDirectory); os.IsNotExist(err) {
+		t.Fatal("Could not find directory " + workspace.rootDirectory)
+	}
+
+	if (workspace.sourceZipFile == "") {
+		t.Fatal("sourceZipFile should be specified")
+	}
+
+	if (workspace.targetTarName == "") {
+		t.Fatal("targetTarName should be specified")
+	}
+
+
 	//otherwise success
 }
 
@@ -27,14 +40,16 @@ func TestNoPermissions(t *testing.T) {
 
 	os.Setenv(SHIPYARD_ENV_VARIABLE, "/usr/ishouldntbecreated")
 
+	//unset variable
+	defer os.Setenv(SHIPYARD_ENV_VARIABLE, DEFAULT_TMP_DIR)
+
 	workspace, err := CreateNewWorkspace()
 
 	if (workspace != nil && err == nil) {
 		t.Fatal("Should not have been able to create the directory")
 	}
 
-	//unset variable
-	os.Setenv(SHIPYARD_ENV_VARIABLE, "")
+
 
 }
 
@@ -44,16 +59,20 @@ func TestNoPermissions(t *testing.T) {
 func TestUnzip(t *testing.T) {
 
 	const validTestZip = "testresources/echo-test.zip"
-	workspace, err := CreateNewWorkspace()
 
 	if _, err := os.Stat(validTestZip); os.IsNotExist(err) {
 		t.Fatal("Could not find source file " + validTestZip)
 	}
 
+	workspace, err := CreateNewWorkspace()
+
 	if (err != nil) {
 		t.Fatal("Should not have been able to create the directory")
 	}
 
+	if( workspace == nil){
+		t.Fatal("Workspace should not be nil")
+	}
 
 
 
@@ -74,14 +93,15 @@ func TestUnzip(t *testing.T) {
 
 	testFile := workspace.sourceDirectory + "/index.js"
 
-	if _, err := os.Stat(testFile); os.IsNotExist(err) {
-		t.Fatal("Could not find source file " + testFile)
+
+	if _, err := os.Stat(testFile); err != nil {
+		t.Fatal("Could not find source file " + testFile, err)
 	}
 
 	testFile = workspace.sourceDirectory + "/package.json"
 
-	if _, err := os.Stat(testFile); os.IsNotExist(err) {
-		t.Fatal("Could not find source file " + testFile)
+	if _, err := os.Stat(testFile); err != nil {
+		t.Fatal("Could not find source file " + testFile, err)
 	}
 
 }

@@ -1,4 +1,8 @@
 package: github.com/30x/shipyard
 import:
 - package: github.com/fsouza/go-dockerclient
+  vcs: git
+  version: d92e9b886690a7daa42daa3807d1829c6e6a9d0a
 - package: github.com/nu7hatch/gouuid
+  vcs: git
+  version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
