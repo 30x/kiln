@@ -1,10 +1,12 @@
 package shipyard
 
 import ("os"
-"github.com/nu7hatch/gouuid"
+	"github.com/nu7hatch/gouuid"
+	"archive/tar"
 )
 
 const DEFAULT_TMP_DIR = "/tmp"
+const SHIPYARD_ENV_VARIABLE = "SHIPYARD_TMP_DIR"
 const defaultFileMode = 0777
 
 type SourceInfo struct {
@@ -16,8 +18,9 @@ type SourceInfo struct {
 
 
 //CreateNewWorkspace Creates a new tmp directory and return a source directory struct
-func CreateNewWorkspace() (*SourceInfo) {
-	tmpDir, exists := os.LookupEnv("TMP_DIR")
+func CreateNewWorkspace() (*SourceInfo, error) {
+
+	tmpDir, exists := os.LookupEnv(SHIPYARD_ENV_VARIABLE)
 
 	if (!exists) {
 		tmpDir = DEFAULT_TMP_DIR
@@ -27,7 +30,7 @@ func CreateNewWorkspace() (*SourceInfo) {
 
 
 	if(err != nil ){
-		//TODO, something useful here
+		return nil, err
 	}
 
 
@@ -42,15 +45,20 @@ func CreateNewWorkspace() (*SourceInfo) {
 	}
 
 	//create the directory
-	os.MkdirAll(sourceInfo.sourceDirectory,defaultFileMode )
+	mkdirError := os.MkdirAll(sourceInfo.sourceDirectory,defaultFileMode )
+
+	if(mkdirError != nil){
+		return nil, err
+	}
 
 
-	return sourceInfo;
+	return sourceInfo, nil;
 
 }
 
 //BuildTarFile.  Copies the docker file into the current working directory, tars the source and returns
 func (sourceInfo *SourceInfo) BuildTarFile(){
+
 
 }
 
