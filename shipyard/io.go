@@ -8,7 +8,7 @@ import (
 	"io"
 	"errors"
 	"archive/zip"
-	"github.com/nu7hatch/gouuid"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 const DEFAULT_TMP_DIR = "/tmp"

@@ -1,5 +1,5 @@
 hash: 2ef016df70cd8ae07f793756f607dca3b38be587c079d5d5a6b69d5ab1a50dda
-updated: 2016-02-22T14:31:52.145975614-07:00
+updated: 2016-02-29T15:04:20.894265778-07:00
 imports:
 - name: github.com/fsouza/go-dockerclient
   version: d92e9b886690a7daa42daa3807d1829c6e6a9d0a
