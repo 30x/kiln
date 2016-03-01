@@ -1,6 +1,5 @@
 package shipyard
 
-
-func BuildImage(sourceInfo *SourceInfo, imageCreator *ImageCreator){
+func BuildImage(sourceInfo *SourceInfo, imageCreator *ImageCreator) {
 
 }

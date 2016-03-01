@@ -49,13 +49,13 @@ paths:
           description: The request was for a repository that does not exist
           schema:
             $ref: '#/definitions/Error'
-    parameters:
+      parameters:
       - name: repo
         in: path
         description: The repository id
         required: true
         type: string
-    tags:
+      tags:
       - image
   /images/{repo}/{application}:
     get:
@@ -72,7 +72,7 @@ paths:
           description: The request was for a repository or application that does not exist
           schema:
             $ref: '#/definitions/Error'
-    parameters:
+      parameters:
       - name: repo
         in: path
         description: The repository id
@@ -83,8 +83,8 @@ paths:
         description: The Application
         required: true
         type: string 
-    tags:
-      - image
+      tags:
+        - image
   /images/{repo}/{application}/{revision}:
     get:
       description: Get all revisions for the application in the repository
@@ -100,7 +100,7 @@ paths:
           description: The request was for a repository or application that does not exist
           schema:
             $ref: '#/definitions/Error'
-    parameters:
+      parameters:
       - name: repo
         in: path
         description: The repository id
@@ -116,7 +116,7 @@ paths:
         description: The Revision
         required: true
         type: string
-    tags:
+      tags:
       - image
   /deployments/{repo}/{application}/{revision}:
     put:
@@ -292,7 +292,8 @@ definitions:
     properties:
       created:
         description: The timestamp the image was created
-        type: integer
+        type: string
+        format: dateTime
       size:
         description: The size of the image, in bytes
         type: integer
@@ -322,7 +323,7 @@ definitions:
         items:
           type: string
     required:
-      - deployables
+      - controller
       - logs
       # _links will have a 'self' link and an 'deployables' link when the build completes successfully
       - _links

@@ -1,36 +1,47 @@
 package shipyard
 
 import (
-	"testing"
+	"log"
 	"os"
-	"io"
+	"strings"
+	"testing"
+	"github.com/30x/shipyard/util"
 )
 
 //TestCreateWorkspace Tests creating the temporary working directory
 func TestCreateWorkspace(t *testing.T) {
 	workspace, err := CreateNewWorkspace()
 
-	if (err != nil) {
+	if err != nil {
 		t.Fatal("Should not return an error creating a valid workspace")
 	}
 
 	//if could not find directory, it's a fail
-	if _, err := os.Stat(workspace.sourceDirectory); os.IsNotExist(err) {
-		t.Fatal("Could not find directory " + workspace.sourceDirectory)
+	if _, err := os.Stat(workspace.SourceDirectory); os.IsNotExist(err) {
+		t.Fatal("Could not find directory " + workspace.SourceDirectory)
 	}
 
-	if _, err := os.Stat(workspace.rootDirectory); os.IsNotExist(err) {
-		t.Fatal("Could not find directory " + workspace.rootDirectory)
+	if _, err := os.Stat(workspace.RootDirectory); os.IsNotExist(err) {
+		t.Fatal("Could not find directory " + workspace.RootDirectory)
 	}
 
-	if (workspace.sourceZipFile == "") {
+	if workspace.SourceZipFile == "" {
 		t.Fatal("sourceZipFile should be specified")
 	}
 
-	if (workspace.targetTarName == "") {
+	if workspace.TargetTarName == "" {
 		t.Fatal("targetTarName should be specified")
 	}
 
+	if !strings.Contains(workspace.DockerFile, workspace.SourceDirectory) {
+		t.Fatal("Docker file should be in the source directory")
+	}
+
+	subString := strings.Replace(workspace.DockerFile, workspace.SourceDirectory, "", 1)
+
+	if subString != "/Dockerfile" {
+		t.Fatal("Dockerfile was not in the correct location")
+	}
 
 	//otherwise success
 }
@@ -45,20 +56,16 @@ func TestNoPermissions(t *testing.T) {
 
 	workspace, err := CreateNewWorkspace()
 
-	if (workspace != nil && err == nil) {
+	if workspace != nil && err == nil {
 		t.Fatal("Should not have been able to create the directory")
 	}
 
-
-
 }
-
-
 
 //TestNoPermissions Tests an error is correctly thrown when the system cant' create the directory
 func TestUnzip(t *testing.T) {
 
-	const validTestZip = "testresources/echo-test.zip"
+	const validTestZip = "../testresources/echo-test.zip"
 
 	if _, err := os.Stat(validTestZip); os.IsNotExist(err) {
 		t.Fatal("Could not find source file " + validTestZip)
@@ -66,70 +73,41 @@ func TestUnzip(t *testing.T) {
 
 	workspace, err := CreateNewWorkspace()
 
-	if (err != nil) {
+	if err != nil {
 		t.Fatal("Should not have been able to create the directory")
 	}
 
-	if( workspace == nil){
+	if workspace == nil {
 		t.Fatal("Workspace should not be nil")
 	}
 
-
-
 	//create a symlink to a valid test zip into our zip workspace
-	err = copyFile(validTestZip, workspace.sourceZipFile)
+	err = util.CopyFile(validTestZip, workspace.SourceZipFile)
 
-	if (err != nil) {
+	if err != nil {
 		t.Fatal("Could not link test archive for verification of unzip", err)
 	}
 
 	err = workspace.ExtractZipFile()
 
-	if ( err != nil) {
+	if err != nil {
 		t.Fatal("Could not extract zip file ", err)
 	}
 
 	//now validate the file
+	log.Printf("Testing for source files in " + workspace.SourceDirectory)
 
-	testFile := workspace.sourceDirectory + "/index.js"
+	testFile := workspace.SourceDirectory + "/index.js"
 
-
-	if _, err := os.Stat(testFile); err != nil {
+	if stat, err := os.Stat(testFile); err != nil || stat == nil {
 		t.Fatal("Could not find source file " + testFile, err)
 	}
 
-	testFile = workspace.sourceDirectory + "/package.json"
+	testFile = workspace.SourceDirectory + "/package.json"
 
-	if _, err := os.Stat(testFile); err != nil {
+	if stat, err := os.Stat(testFile); err != nil || stat == nil {
 		t.Fatal("Could not find source file " + testFile, err)
 	}
 
 }
 
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	//defer closing
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-
-	//defer closing
-	defer func() {
-		cerr := out.Close()
-		if err == nil {
-			err = cerr
-		}
-	}()
-
-	if _, err = io.Copy(out, in); err != nil {
-		return err
-	}
-	err = out.Sync()
-	return err
-}

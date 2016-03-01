@@ -1,33 +1,33 @@
-package main
+package shipyard
 
 import (
-	"os"
-	"github.com/30x/shipyard/shipyard"
-	"github.com/30x/shipyard/util"
-	"io/ioutil"
 	"fmt"
 	"github.com/fsouza/go-dockerclient"
+	"io/ioutil"
+	"os"
 	"strings"
+	"testing"
+"github.com/30x/shipyard/util"
 )
 
-func main() {
+func TestCreateTar(t *testing.T) {
 
 	const remoteUrl = "http://localhost:5000"
 
-	imageCreator, error := shipyard.NewImageCreator(remoteUrl)
+	imageCreator, error := NewImageCreator(remoteUrl)
 
 	if error != nil {
-		os.Exit(0)
+		t.Fatal("Could not create image", error)
 	}
 
-	const validTestZip = "testresources/echo-test.zip"
+	const validTestZip = "../testresources/echo-test.zip"
 
-	workspace := doSetup(validTestZip)
+	workspace := DoSetup(validTestZip, t)
 
 	//clean up the workspace after the test.  Comment this out for debugging
 	//defer workspace.Clean()
 
-	dockerImage := &shipyard.DockerInfo{
+	dockerImage := &DockerInfo{
 		TarFile:   workspace.TargetTarName,
 		RepoName:  "test" + util.UUIDString(),
 		ImageName: "test",
@@ -44,7 +44,7 @@ func main() {
 
 	if err != nil {
 
-		shipyard.Log.Fatal("Unable to list images", err)
+		t.Fatal("Unable to list images", err)
 	}
 
 	printImages(&images)
@@ -52,7 +52,7 @@ func main() {
 	dockerTag := dockerImage.RepoName + "/" + dockerImage.ImageName + ":" + dockerImage.Revision
 
 	if !imageExists(&images, dockerTag) {
-		shipyard.Log.Fatal("Could not find image with the docker tags", dockerTag)
+		t.Fatal("Could not find image with the docker tags", dockerTag)
 	}
 
 	//
@@ -88,37 +88,37 @@ func imageExists(images *[]docker.APIImages, repoTagName string) bool {
 }
 
 //doSetup Copies the specified inputZip file into the source directory and adds the docker file to it
-func doSetup(inputZip string) *shipyard.SourceInfo {
+func DoSetup(inputZip string, t *testing.T) *SourceInfo {
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
 
 	const dockerAsset = "resources/Dockerfile"
 
-	workspace, err := shipyard.CreateNewWorkspace()
+	workspace, err := CreateNewWorkspace()
 
 	if err != nil {
-		shipyard.Log.Fatal("Should not return an error creating a valid workspace")
+		t.Fatal("Should not return an error creating a valid workspace")
 	}
 
 	//change the source zip input for extactraction
 
 	util.CopyFile(inputZip, workspace.SourceZipFile)
 
-	shipyard.Log.Printf("Extracting zip file %s to %s", workspace.SourceZipFile, workspace.SourceDirectory)
+	Log.Printf("Extracting zip file %s to %s", workspace.SourceZipFile, workspace.SourceDirectory)
 
 	//now that the zip file is extracted, copy the docker file
 	err = workspace.ExtractZipFile()
 
-	data, err := shipyard.Asset(dockerAsset)
+	data, err := Asset(dockerAsset)
 
 	if err != nil {
-		shipyard.Log.Fatal("Could not find asset ", err)
+		t.Fatal("Could not find asset ", err)
 	}
 
 	ioutil.WriteFile(workspace.DockerFile, data, 770)
 
 	if stat, err := os.Stat(workspace.DockerFile); err != nil || stat == nil {
-		shipyard.Log.Fatal("Could not find docker file " + workspace.DockerFile, err)
+		t.Fatal("Could not find docker file "+workspace.DockerFile, err)
 	}
 
 	//now tar it up
