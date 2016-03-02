@@ -49,14 +49,14 @@ paths:
           description: The request was for a repository that does not exist
           schema:
             $ref: '#/definitions/Error'
-      parameters:
+      tags:
+        - image
+    parameters:
       - name: repo
         in: path
         description: The repository id
         required: true
         type: string
-      tags:
-      - image
   /images/{repo}/{application}:
     get:
       description: Get all revisions for the application in the repository
@@ -100,7 +100,9 @@ paths:
           description: The request was for a repository or application that does not exist
           schema:
             $ref: '#/definitions/Error'
-      parameters:
+      tags:
+        - image
+    parameters:
       - name: repo
         in: path
         description: The repository id
@@ -116,48 +118,6 @@ paths:
         description: The Revision
         required: true
         type: string
-      tags:
-      - image
-  /deployments/{repo}/{application}/{revision}:
-    put:
-      description: Create or update a deploment of the specified revision
-      operationId: createOrUpdate deployment
-      responses:
-        200:
-          description: The request was for a valid repo, application, and image
-          schema:
-            $ref: '#/definitions/Deployment'
-        404:
-          description: The revision does not exist
-          schema:
-            $ref: '#/definitions/Error'
-        400:
-          description: Unable to deploy the application
-          schema:
-            $ref: '#/definitions/Error'
-      parameters:
-      - name: repo
-        in: path
-        description: The repository id
-        required: true
-        type: string  
-      - name: application
-        in: path
-        description: The Application name
-        required: true
-        type: string  
-      - name: revision
-        in: path
-        description: The Revision
-        required: true
-        type: string 
-      - name: count
-        in: body
-        description: The number of images to deploy
-        required: true
-        type: integer    
-      tags:
-        - deploy
   /deployments/{repo}:
     get:
       description: Get all deployments for this repository
@@ -219,22 +179,48 @@ paths:
           description: The request was for a repository or application that does not exist
           schema:
             $ref: '#/definitions/Error'
+    put:
+      description: Create or update a deploment of the specified revision
+      operationId: createOrUpdate deployment
+      responses:
+        200:
+          description: The request was for a valid repo, application, and image
+          schema:
+            $ref: '#/definitions/Deployment'
+        404:
+          description: The revision does not exist
+          schema:
+            $ref: '#/definitions/Error'
+        400:
+          description: Unable to deploy the application
+          schema:
+            $ref: '#/definitions/Error'
+      parameters:
+      - name: count
+        in: body
+        description: The number of images to deploy
+        required: true
+        schema:
+          type: integer
+       
     parameters:
-      - name: repo
-        in: path
-        description: The repository id
-        required: true
-        type: string  
-      - name: application
-        in: path
-        description: The Application name
-        required: true
-        type: string  
-      - name: revision
-        in: path
-        description: The Revision
-        required: true
-        type: string         
+    - name: repo
+      in: path
+      description: The repository id
+      required: true
+      type: string  
+    - name: application
+      in: path
+      description: The Application name
+      required: true
+      type: string  
+    - name: revision
+      in: path
+      description: The Revision
+      required: true
+      type: string  
+   
+      
 definitions:
   Build:
     description: Object that describes a build.
@@ -293,7 +279,7 @@ definitions:
       created:
         description: The timestamp the image was created
         type: string
-        format: dateTime
+        format: date-time
       size:
         description: The size of the image, in bytes
         type: integer

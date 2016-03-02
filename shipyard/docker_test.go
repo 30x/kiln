@@ -9,9 +9,43 @@ import (
 	"testing"
 )
 
+const remoteUrl = "http://localhost:5000"
+
+//tests creating an image, then assets it is present in docker
 func TestCreateTar(t *testing.T) {
 
-	const remoteUrl = "http://localhost:5000"
+	createImage(t)
+	//
+	//imageCreator.TagImage(dockerImage)
+	//imageCreator.PushImage(dockerImage)
+
+}
+
+func TestTagImage(t *testing.T) {
+
+	_, dockerInfo, imageCreator := createImage(t)
+
+	imageCreator.TagImage(dockerInfo)
+
+	images, err := imageCreator.ListImages()
+
+	if err != nil {
+
+		t.Fatal("Unable to list images", err)
+	}
+
+	printImages(&images)
+
+	dockerTag := remoteUrl + "/" + dockerInfo.RepoName + "/" + dockerInfo.ImageName + ":" + dockerInfo.Revision
+
+	if !imageExists(&images, dockerTag) {
+		t.Fatal("Could not find image with the docker tags", dockerTag)
+	}
+
+}
+
+//createImage creates an image and validates it exists in docker.  Assumes you have a docker registry API running at localhost:5000
+func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 
 	imageCreator, error := NewImageCreator(remoteUrl)
 
@@ -54,9 +88,7 @@ func TestCreateTar(t *testing.T) {
 		t.Fatal("Could not find image with the docker tags", dockerTag)
 	}
 
-	//
-	//imageCreator.TagImage(dockerImage)
-	//imageCreator.PushImage(dockerImage)
+	return workspace, dockerImage, imageCreator
 
 }
 
@@ -116,11 +148,15 @@ func DoSetup(inputZip string, t *testing.T) *SourceInfo {
 	ioutil.WriteFile(workspace.DockerFile, data, 770)
 
 	if stat, err := os.Stat(workspace.DockerFile); err != nil || stat == nil {
-		t.Fatal("Could not find docker file "+workspace.DockerFile, err)
+		t.Fatal("Could not find docker file " + workspace.DockerFile, err)
 	}
 
 	//now tar it up
-	workspace.BuildTarFile()
+	err = workspace.BuildTarFile()
+
+	if err != nil {
+		t.Fatal("Unable to create tar file")
+	}
 
 	return workspace
 

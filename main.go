@@ -28,7 +28,7 @@ func main() {
 
 	dockerImage := &shipyard.DockerInfo{
 		TarFile:   workspace.TargetTarName,
-		RepoName:  "test" + util.UUIDString(),
+		RepoName:  "test" + shipyard.UUIDString(),
 		ImageName: "test",
 		Revision:   "v1.0",
 	}
@@ -101,7 +101,7 @@ func doSetup(inputZip string) *shipyard.SourceInfo {
 
 	//change the source zip input for extactraction
 
-	util.CopyFile(inputZip, workspace.SourceZipFile)
+	shipyard.CopyFile(inputZip, workspace.SourceZipFile)
 
 	shipyard.Log.Printf("Extracting zip file %s to %s", workspace.SourceZipFile, workspace.SourceDirectory)
 
