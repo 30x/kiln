@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-"github.com/30x/shipyard/util"
 )
 
 func TestCreateTar(t *testing.T) {
@@ -29,7 +28,7 @@ func TestCreateTar(t *testing.T) {
 
 	dockerImage := &DockerInfo{
 		TarFile:   workspace.TargetTarName,
-		RepoName:  "test" + util.UUIDString(),
+		RepoName:  "test" + UUIDString(),
 		ImageName: "test",
 		Revision:   "v1.0",
 	}
@@ -101,8 +100,7 @@ func DoSetup(inputZip string, t *testing.T) *SourceInfo {
 	}
 
 	//change the source zip input for extactraction
-
-	util.CopyFile(inputZip, workspace.SourceZipFile)
+	CopyFile(inputZip, workspace.SourceZipFile)
 
 	Log.Printf("Extracting zip file %s to %s", workspace.SourceZipFile, workspace.SourceDirectory)
 

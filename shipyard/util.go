@@ -1,4 +1,4 @@
-package util
+package shipyard
 
 import (
 "os"

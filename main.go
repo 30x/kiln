@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"github.com/30x/shipyard/shipyard"
-	"github.com/30x/shipyard/util"
 	"io/ioutil"
 	"fmt"
 	"github.com/fsouza/go-dockerclient"

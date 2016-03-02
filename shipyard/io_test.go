@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"github.com/30x/shipyard/util"
 )
 
 //TestCreateWorkspace Tests creating the temporary working directory
@@ -82,7 +81,7 @@ func TestUnzip(t *testing.T) {
 	}
 
 	//create a symlink to a valid test zip into our zip workspace
-	err = util.CopyFile(validTestZip, workspace.SourceZipFile)
+	err = CopyFile(validTestZip, workspace.SourceZipFile)
 
 	if err != nil {
 		t.Fatal("Could not link test archive for verification of unzip", err)
