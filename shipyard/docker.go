@@ -80,12 +80,12 @@ func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) (io.Reader
 
 	name := dockerInfo.getTagName()
 
-	Log.Printf("Uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
+	Log.Printf("Started uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
 
 	inputReader, err := os.Open(dockerInfo.TarFile)
 
 	if err != nil {
-		Log.Fatal("Unable to open tar file " + dockerInfo.TarFile + "for input")
+		Log.Fatal("Unable to open tar file "+dockerInfo.TarFile+"for input", err)
 		return nil, err
 	}
 
@@ -98,21 +98,12 @@ func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) (io.Reader
 		OutputStream: outputBuffer,
 	}
 
-	//hacky, need to pipe this to a log
-	//outputBuffer.WriteTo(std_out)
-
-	Log.Printf("Started build image with options %s", buildImageOptions)
-
 	if err := imageCreator.client.BuildImage(buildImageOptions); err != nil {
 		Log.Fatal(err)
 		return nil, err
 	}
 
-	Log.Printf("Completed build image with options %s", buildImageOptions)
-
-	// TODO fix this
-
-	//print the output stream
+	Log.Printf("Completed uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
 
 	return outputBuffer, nil
 

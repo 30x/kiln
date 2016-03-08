@@ -1,7 +1,7 @@
 package shipyard
 
 import (
-	"fmt"
+	// "fmt"
 	"github.com/fsouza/go-dockerclient"
 	"io"
 	"io/ioutil"
@@ -113,14 +113,14 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 }
 
 func printImages(images *[]docker.APIImages) {
-	for _, img := range *images {
-		fmt.Println("ID: ", img.ID)
-		fmt.Println("RepoTags: ", img.RepoTags)
-		fmt.Println("Created: ", img.Created)
-		fmt.Println("Size: ", img.Size)
-		fmt.Println("VirtualSize: ", img.VirtualSize)
-		fmt.Println("ParentId: ", img.ParentID)
-	}
+	// for _, img := range *images {
+	// 	fmt.Println("ID: ", img.ID)
+	// 	fmt.Println("RepoTags: ", img.RepoTags)
+	// 	fmt.Println("Created: ", img.Created)
+	// 	fmt.Println("Size: ", img.Size)
+	// 	fmt.Println("VirtualSize: ", img.VirtualSize)
+	// 	fmt.Println("ParentId: ", img.ParentID)
+	// }
 }
 
 //imageExists.  Returns true if an image has been tagged with the specified repo name
