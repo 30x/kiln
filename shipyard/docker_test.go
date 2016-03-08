@@ -3,6 +3,7 @@ package shipyard
 import (
 	"fmt"
 	"github.com/fsouza/go-dockerclient"
+	"io"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -23,11 +24,13 @@ func TestPushImage(t *testing.T) {
 
 	_, dockerInfo, imageCreator := createImage(t)
 
-	err := imageCreator.PushImage(dockerInfo)
+	stream, err := imageCreator.PushImage(dockerInfo)
 
 	if err != nil {
 		t.Fatal("Unable to push image", err)
 	}
+
+	io.Copy(os.Stdout, stream)
 
 	images, err := imageCreator.ListImages()
 
@@ -44,12 +47,12 @@ func TestPushImage(t *testing.T) {
 	}
 
 	//TODO test if image exists in remote repo
-    
-    err = imageCreator.PullImage(dockerInfo)
-    
-    if err != nil{
-        t.Fatal("Could not pull image from remote repo, upload may have failed", err)
-    }
+
+	err = imageCreator.PullImage(dockerInfo)
+
+	if err != nil {
+		t.Fatal("Could not pull image from remote repo, upload may have failed", err)
+	}
 
 }
 
@@ -80,7 +83,13 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
 
-	imageCreator.BuildImage(dockerImage)
+	stream, err := imageCreator.BuildImage(dockerImage)
+
+	if err != nil {
+		t.Fatal("Unable to build image", err)
+	}
+
+	io.Copy(os.Stdout, stream)
 
 	//get the image from docker and ensure it exists
 
@@ -93,7 +102,7 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 
 	printImages(&images)
 
-	dockerTag := dockerImage.RepoName + "/" + dockerImage.ImageName + ":" + dockerImage.Revision
+	dockerTag := dockerImage.getTagName()
 
 	if !imageExists(&images, dockerTag) {
 		t.Fatal("Could not find image with the docker tags", dockerTag)

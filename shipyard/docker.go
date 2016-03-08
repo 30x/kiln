@@ -5,6 +5,7 @@ import (
 	"github.com/fsouza/go-dockerclient"
 	"os"
 	// "io"
+	"io"
 )
 
 //DockerInfo is a struct that holds information for creating a docker container
@@ -74,8 +75,8 @@ func (imageCreator *ImageCreator) ListImages() ([]docker.APIImages, error) {
 
 }
 
-//BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version
-func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) error {
+//BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
+func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) (io.Reader, error) {
 
 	name := dockerInfo.getTagName()
 
@@ -85,7 +86,7 @@ func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) error {
 
 	if err != nil {
 		Log.Fatal("Unable to open tar file " + dockerInfo.TarFile + "for input")
-		return err
+		return nil, err
 	}
 
 	//make an output buffer with 1m
@@ -104,22 +105,21 @@ func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) error {
 
 	if err := imageCreator.client.BuildImage(buildImageOptions); err != nil {
 		Log.Fatal(err)
-		return err
+		return nil, err
 	}
 
 	Log.Printf("Completed build image with options %s", buildImageOptions)
 
 	// TODO fix this
-	// outputBuffer.WriteTo(os.Stdout)
 
 	//print the output stream
 
-	return nil
+	return outputBuffer, nil
 
 }
 
-//PushImage pushes the remotely tagged image to docker
-func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) error {
+//PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
+func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) (io.Reader, error) {
 
 	localTag := dockerInfo.getTagName()
 	remoteRepo := imageCreator.remoteRepo
@@ -134,7 +134,7 @@ func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) error {
 	err := imageCreator.client.TagImage(localTag, tagOptions)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	//now push the image
@@ -152,10 +152,10 @@ func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) error {
 	err = imageCreator.client.PushImage(pushOts, authConfig)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return outputBuffer, nil
 }
 
 //PullImage pull the specified image to our the docker runtime
