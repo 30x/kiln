@@ -37,3 +37,5 @@ shipyard/.idea
 shipyard/pkg
 shipyard/bin
 .idea
+.vscode
+debug.test

@@ -9,15 +9,13 @@ import (
 	"testing"
 )
 
-const remoteUrl = "http://localhost:5000"
+const remoteURL = "localhost:5000"
 
 //tests creating an image, then assets it is present in docker
 func TestCreateTar(t *testing.T) {
 
 	createImage(t)
-	//
-	//imageCreator.TagImage(dockerImage)
-	//imageCreator.PushImage(dockerImage)
+	
 
 }
 
@@ -25,29 +23,35 @@ func TestTagImage(t *testing.T) {
 
 	_, dockerInfo, imageCreator := createImage(t)
 
-	imageCreator.TagImage(dockerInfo)
+	err := imageCreator.PushImage(dockerInfo)
+    
+    
+	if err != nil {
+		t.Fatal("Unable to push image", err)
+	}
 
 	images, err := imageCreator.ListImages()
 
 	if err != nil {
-
 		t.Fatal("Unable to list images", err)
 	}
 
 	printImages(&images)
 
-	dockerTag := remoteUrl + "/" + dockerInfo.RepoName + "/" + dockerInfo.ImageName + ":" + dockerInfo.Revision
+	dockerTag := remoteURL + "/" + dockerInfo.getTagName()
 
 	if !imageExists(&images, dockerTag) {
 		t.Fatal("Could not find image with the docker tags", dockerTag)
 	}
+    
+    //TODO test if image exists in remote repo
 
 }
 
 //createImage creates an image and validates it exists in docker.  Assumes you have a docker registry API running at localhost:5000
 func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 
-	imageCreator, error := NewImageCreator(remoteUrl)
+	imageCreator, error := NewImageCreator(remoteURL)
 
 	if error != nil {
 		t.Fatal("Could not create image", error)
@@ -118,7 +122,7 @@ func imageExists(images *[]docker.APIImages, repoTagName string) bool {
 	return false
 }
 
-//doSetup Copies the specified inputZip file into the source directory and adds the docker file to it
+//DoSetup Copies the specified inputZip file into the source directory and adds the docker file to it
 func DoSetup(inputZip string, t *testing.T) *SourceInfo {
 
 	//copy over our docker file.  These tests assume io has been tested and works properly

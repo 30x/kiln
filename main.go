@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	const remoteUrl = "http://localhost:5000"
+	const remoteUrl = "localhost:5000"
 
 	imageCreator, error := shipyard.NewImageCreator(remoteUrl)
 
