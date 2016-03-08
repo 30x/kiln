@@ -1,9 +1,9 @@
 package shipyard
 
 import (
-"os"
-"io"
-"github.com/nu7hatch/gouuid"
+	"github.com/nu7hatch/gouuid"
+	"io"
+	"os"
 )
 
 //CopyFile copy a file from the src to the destination
@@ -35,8 +35,6 @@ func CopyFile(src, dst string) error {
 	return err
 }
 
-
-
 func UUIDString() string {
 	uuidBinary, err := uuid.NewV4()
 
@@ -46,5 +44,3 @@ func UUIDString() string {
 
 	return uuidBinary.String()
 }
-
-

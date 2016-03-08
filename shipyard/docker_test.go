@@ -15,7 +15,6 @@ const remoteURL = "localhost:5000"
 func TestCreateTar(t *testing.T) {
 
 	createImage(t)
-	
 
 }
 
@@ -24,8 +23,7 @@ func TestTagImage(t *testing.T) {
 	_, dockerInfo, imageCreator := createImage(t)
 
 	err := imageCreator.PushImage(dockerInfo)
-    
-    
+
 	if err != nil {
 		t.Fatal("Unable to push image", err)
 	}
@@ -43,8 +41,8 @@ func TestTagImage(t *testing.T) {
 	if !imageExists(&images, dockerTag) {
 		t.Fatal("Could not find image with the docker tags", dockerTag)
 	}
-    
-    //TODO test if image exists in remote repo
+
+	//TODO test if image exists in remote repo
 
 }
 
@@ -68,7 +66,7 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 		TarFile:   workspace.TargetTarName,
 		RepoName:  "test" + UUIDString(),
 		ImageName: "test",
-		Revision:   "v1.0",
+		Revision:  "v1.0",
 	}
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
@@ -152,7 +150,7 @@ func DoSetup(inputZip string, t *testing.T) *SourceInfo {
 	ioutil.WriteFile(workspace.DockerFile, data, 770)
 
 	if stat, err := os.Stat(workspace.DockerFile); err != nil || stat == nil {
-		t.Fatal("Could not find docker file " + workspace.DockerFile, err)
+		t.Fatal("Could not find docker file "+workspace.DockerFile, err)
 	}
 
 	//now tar it up
@@ -165,4 +163,3 @@ func DoSetup(inputZip string, t *testing.T) *SourceInfo {
 	return workspace
 
 }
-

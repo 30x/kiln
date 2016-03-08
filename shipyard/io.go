@@ -17,15 +17,15 @@ const DEFAULT_FILE_MODE = 0775
 
 type SourceInfo struct {
 	//the root directory containing the zip, source and target tar
-	RootDirectory   string
+	RootDirectory string
 	//The name of the zip file to create and stream data to
-	SourceZipFile   string
+	SourceZipFile string
 	//The directory of extracted source, in our case, NODE.JS code
 	SourceDirectory string
 	//The directory of the docker file
-	DockerFile      string
+	DockerFile string
 	//the targer tar file name
-	TargetTarName   string
+	TargetTarName string
 }
 
 //CreateNewWorkspace Creates a new tmp directory and return a source directory struct
@@ -101,7 +101,7 @@ func (sourceInfo *SourceInfo) ExtractZipFile() error {
 
 		//NOTE defer has intentionally been omitted here.  It would cause close calls to stack up
 		//when reading large resources
-		targetFile, err := os.OpenFile(path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, file.Mode())
+		targetFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 		if err != nil {
 			//can't open the file for writing, close the read handle on the existing file
 			fileReader.Close()
@@ -145,7 +145,6 @@ func (sourceInfo *SourceInfo) BuildTarFile() error {
 	if !info.IsDir() {
 		return errors.New("You cannot tar a file, you must tar a directory")
 	}
-
 
 	//
 	return filepath.Walk(sourceInfo.SourceDirectory,

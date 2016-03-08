@@ -99,14 +99,13 @@ func TestUnzip(t *testing.T) {
 	testFile := workspace.SourceDirectory + "/index.js"
 
 	if stat, err := os.Stat(testFile); err != nil || stat == nil {
-		t.Fatal("Could not find source file " + testFile, err)
+		t.Fatal("Could not find source file "+testFile, err)
 	}
 
 	testFile = workspace.SourceDirectory + "/package.json"
 
 	if stat, err := os.Stat(testFile); err != nil || stat == nil {
-		t.Fatal("Could not find source file " + testFile, err)
+		t.Fatal("Could not find source file "+testFile, err)
 	}
 
 }
-
