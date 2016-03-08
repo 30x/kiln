@@ -9,10 +9,15 @@ import (
 
 //DockerInfo is a struct that holds information for creating a docker container
 type DockerInfo struct {
-	TarFile   string
 	RepoName  string
 	ImageName string
 	Revision  string
+}
+
+//DockerBuild a type for building a docker image docker
+type DockerBuild struct {
+	TarFile string
+	*DockerInfo
 }
 
 func (dockerInfo *DockerInfo) getImageName() string {
@@ -62,12 +67,15 @@ func NewImageCreator(remoteRepo string) (*ImageCreator, error) {
 //ListImages prints all images in the system, just here for show
 func (imageCreator *ImageCreator) ListImages() ([]docker.APIImages, error) {
 	// use client
-	return imageCreator.client.ListImages(docker.ListImagesOptions{All: false})
+
+	opts := docker.ListImagesOptions{All: false}
+
+	return imageCreator.client.ListImages(opts)
 
 }
 
 //BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version
-func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerInfo) error {
+func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) error {
 
 	name := dockerInfo.getTagName()
 
@@ -132,13 +140,6 @@ func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) error {
 	//now push the image
 	outputBuffer := &bytes.Buffer{}
 
-	//    pushOts := docker.PushImageOptions{
-	//       Registry: remoteTag,
-	//       Tag: revision,
-	//       OutputStream: outputBuffer,
-
-	//    }
-
 	pushOts := docker.PushImageOptions{
 		Name:         remoteTag,
 		Registry:     remoteRepo,
@@ -146,11 +147,34 @@ func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) error {
 		OutputStream: outputBuffer,
 	}
 
-	err = imageCreator.client.PushImage(pushOts, docker.AuthConfiguration{})
+	authConfig := docker.AuthConfiguration{}
+
+	err = imageCreator.client.PushImage(pushOts, authConfig)
 
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+//PullImage pull the specified image to our the docker runtime
+func (imageCreator *ImageCreator) PullImage(dockerInfo *DockerInfo) error {
+
+	remoteRepo := imageCreator.remoteRepo
+	remoteTag := dockerInfo.getRemoteTagName(remoteRepo)
+	revision := dockerInfo.Revision
+
+	outputBuffer := &bytes.Buffer{}
+
+	pullOpts := docker.PullImageOptions{
+		Repository:   remoteTag,
+		Registry:     remoteRepo,
+		Tag:          revision,
+		OutputStream: outputBuffer,
+	}
+
+	authConfig := docker.AuthConfiguration{}
+
+	return imageCreator.client.PullImage(pullOpts, authConfig)
 }

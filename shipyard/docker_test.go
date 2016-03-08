@@ -18,7 +18,8 @@ func TestCreateTar(t *testing.T) {
 
 }
 
-func TestTagImage(t *testing.T) {
+//tests pushing to a remote repo, and ensuring we can pull the image
+func TestPushImage(t *testing.T) {
 
 	_, dockerInfo, imageCreator := createImage(t)
 
@@ -43,6 +44,12 @@ func TestTagImage(t *testing.T) {
 	}
 
 	//TODO test if image exists in remote repo
+    
+    err = imageCreator.PullImage(dockerInfo)
+    
+    if err != nil{
+        t.Fatal("Could not pull image from remote repo, upload may have failed", err)
+    }
 
 }
 
@@ -62,11 +69,13 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 	//clean up the workspace after the test.  Comment this out for debugging
 	//defer workspace.Clean()
 
-	dockerImage := &DockerInfo{
-		TarFile:   workspace.TargetTarName,
-		RepoName:  "test" + UUIDString(),
-		ImageName: "test",
-		Revision:  "v1.0",
+	dockerImage := &DockerBuild{
+		TarFile: workspace.TargetTarName,
+		DockerInfo: &DockerInfo{
+			RepoName:  "test" + UUIDString(),
+			ImageName: "test",
+			Revision:  "v1.0",
+		},
 	}
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
@@ -90,7 +99,7 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 		t.Fatal("Could not find image with the docker tags", dockerTag)
 	}
 
-	return workspace, dockerImage, imageCreator
+	return workspace, dockerImage.DockerInfo, imageCreator
 
 }
 
