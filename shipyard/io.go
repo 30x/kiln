@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 )
 
 const DEFAULT_TMP_DIR = "/tmp"
@@ -189,6 +190,55 @@ func (sourceInfo *SourceInfo) Clean() error {
 
 	if dirError != nil {
 		return dirError
+	}
+
+	return nil
+}
+
+//The TEMPLATE for generating a go file
+const templateString = `FROM node:4.3.0-onbuild
+
+#Taken from the runtime on start
+EXPOSE 8080
+
+LABEL com.github.30x.shipyard.repo={{.RepoName}}
+LABEL com.github.30x.shipyard.app={{.ImageName}}
+LABEL com.github.30x.shipyard.revision={{.Revision}}
+`
+
+//constant that's initialized below.  Constants must only be primitive types
+var dockerTemplate *template.Template
+
+//init Initializes the docker template once for performance
+func init() {
+	dockerTemplate = template.Must(template.New("Dockerfile").Parse(templateString))
+}
+
+//CreateDockerFile creates a dockerfile at the specified location from the specfiied dockerInfo
+func (sourceInfo *SourceInfo) CreateDockerFile(dockerInfo *DockerInfo) error {
+
+	parentPath := filepath.Dir(sourceInfo.DockerFile)
+
+	//create the parent path
+	err := os.MkdirAll(parentPath, DEFAULT_FILE_MODE)
+
+	if err != nil {
+		return err
+	}
+
+	//create the docker file and close after we exit
+	dockerFile, err := os.Create(sourceInfo.DockerFile)
+
+	defer dockerFile.Close()
+
+	if err != nil {
+		return err
+	}
+
+	err = dockerTemplate.Execute(dockerFile, dockerInfo)
+
+	if err != nil {
+		return err
 	}
 
 	return nil

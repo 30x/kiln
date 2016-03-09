@@ -67,12 +67,33 @@ func NewImageCreator(remoteRepo string) (*ImageCreator, error) {
 
 //ListImages prints all images in the system, just here for show
 func (imageCreator *ImageCreator) ListImages() ([]docker.APIImages, error) {
-	// use client
-
 	opts := docker.ListImagesOptions{All: false}
 
 	return imageCreator.client.ListImages(opts)
+}
 
+//ListImagesByLabel return all images with matching labels.  The label name is the key, the values are the value strings
+func (imageCreator *ImageCreator) ListImagesByLabel(filters map[string][]string) ([]docker.APIImages, error) {
+
+	//initialize the filter map
+	filter := map[string][]string{
+		"label": {},
+	}
+
+	for key := range filters {
+
+		values := filters[key]
+
+		for _, value := range values {
+			newFilter := key + "=" + value
+			filter["label"] = append(filter["label"], newFilter)
+		}
+
+	}
+
+	opts := docker.ListImagesOptions{All: false, Filters: filter}
+
+	return imageCreator.client.ListImages(opts)
 }
 
 //BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error

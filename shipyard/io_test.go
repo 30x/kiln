@@ -1,6 +1,7 @@
 package shipyard
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -106,6 +107,53 @@ func TestUnzip(t *testing.T) {
 
 	if stat, err := os.Stat(testFile); err != nil || stat == nil {
 		t.Fatal("Could not find source file "+testFile, err)
+	}
+
+}
+
+//TestCreateDockerFile tests creating a docker file with the valid info
+func TestDockerFile(t *testing.T) {
+
+	sourceInfo, err := CreateNewWorkspace()
+
+	if err != nil {
+		t.Fatalf("Unable to create a workspace %s", err)
+	}
+
+	info := &DockerInfo{
+		RepoName:  "testRepo",
+		ImageName: "testImage",
+		Revision:  "v1.0",
+	}
+
+	err = sourceInfo.CreateDockerFile(info)
+
+	if err != nil {
+		t.Fatalf("Received an error creating template %s", err)
+	}
+
+	//test they're the same
+
+	expected :=
+		`FROM node:4.3.0-onbuild
+
+#Taken from the runtime on start
+EXPOSE 8080
+
+LABEL com.github.30x.shipyard.repo=testRepo
+LABEL com.github.30x.shipyard.app=testImage
+LABEL com.github.30x.shipyard.revision=v1.0
+`
+	bytes, err := ioutil.ReadFile(sourceInfo.DockerFile)
+
+	if err != nil {
+		t.Fatalf("Could not read file %s", err)
+	}
+
+	fileAsString := string(bytes)
+
+	if expected != fileAsString {
+		t.Fatalf("File is not as excepcted.  Received \n %s \n but expected \n %s \n ", fileAsString, expected)
 	}
 
 }

@@ -2,9 +2,9 @@ package shipyard
 
 import (
 	// "fmt"
+	"fmt"
 	"github.com/fsouza/go-dockerclient"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -46,8 +46,6 @@ func TestPushImage(t *testing.T) {
 		t.Fatal("Could not find image with the docker tags", dockerTag)
 	}
 
-	//TODO test if image exists in remote repo
-
 	err = imageCreator.PullImage(dockerInfo)
 
 	if err != nil {
@@ -67,18 +65,14 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 
 	const validTestZip = "../testresources/echo-test.zip"
 
-	workspace := DoSetup(validTestZip, t)
+	workspace, dockerInfo := DoSetup(validTestZip, t)
 
 	//clean up the workspace after the test.  Comment this out for debugging
 	//defer workspace.Clean()
 
 	dockerImage := &DockerBuild{
-		TarFile: workspace.TargetTarName,
-		DockerInfo: &DockerInfo{
-			RepoName:  "test" + UUIDString(),
-			ImageName: "test",
-			Revision:  "v1.0",
-		},
+		TarFile:    workspace.TargetTarName,
+		DockerInfo: dockerInfo,
 	}
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
@@ -108,19 +102,47 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 		t.Fatal("Could not find image with the docker tags", dockerTag)
 	}
 
+	//pull by label
+
+	// filter := make(map[string][]string)
+
+	filter := map[string][]string{
+
+		"com.github.30x.shipyard.repo":     {dockerInfo.RepoName},
+		"com.github.30x.shipyard.app":      {dockerInfo.ImageName},
+		"com.github.30x.shipyard.revision": {dockerInfo.Revision},
+	}
+
+	// filter["com.github.30x.shipyard.repo"] = []string{dockerInfo.RepoName}
+	// filter["com.github.30x.shipyard.app"] = []string{dockerInfo.ImageName}
+	// filter["com.github.30x.shipyard.revision"] = []string{dockerInfo.Revision}
+
+	images, err = imageCreator.ListImagesByLabel(filter)
+
+	if err != nil {
+
+		t.Fatal("Unable to list images", err)
+	}
+
+	printImages(&images)
+
+	if !imageExists(&images, dockerTag) {
+		t.Fatal("Could not find image with the docker tags", dockerTag)
+	}
+
 	return workspace, dockerImage.DockerInfo, imageCreator
 
 }
 
 func printImages(images *[]docker.APIImages) {
-	// for _, img := range *images {
-	// 	fmt.Println("ID: ", img.ID)
-	// 	fmt.Println("RepoTags: ", img.RepoTags)
-	// 	fmt.Println("Created: ", img.Created)
-	// 	fmt.Println("Size: ", img.Size)
-	// 	fmt.Println("VirtualSize: ", img.VirtualSize)
-	// 	fmt.Println("ParentId: ", img.ParentID)
-	// }
+	for _, img := range *images {
+		fmt.Println("ID: ", img.ID)
+		fmt.Println("RepoTags: ", img.RepoTags)
+		fmt.Println("Created: ", img.Created)
+		fmt.Println("Size: ", img.Size)
+		fmt.Println("VirtualSize: ", img.VirtualSize)
+		fmt.Println("ParentId: ", img.ParentID)
+	}
 }
 
 //imageExists.  Returns true if an image has been tagged with the specified repo name
@@ -139,7 +161,7 @@ func imageExists(images *[]docker.APIImages, repoTagName string) bool {
 }
 
 //DoSetup Copies the specified inputZip file into the source directory and adds the docker file to it
-func DoSetup(inputZip string, t *testing.T) *SourceInfo {
+func DoSetup(inputZip string, t *testing.T) (*SourceInfo, *DockerInfo) {
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
 
@@ -159,13 +181,17 @@ func DoSetup(inputZip string, t *testing.T) *SourceInfo {
 	//now that the zip file is extracted, copy the docker file
 	err = workspace.ExtractZipFile()
 
-	data, err := Asset(dockerAsset)
+	dockerInfo := &DockerInfo{
+		RepoName:  "test" + UUIDString(),
+		ImageName: "test",
+		Revision:  "v1.0",
+	}
+
+	err = workspace.CreateDockerFile(dockerInfo)
 
 	if err != nil {
 		t.Fatal("Could not find asset ", err)
 	}
-
-	ioutil.WriteFile(workspace.DockerFile, data, 770)
 
 	if stat, err := os.Stat(workspace.DockerFile); err != nil || stat == nil {
 		t.Fatal("Could not find docker file "+workspace.DockerFile, err)
@@ -178,6 +204,6 @@ func DoSetup(inputZip string, t *testing.T) *SourceInfo {
 		t.Fatal("Unable to create tar file")
 	}
 
-	return workspace
+	return workspace, dockerInfo
 
 }
