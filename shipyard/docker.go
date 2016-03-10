@@ -72,23 +72,38 @@ func (imageCreator *ImageCreator) ListImages() ([]docker.APIImages, error) {
 	return imageCreator.client.ListImages(opts)
 }
 
-//ListImagesByLabel return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator *ImageCreator) ListImagesByLabel(filters map[string][]string) ([]docker.APIImages, error) {
+//ImageSearch A type for performing searches
+type ImageSearch struct {
+	Repository  string
+	Application string
+	Revision    string
+}
+
+//SearchImages return all images with matching labels.  The label name is the key, the values are the value strings
+func (imageCreator *ImageCreator) SearchImages(search *ImageSearch) ([]docker.APIImages, error) {
 
 	//initialize the filter map
-	filter := map[string][]string{
-		"label": {},
+
+	filters := []string{}
+
+	//append filters as required based on the input
+	if search.Repository != "" {
+		newFilter := TAG_REPO + "=" + search.Repository
+		filters = append(filters, newFilter)
 	}
 
-	for key := range filters {
+	if search.Application != "" {
+		newFilter := TAG_APPLICATION + "=" + search.Application
+		filters = append(filters, newFilter)
+	}
 
-		values := filters[key]
+	if search.Revision != "" {
+		newFilter := TAG_REVISION + "=" + search.Revision
+		filters = append(filters, newFilter)
+	}
 
-		for _, value := range values {
-			newFilter := key + "=" + value
-			filter["label"] = append(filter["label"], newFilter)
-		}
-
+	filter := map[string][]string{
+		"label": filters,
 	}
 
 	opts := docker.ListImagesOptions{All: false, Filters: filter}

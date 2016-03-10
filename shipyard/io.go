@@ -16,6 +16,11 @@ const DEFAULT_TMP_DIR = "/tmp"
 const SHIPYARD_ENV_VARIABLE = "SHIPYARD_TMP_DIR"
 const DEFAULT_FILE_MODE = 0775
 
+const TAG_REPO = "com.github.30x.shipyard.repo"
+const TAG_APPLICATION = "com.github.30x.shipyard.app"
+const TAG_REVISION = "com.github.30x.shipyard.revision"
+
+//SourceInfo The description of the source package
 type SourceInfo struct {
 	//the root directory containing the zip, source and target tar
 	RootDirectory string
@@ -201,9 +206,9 @@ const templateString = `FROM node:4.3.0-onbuild
 #Taken from the runtime on start
 EXPOSE 8080
 
-LABEL com.github.30x.shipyard.repo={{.RepoName}}
-LABEL com.github.30x.shipyard.app={{.ImageName}}
-LABEL com.github.30x.shipyard.revision={{.Revision}}
+LABEL ` + TAG_REPO + `={{.RepoName}}
+LABEL ` + TAG_APPLICATION + `={{.ImageName}}
+LABEL ` + TAG_REVISION + `={{.Revision}}
 `
 
 //constant that's initialized below.  Constants must only be primitive types

@@ -104,20 +104,14 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 
 	//pull by label
 
-	// filter := make(map[string][]string)
-
-	filter := map[string][]string{
-
-		"com.github.30x.shipyard.repo":     {dockerInfo.RepoName},
-		"com.github.30x.shipyard.app":      {dockerInfo.ImageName},
-		"com.github.30x.shipyard.revision": {dockerInfo.Revision},
-	}
-
-	// filter["com.github.30x.shipyard.repo"] = []string{dockerInfo.RepoName}
-	// filter["com.github.30x.shipyard.app"] = []string{dockerInfo.ImageName}
-	// filter["com.github.30x.shipyard.revision"] = []string{dockerInfo.Revision}
-
-	images, err = imageCreator.ListImagesByLabel(filter)
+    
+    search := &ImageSearch{
+        Repository: dockerInfo.RepoName,
+        Application: dockerInfo.ImageName,
+        Revision: dockerInfo.Revision,
+    }
+    
+	images, err = imageCreator.SearchImages(search)
 
 	if err != nil {
 
