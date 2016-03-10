@@ -21,16 +21,17 @@ type DockerBuild struct {
 	*DockerInfo
 }
 
+//getImageName generate an image of the format {RepoName}/{ImageName}
 func (dockerInfo *DockerInfo) getImageName() string {
 	return dockerInfo.RepoName + "/" + dockerInfo.ImageName
 }
 
-//getTagName Get the anme of the tag
+//getTagName Get the anme of the tag of the format  {RepoName}/{ImageName}:{Revision}
 func (dockerInfo *DockerInfo) getTagName() string {
 	return dockerInfo.getImageName() + ":" + dockerInfo.Revision
 }
 
-//getRemoteTagName Get the remote tag name of the docker repo
+//getRemoteTagName Get the remote tag name of the docker repo of the format {RemoteRepo}/{RepoName}/{ImageName}:{Revision}
 func (dockerInfo *DockerInfo) getRemoteTagName(remoteRepo string) string {
 	return remoteRepo + "/" + dockerInfo.getImageName()
 }
