@@ -4,7 +4,6 @@ import (
 	// "fmt"
 	"fmt"
 	"github.com/fsouza/go-dockerclient"
-	"io"
 	"os"
 	"strings"
 	"testing"
@@ -24,13 +23,11 @@ func TestPushImage(t *testing.T) {
 
 	_, dockerInfo, imageCreator := createImage(t)
 
-	stream, err := imageCreator.PushImage(dockerInfo)
+	err := imageCreator.PushImage(dockerInfo, os.Stdout)
 
 	if err != nil {
 		t.Fatal("Unable to push image", err)
 	}
-
-	io.Copy(os.Stdout, stream)
 
 	images, err := imageCreator.ListImages()
 
@@ -46,7 +43,7 @@ func TestPushImage(t *testing.T) {
 		t.Fatal("Could not find image with the docker tags", dockerTag)
 	}
 
-	err = imageCreator.PullImage(dockerInfo)
+	err = imageCreator.PullImage(dockerInfo, os.Stdout)
 
 	if err != nil {
 		t.Fatal("Could not pull image from remote repo, upload may have failed", err)
@@ -62,7 +59,7 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 	if error != nil {
 		t.Fatal("Could not create image", error)
 	}
-
+  
 	const validTestZip = "../testresources/echo-test.zip"
 
 	workspace, dockerInfo := DoSetup(validTestZip, t)
@@ -71,19 +68,18 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 	//defer workspace.Clean()
 
 	dockerImage := &DockerBuild{
-		TarFile:    workspace.TargetTarName,
-		DockerInfo: dockerInfo,
+		TarFile:      workspace.TargetTarName,
+		OutputStream: os.Stdout,
+		DockerInfo:   dockerInfo,
 	}
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
 
-	stream, err := imageCreator.BuildImage(dockerImage)
+	err := imageCreator.BuildImage(dockerImage)
 
 	if err != nil {
 		t.Fatal("Unable to build image", err)
 	}
-
-	io.Copy(os.Stdout, stream)
 
 	//get the image from docker and ensure it exists
 
@@ -104,13 +100,12 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 
 	//pull by label
 
-    
-    search := &ImageSearch{
-        Repository: dockerInfo.RepoName,
-        Application: dockerInfo.ImageName,
-        Revision: dockerInfo.Revision,
-    }
-    
+	search := &ImageSearch{
+		Repository:  dockerInfo.RepoName,
+		Application: dockerInfo.ImageName,
+		Revision:    dockerInfo.Revision,
+	}
+
 	images, err = imageCreator.SearchImages(search)
 
 	if err != nil {
@@ -175,13 +170,16 @@ func DoSetup(inputZip string, t *testing.T) (*SourceInfo, *DockerInfo) {
 	//now that the zip file is extracted, copy the docker file
 	err = workspace.ExtractZipFile()
 
-	dockerInfo := &DockerInfo{
-		RepoName:  "test" + UUIDString(),
-		ImageName: "test",
-		Revision:  "v1.0",
+	dockerFile := &DockerFile{
+		ParentImage: "node:4.3.0-onbuild",
+		DockerInfo: DockerInfo{
+			RepoName:  "test" + UUIDString(),
+			ImageName: "test",
+			Revision:  "v1.0",
+		},
 	}
 
-	err = workspace.CreateDockerFile(dockerInfo)
+	err = workspace.CreateDockerFile(dockerFile)
 
 	if err != nil {
 		t.Fatal("Could not find asset ", err)
@@ -198,6 +196,6 @@ func DoSetup(inputZip string, t *testing.T) (*SourceInfo, *DockerInfo) {
 		t.Fatal("Unable to create tar file")
 	}
 
-	return workspace, dockerInfo
+	return workspace, &dockerFile.DockerInfo
 
 }

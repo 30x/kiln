@@ -1,7 +1,6 @@
 package shipyard
 
 import (
-	"bytes"
 	"github.com/fsouza/go-dockerclient"
 	"os"
 	// "io"
@@ -17,7 +16,8 @@ type DockerInfo struct {
 
 //DockerBuild a type for building a docker image docker
 type DockerBuild struct {
-	TarFile string
+	TarFile      string
+	OutputStream io.Writer
 	*DockerInfo
 }
 
@@ -113,7 +113,7 @@ func (imageCreator *ImageCreator) SearchImages(search *ImageSearch) ([]docker.AP
 }
 
 //BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
-func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) (io.Reader, error) {
+func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) error {
 
 	name := dockerInfo.getTagName()
 
@@ -123,31 +123,29 @@ func (imageCreator *ImageCreator) BuildImage(dockerInfo *DockerBuild) (io.Reader
 
 	if err != nil {
 		Log.Fatal("Unable to open tar file "+dockerInfo.TarFile+"for input", err)
-		return nil, err
+		return err
 	}
 
 	//make an output buffer with 1m
-	outputBuffer := &bytes.Buffer{}
-
 	buildImageOptions := docker.BuildImageOptions{
 		Name:         name,
 		InputStream:  inputReader,
-		OutputStream: outputBuffer,
+		OutputStream: dockerInfo.OutputStream,
 	}
 
 	if err := imageCreator.client.BuildImage(buildImageOptions); err != nil {
 		Log.Fatal(err)
-		return nil, err
+		return err
 	}
 
 	Log.Printf("Completed uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
 
-	return outputBuffer, nil
+	return nil
 
 }
 
 //PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
-func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) (io.Reader, error) {
+func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo, logs io.Writer) error {
 
 	localTag := dockerInfo.getTagName()
 	remoteRepo := imageCreator.remoteRepo
@@ -162,17 +160,14 @@ func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) (io.Reader, 
 	err := imageCreator.client.TagImage(localTag, tagOptions)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	//now push the image
-	outputBuffer := &bytes.Buffer{}
 
 	pushOts := docker.PushImageOptions{
 		Name:         remoteTag,
 		Registry:     remoteRepo,
 		Tag:          revision,
-		OutputStream: outputBuffer,
+		OutputStream: logs,
 	}
 
 	authConfig := docker.AuthConfiguration{}
@@ -180,26 +175,25 @@ func (imageCreator *ImageCreator) PushImage(dockerInfo *DockerInfo) (io.Reader, 
 	err = imageCreator.client.PushImage(pushOts, authConfig)
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return outputBuffer, nil
+	return nil
 }
 
 //PullImage pull the specified image to our the docker runtime
-func (imageCreator *ImageCreator) PullImage(dockerInfo *DockerInfo) error {
+func (imageCreator *ImageCreator) PullImage(dockerInfo *DockerInfo, logs io.Writer) error {
 
 	remoteRepo := imageCreator.remoteRepo
 	remoteTag := dockerInfo.getRemoteTagName(remoteRepo)
 	revision := dockerInfo.Revision
-
-	outputBuffer := &bytes.Buffer{}
-
+    
+    
 	pullOpts := docker.PullImageOptions{
 		Repository:   remoteTag,
 		Registry:     remoteRepo,
 		Tag:          revision,
-		OutputStream: outputBuffer,
+		OutputStream: logs,
 	}
 
 	authConfig := docker.AuthConfiguration{}

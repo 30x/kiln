@@ -120,13 +120,16 @@ func TestDockerFile(t *testing.T) {
 		t.Fatalf("Unable to create a workspace %s", err)
 	}
 
-	info := &DockerInfo{
-		RepoName:  "testRepo",
-		ImageName: "testImage",
-		Revision:  "v1.0",
+	dockerFile := &DockerFile{
+		ParentImage: "node:4.3.0-onbuild",
+		DockerInfo: DockerInfo{
+			RepoName:  "testRepo",
+			ImageName: "testImage",
+			Revision:  "v1.0",
+		},
 	}
 
-	err = sourceInfo.CreateDockerFile(info)
+	err = sourceInfo.CreateDockerFile(dockerFile)
 
 	if err != nil {
 		t.Fatalf("Received an error creating template %s", err)
