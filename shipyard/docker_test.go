@@ -52,14 +52,14 @@ func TestPushImage(t *testing.T) {
 }
 
 //createImage creates an image and validates it exists in docker.  Assumes you have a docker registry API running at localhost:5000
-func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
+func createImage(t *testing.T) (*SourceInfo, *DockerInfo, ImageCreator) {
 
-	imageCreator, error := NewImageCreator(remoteURL)
+	imageCreator, error := NewLocalImageCreator()
 
 	if error != nil {
 		t.Fatal("Could not create image", error)
 	}
-  
+
 	const validTestZip = "../testresources/echo-test.zip"
 
 	workspace, dockerInfo := DoSetup(validTestZip, t)
@@ -69,13 +69,12 @@ func createImage(t *testing.T) (*SourceInfo, *DockerInfo, *ImageCreator) {
 
 	dockerImage := &DockerBuild{
 		TarFile:      workspace.TargetTarName,
-		OutputStream: os.Stdout,
 		DockerInfo:   dockerInfo,
 	}
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
 
-	err := imageCreator.BuildImage(dockerImage)
+	err := imageCreator.BuildImage(dockerImage, os.Stdout)
 
 	if err != nil {
 		t.Fatal("Unable to build image", err)
