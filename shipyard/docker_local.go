@@ -7,21 +7,6 @@ import (
 	"io"
 )
 
-//getImageName generate an image of the format {RepoName}/{ImageName}
-func (dockerInfo *DockerInfo) getImageName() string {
-	return dockerInfo.RepoName + "/" + dockerInfo.ImageName
-}
-
-//getTagName Get the anme of the tag of the format  {RepoName}/{ImageName}:{Revision}
-func (dockerInfo *DockerInfo) getTagName() string {
-	return dockerInfo.getImageName() + ":" + dockerInfo.Revision
-}
-
-//getRemoteTagName Get the remote tag name of the docker repo of the format {RemoteRepo}/{RepoName}/{ImageName}:{Revision}
-func (dockerInfo *DockerInfo) getRemoteTagName(remoteRepo string) string {
-	return remoteRepo + "/" + dockerInfo.getImageName()
-}
-
 //LocalImageCreator is a struct that holds our pointer to the docker client
 type LocalImageCreator struct {
 	//the client to docker
@@ -94,7 +79,7 @@ func (imageCreator LocalImageCreator) SearchImages(search *ImageSearch) ([]docke
 //BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
 func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild, logs io.Writer) error {
 
-	name := dockerInfo.getTagName()
+	name := dockerInfo.GetTagName()
 
 	Log.Printf("Started uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
 
@@ -126,9 +111,9 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild, logs i
 //PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
 func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.Writer) error {
 
-	localTag := dockerInfo.getTagName()
+	localTag := dockerInfo.GetTagName()
 	remoteRepo := imageCreator.remoteRepo
-	remoteTag := dockerInfo.getRemoteTagName(remoteRepo)
+	remoteTag := dockerInfo.GetRemoteTagName(remoteRepo)
 	revision := dockerInfo.Revision
 
 	tagOptions := docker.TagImageOptions{
@@ -164,7 +149,7 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.
 func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo, logs io.Writer) error {
 
 	remoteRepo := imageCreator.remoteRepo
-	remoteTag := dockerInfo.getRemoteTagName(remoteRepo)
+	remoteTag := dockerInfo.GetRemoteTagName(remoteRepo)
 	revision := dockerInfo.Revision
 
 	pullOpts := docker.PullImageOptions{
