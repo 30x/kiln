@@ -11,12 +11,9 @@ import (
 	"strings"
 )
 
-
-
 var _ = Describe("docker", func() {
 
 	var imageCreator ImageCreator
-	var remoteURL string
 
 	//Tests for all image operations
 	Describe("Image Operations", func() {
@@ -32,14 +29,18 @@ var _ = Describe("docker", func() {
 				err := imageCreator.PushImage(dockerInfo, os.Stdout)
 
 				Expect(err).Should(BeNil(), "Unable to push image", err)
+				imageSearch := &DockerInfo{
+					RepoName:  dockerInfo.RepoName,
+					ImageName: dockerInfo.ImageName,
+				}
 
-				images, err := imageCreator.ListImages()
+				images, err := imageCreator.SearchRemoteImages(imageSearch)
 
 				Expect(err).Should(BeNil(), "Unable to list images", err)
 
 				printImages(&images)
 
-				dockerTag := remoteURL + "/" + dockerInfo.GetTagName()
+				dockerTag := dockerInfo.GetTagName()
 
 				Expect(imageExists(&images, dockerTag)).Should(Equal(true), "Could not find image with the docker tags", dockerTag)
 
@@ -49,11 +50,11 @@ var _ = Describe("docker", func() {
 			})
 		}
 
+		//test the local machine impl
 		Context("Local Docker Machine", func() {
 			BeforeEach(func() {
-				dockerCreator, error := NewLocalImageCreator()
-
-				imageCreator = dockerCreator
+				var error error
+				imageCreator, error = NewLocalImageCreator("localhost:5000")
 
 				Expect(error).Should(BeNil(), "Could not create local docker image creator")
 
@@ -64,9 +65,8 @@ var _ = Describe("docker", func() {
 
 		Context("Amazon ECS", func() {
 			BeforeEach(func() {
-				dockerCreator, error := NewEcsImageCreator()
-
-				imageCreator = dockerCreator
+				var error error
+				imageCreator, error = NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
 
 				Expect(error).Should(BeNil(), "Could not create local docker image creator")
 
@@ -102,7 +102,7 @@ func createImage(imageCreator ImageCreator) (*SourceInfo, *DockerInfo) {
 
 	//get the image from docker and ensure it exists
 
-	images, err := imageCreator.ListImages()
+	images, err := imageCreator.SearchLocalImages(&DockerInfo{})
 
 	Expect(err).Should(BeNil(), "Unable to list images", err)
 
@@ -114,13 +114,13 @@ func createImage(imageCreator ImageCreator) (*SourceInfo, *DockerInfo) {
 
 	//pull by label
 
-	search := &ImageSearch{
-		Repository:  dockerInfo.RepoName,
-		Application: dockerInfo.ImageName,
-		Revision:    dockerInfo.Revision,
+	search := &DockerInfo{
+		RepoName:  dockerInfo.RepoName,
+		ImageName: dockerInfo.ImageName,
+		Revision:  dockerInfo.Revision,
 	}
 
-	images, err = imageCreator.SearchImages(search)
+	images, err = imageCreator.SearchLocalImages(search)
 
 	Expect(err).Should(BeNil(), "Unable to list images", err)
 
@@ -146,7 +146,7 @@ func doSetup(inputZip string) (*SourceInfo, *DockerInfo) {
 	//change the source zip input for extactraction
 	CopyFile(inputZip, workspace.SourceZipFile)
 
-	Log.Printf("Extracting zip file %s to %s", workspace.SourceZipFile, workspace.SourceDirectory)
+	LogInfo.Printf("Extracting zip file %s to %s", workspace.SourceZipFile, workspace.SourceDirectory)
 
 	//now that the zip file is extracted, copy the docker file
 	err = workspace.ExtractZipFile()
@@ -165,7 +165,7 @@ func doSetup(inputZip string) (*SourceInfo, *DockerInfo) {
 	Expect(err).Should(BeNil(), "Could not find asset ", err)
 
 	if stat, err := os.Stat(workspace.DockerFile); err != nil || stat == nil {
-		Fail("Could not find docker file "+workspace.DockerFile + " " +  err.Error())
+		Fail("Could not find docker file " + workspace.DockerFile + " " + err.Error())
 	}
 
 	//now tar it up

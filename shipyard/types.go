@@ -27,10 +27,3 @@ type DockerBuild struct {
 	TarFile string
 	*DockerInfo
 }
-
-//ImageSearch A type for performing searches
-type ImageSearch struct {
-	Repository  string
-	Application string
-	Revision    string
-}

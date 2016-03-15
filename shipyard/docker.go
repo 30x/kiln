@@ -8,11 +8,11 @@ import (
 //ImageCreator the interface an ImageCreator instance must implement
 type ImageCreator interface {
 
-	//ListImages List all images
-	ListImages() ([]docker.APIImages, error)
+	//SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
+	SearchLocalImages(search *DockerInfo) ([]docker.APIImages, error)
 
-	//SearchImages return all images with matching labels.  The label name is the key, the values are the value strings
-	SearchImages(search *ImageSearch) ([]docker.APIImages, error)
+	//SearchRemoteImages search remote images
+	SearchRemoteImages(search *DockerInfo) ([]docker.APIImages, error)
 
 	//BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
 	BuildImage(dockerInfo *DockerBuild, logs io.Writer) error

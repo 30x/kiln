@@ -6,3 +6,14 @@ import:
 - package: github.com/nu7hatch/gouuid
   vcs: git
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
+- package: github.com/aws/aws-sdk-go
+  vcs: git
+  version: 4151ef572710e04d25d9385114b33847ba6a923a
+- package: github.com/docker/docker
+  vcs: git
+  version: v1.10.3
+
+
+  
+  
+  
