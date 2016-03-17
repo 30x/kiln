@@ -5,34 +5,14 @@ import (
 	"io"
 )
 
-//DockerInfo is a struct that holds information for creating a docker container
-type DockerInfo struct {
-	RepoName  string
-	ImageName string
-	Revision  string
-}
-
-//DockerBuild a type for building a docker image docker
-type DockerBuild struct {
-	TarFile string
-	*DockerInfo
-}
-
-//ImageSearch A type for performing searches
-type ImageSearch struct {
-	Repository  string
-	Application string
-	Revision    string
-}
-
 //ImageCreator the interface an ImageCreator instance must implement
 type ImageCreator interface {
 
-    //ListImages List all images
-    ListImages() ([]docker.APIImages, error) 
-    
-	//SearchImages return all images with matching labels.  The label name is the key, the values are the value strings
-	SearchImages(search *ImageSearch) ([]docker.APIImages, error)
+	//SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
+	SearchLocalImages(search *DockerInfo) ([]docker.APIImages, error)
+
+	//SearchRemoteImages search remote images
+	SearchRemoteImages(search *DockerInfo) ([]docker.APIImages, error)
 
 	//BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
 	BuildImage(dockerInfo *DockerBuild, logs io.Writer) error
@@ -42,6 +22,4 @@ type ImageCreator interface {
 
 	//PullImage pull the specified image to our the docker runtime
 	PullImage(dockerInfo *DockerInfo, logs io.Writer) error
-    
-    
 }
