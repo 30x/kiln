@@ -1,5 +1,5 @@
-hash: 99e6078761c7cc4419855f987e7f52a87b78cd722f60f8e0dfa660fea2e7a90c
-updated: 2016-03-16T16:57:55.714531794-06:00
+hash: f2ba980a86f19ade97be4a27da0688f396d277f2c1938fb2abf05ccf293dd500
+updated: 2016-03-17T16:44:12.488356016-06:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 4151ef572710e04d25d9385114b33847ba6a923a
@@ -31,13 +31,16 @@ imports:
   - cliconfig
   - pkg/homedir
 - name: github.com/docker/engine-api
-  version: 6de18e18540cda038b00e71a1f2946d779e83f87
+  version: 9fce4cd3fa3287f962842158509b0c438365397a
+  vcs: git
   subpackages:
+  - client
   - types
-  - types/container
   - types/filters
+  - types/container
   - types/network
   - types/registry
+  - types/time
   - types/blkiodev
   - types/strslice
 - name: github.com/docker/go-connections
@@ -46,24 +49,6 @@ imports:
   - nat
 - name: github.com/docker/go-units
   version: 5d2041e26a699eaca682e2ea41c8f891e1060444
-- name: github.com/fsouza/go-dockerclient
-  version: d92e9b886690a7daa42daa3807d1829c6e6a9d0a
-  vcs: git
-  subpackages:
-  - external/github.com/docker/docker/opts
-  - external/github.com/docker/docker/pkg/archive
-  - external/github.com/docker/docker/pkg/fileutils
-  - external/github.com/docker/docker/pkg/homedir
-  - external/github.com/docker/docker/pkg/stdcopy
-  - external/github.com/hashicorp/go-cleanhttp
-  - external/github.com/Sirupsen/logrus
-  - external/github.com/docker/docker/pkg/idtools
-  - external/github.com/docker/docker/pkg/ioutils
-  - external/github.com/docker/docker/pkg/pools
-  - external/github.com/docker/docker/pkg/promise
-  - external/github.com/docker/docker/pkg/system
-  - external/github.com/opencontainers/runc/libcontainer/user
-  - external/golang.org/x/net/context
 - name: github.com/go-ini/ini
   version: 776aa739ce9373377cd16f526cdf06cb4c89b40f
 - name: github.com/jmespath/go-jmespath
@@ -72,7 +57,7 @@ imports:
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
   vcs: git
 - name: github.com/opencontainers/runc
-  version: 53ca128353df88e60661c0aa38e4a08c6d8378e5
+  version: d6c22f29e331104f51bd03c932610087e877273b
   subpackages:
   - libcontainer/user
 devImports: []

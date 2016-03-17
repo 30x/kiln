@@ -1,12 +1,12 @@
 package shipyard
 
 import (
-	"github.com/fsouza/go-dockerclient"
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/docker/engine-api/types"
 )
 
 //EcsImageCreator is a struct that holds our pointer to the docker client
@@ -48,7 +48,7 @@ func NewEcsImageCreator(repo string, region string) (ImageCreator, error) {
 }
 
 //SearchRemoteImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]docker.APIImages, error) {
+func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]types.Image, error) {
 
 	//revision exists, perform a search for this revision
 	if search.Revision != "" {
@@ -58,7 +58,7 @@ func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]do
 		LogInfo.Printf("Searching for revision %s in repo %s", search.Revision, repoString)
 
 		//revi
-		return []docker.APIImages{}, nil
+		return []types.Image{}, nil
 	}
 
 	//initialize the filter map
@@ -69,7 +69,7 @@ func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]do
 		// },
 	}
 
-	results := []docker.APIImages{}
+	results := []types.Image{}
 
 	for {
 
@@ -97,7 +97,7 @@ func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]do
 
 				repoTag := *repository.RepositoryName + ":" + *awsImage.ImageTag
 
-				dockerImage := docker.APIImages{
+				dockerImage := types.Image{
 					ID:       *awsImage.ImageDigest,
 					RepoTags: []string{repoTag},
 				}
@@ -120,7 +120,7 @@ func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]do
 }
 
 //SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator EcsImageCreator) SearchLocalImages(search *DockerInfo) ([]docker.APIImages, error) {
+func (imageCreator EcsImageCreator) SearchLocalImages(search *DockerInfo) ([]types.Image, error) {
 	return imageCreator.dockerCreator.SearchLocalImages(search)
 }
 

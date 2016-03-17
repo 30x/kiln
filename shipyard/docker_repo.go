@@ -5,11 +5,14 @@ package shipyard
 This implementation supports the local docker API, as well as the docker provided remote registry
 **/
 import (
-	"github.com/fsouza/go-dockerclient"
 	"os"
 	// "io"
+	"encoding/base64"
+	"encoding/json"
 	"github.com/docker/docker/cliconfig"
+	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
+	"github.com/docker/engine-api/types/filters"
 	"io"
 	"strings"
 )
@@ -17,14 +20,14 @@ import (
 //LocalImageCreator is a struct that holds our pointer to the docker client
 type LocalImageCreator struct {
 	//the client to docker
-	client *docker.Client
+	client *client.Client
 	//the remote repository url
 	remoteRepo string
 }
 
 //NewLocalImageCreator creates an instance of the LocalImageCreator from the docker environment variables, and returns the instance
 func NewLocalImageCreator(repo string) (ImageCreator, error) {
-	client, err := docker.NewClientFromEnv()
+	client, err := client.NewEnvClient()
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +38,7 @@ func NewLocalImageCreator(repo string) (ImageCreator, error) {
 	}
 
 	//TODO, stop selecting all
-	_, err = client.ListImages(docker.ListImagesOptions{All: false})
+	_, err = client.ImageList(types.ImageListOptions{All: false})
 
 	if err != nil {
 		return nil, err
@@ -45,51 +48,48 @@ func NewLocalImageCreator(repo string) (ImageCreator, error) {
 }
 
 //SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator LocalImageCreator) SearchLocalImages(search *DockerInfo) ([]docker.APIImages, error) {
+func (imageCreator LocalImageCreator) SearchLocalImages(search *DockerInfo) ([]types.Image, error) {
 
 	filter := createFilter(search)
 
-	opts := docker.ListImagesOptions{All: false, Filters: *filter}
+	opts := types.ImageListOptions{All: false, Filters: *filter}
 
-	return imageCreator.client.ListImages(opts)
+	return imageCreator.client.ImageList(opts)
 }
 
 //SearchRemoteImages search remote images
-func (imageCreator LocalImageCreator) SearchRemoteImages(search *DockerInfo) ([]docker.APIImages, error) {
+func (imageCreator LocalImageCreator) SearchRemoteImages(search *DockerInfo) ([]types.Image, error) {
 	//TODO connect to remote repo here
+
 	filter := createFilter(search)
 
-	opts := docker.ListImagesOptions{All: false, Filters: *filter}
+	opts := types.ImageListOptions{All: false, Filters: *filter}
 
-	return imageCreator.client.ListImages(opts)
+	return imageCreator.client.ImageList(opts)
 
 }
 
 //createFilter generate filter from search
-func createFilter(search *DockerInfo) *map[string][]string {
-	filters := []string{}
+func createFilter(search *DockerInfo) *filters.Args {
+	filters := filters.NewArgs()
 
 	//append filters as required based on the input
 	if search.RepoName != "" {
 		newFilter := TAG_REPO + "=" + search.RepoName
-		filters = append(filters, newFilter)
+		filters.Add("label", newFilter)
 	}
 
 	if search.ImageName != "" {
 		newFilter := TAG_APPLICATION + "=" + search.ImageName
-		filters = append(filters, newFilter)
+		filters.Add("label", newFilter)
 	}
 
 	if search.Revision != "" {
 		newFilter := TAG_REVISION + "=" + search.Revision
-		filters = append(filters, newFilter)
+		filters.Add("label", newFilter)
 	}
 
-	filter := map[string][]string{
-		"label": filters,
-	}
-
-	return &filter
+	return &filters
 }
 
 //BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
@@ -106,17 +106,20 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild, logs i
 		return err
 	}
 
-	//make an output buffer with 1m
-	buildImageOptions := docker.BuildImageOptions{
-		Name:         name,
-		InputStream:  inputReader,
-		OutputStream: logs,
+	imageBuildOptions := types.ImageBuildOptions{
+		Context: inputReader,
+		Tags:    []string{name},
 	}
 
-	if err := imageCreator.client.BuildImage(buildImageOptions); err != nil {
+	response, err := imageCreator.client.ImageBuild(imageBuildOptions)
+
+	if err != nil {
 		LogInfo.Fatal(err)
 		return err
 	}
+
+	io.Copy(logs, response.Body)
+	response.Body.Close()
 
 	LogInfo.Printf("Completed uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
 
@@ -132,33 +135,46 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.
 	remoteTag := dockerInfo.GetRemoteTagName(remoteRepo)
 	revision := dockerInfo.Revision
 
-	tagOptions := docker.TagImageOptions{
-		Repo: remoteTag,
-		Tag:  revision,
+	imageTagOptions := types.ImageTagOptions{
+		Force:          true,
+		ImageID:        localTag,
+		RepositoryName: remoteTag,
+		Tag:            revision,
 	}
 
-	err := imageCreator.client.TagImage(localTag, tagOptions)
+	err := imageCreator.client.ImageTag(imageTagOptions)
 
 	if err != nil {
 		return err
 	}
 
-	pushOts := docker.PushImageOptions{
-		Name:         remoteTag,
-		Registry:     remoteRepo,
-		Tag:          revision,
-		OutputStream: logs,
+	imagePushOptions := types.ImagePushOptions{
+		ImageID: remoteTag,
+		Tag:     revision,
 	}
 
 	//this call on every invocation is deliberate.  Our keys should rotate and we want to continue to function when
 	//that happens
 	authConfig := generateAuthConfiguration(imageCreator.remoteRepo)
 
-	err = imageCreator.client.PushImage(pushOts, *authConfig)
+	if authConfig != "" {
+		imagePushOptions.RegistryAuth = authConfig
+	}
+
+	//not sure why we need this when authconfig is already provided
+	privledgedFunction := func() (string, error) {
+		return authConfig, nil
+	}
+
+	reader, err := imageCreator.client.ImagePush(imagePushOptions, privledgedFunction)
 
 	if err != nil {
 		return err
 	}
+
+	io.Copy(logs, reader)
+
+	reader.Close()
 
 	return nil
 }
@@ -170,38 +186,62 @@ func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo, logs io.
 	remoteTag := dockerInfo.GetRemoteTagName(remoteRepo)
 	revision := dockerInfo.Revision
 
-	pullOpts := docker.PullImageOptions{
-		Repository:   remoteTag,
-		Registry:     remoteRepo,
-		Tag:          revision,
-		OutputStream: logs,
+	imagePullOpts := types.ImagePullOptions{
+		ImageID: remoteTag,
+		Tag:     revision,
 	}
 
 	//this call on every invocation is deliberate.  Our keys should rotate and we want to continue to function when
 	//that happens
 	authConfig := generateAuthConfiguration(imageCreator.remoteRepo)
 
-	return imageCreator.client.PullImage(pullOpts, *authConfig)
+	if authConfig != "" {
+		imagePullOpts.RegistryAuth = authConfig
+	}
+
+	privledgedFunction := func() (string, error) {
+		return authConfig, nil
+	}
+
+	response, error := imageCreator.client.ImagePull(imagePullOpts, privledgedFunction)
+
+	if error != nil {
+		return error
+	}
+
+	io.Copy(logs, response)
+
+	response.Close()
+
+	return nil
 }
 
 //generateAuthConfiguration Create an auth configuration from the environment variables
-func generateAuthConfiguration(remoteRepo string) *docker.AuthConfiguration {
+func generateAuthConfiguration(remoteRepo string) string {
 
 	authConfig, exists := getAuthConfig(remoteRepo)
 
 	if !exists {
 		LogWarn.Printf("Could not find repo %s in auth configuration.  Returning empty auth", authConfig)
-		return &docker.AuthConfiguration{}
+		return ""
 	}
 
-	clientAuthConfig := &docker.AuthConfiguration{
-		Email:         authConfig.Email,
-		Password:      authConfig.Password,
-		ServerAddress: authConfig.ServerAddress,
-		Username:      authConfig.Username,
+	encoded, err := encodeAuthToBase64(authConfig)
+
+	if err != nil {
+		LogWarn.Printf("Could not marshall credentials for encoding, returning empty string")
+		return ""
 	}
 
-	return clientAuthConfig
+	return encoded
+}
+
+func encodeAuthToBase64(authConfig *types.AuthConfig) (string, error) {
+	buf, err := json.Marshal(authConfig)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(buf), nil
 }
 
 //getAuthConfig return the auth config if it exists.  Nil and false otherwise
