@@ -11,7 +11,7 @@ paths:
   '/{repository}/applications':
     get:
       description: Get all applications for this repository
-      operationId: getAll Applications
+      operationId: getAllApplications
       responses:
         '200':
           description: The request was for a repository and applications exist within that repository
@@ -25,14 +25,14 @@ paths:
             $ref: '#/definitions/Error'
     post:
       description: Create an image of the specified revision
-      operationId: create deployment
+      operationId: createApplication
       consumes:
         - multipart/form-data
       produces:
         - application/json
       responses:
         '200':
-          description: 'The request was for a valid repo, application, and image'
+          description: The request was for a valid repo, application, and image
           schema:
             $ref: '#/definitions/Image'
         '409':
