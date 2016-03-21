@@ -1,7 +1,7 @@
 swagger: '2.0'
 info:
   version: 0.0.0
-  title: Additional APIs for building docker images.
+  title: APIs for building docker images.
 basePath: /beeswax/deploy/api/v1
 consumes:
   - application/json
@@ -118,7 +118,6 @@ definitions:
       - created
       - size
       - imageId
-      - _links
   Application:
     description: An application
     allOf:
@@ -130,7 +129,6 @@ definitions:
         type: string
     required:
       - name
-      - _links
   Error:
     description: Object used for all API errors.
     type: object
