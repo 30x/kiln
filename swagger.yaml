@@ -102,33 +102,33 @@ definitions:
     description: An image of an application and revision
     allOf:
       - $ref: '#/definitions/Links'
-    type: object
-    properties:
-      created:
-        description: The timestamp the image was created
-        type: string
-        format: date-time
-      size:
-        description: 'The size of the image, in bytes'
-        type: integer
-      imageId:
-        description: The docker image id SHA
-        type: string
-    required:
-      - created
-      - size
-      - imageId
+      - type: object
+        properties:
+          created:
+            description: The timestamp the image was created
+            type: string
+            format: date-time
+          size:
+            description: 'The size of the image, in bytes'
+            type: integer
+          imageId:
+            description: The docker image id SHA
+            type: string
+        required:
+          - created
+          - size
+          - imageId
   Application:
     description: An application
     allOf:
       - $ref: '#/definitions/Links'
-    type: object
-    properties:
-      name:
-        description: The name of the application
-        type: string
-    required:
-      - name
+      - type: object
+        properties:
+          name:
+            description: The name of the application
+            type: string
+        required:
+          - name
   Error:
     description: Object used for all API errors.
     type: object
