@@ -39,8 +39,6 @@ type ApisForBuildingDockerImagesAPI struct {
 	defaultProduces string
 	// JSONConsumer registers a consumer for a "application/json" mime type
 	JSONConsumer httpkit.Consumer
-	// HTMLConsumer registers a consumer for a "text/html" mime type
-	HTMLConsumer httpkit.Consumer
 
 	// JSONProducer registers a producer for a "application/json" mime type
 	JSONProducer httpkit.Producer
@@ -104,10 +102,6 @@ func (o *ApisForBuildingDockerImagesAPI) Validate() error {
 		unregistered = append(unregistered, "JSONConsumer")
 	}
 
-	if o.HTMLConsumer == nil {
-		unregistered = append(unregistered, "HTMLConsumer")
-	}
-
 	if o.JSONProducer == nil {
 		unregistered = append(unregistered, "JSONProducer")
 	}
@@ -156,9 +150,6 @@ func (o *ApisForBuildingDockerImagesAPI) ConsumersFor(mediaTypes []string) map[s
 
 		case "application/json":
 			result["application/json"] = o.JSONConsumer
-
-		case "text/html":
-			result["text/html"] = o.HTMLConsumer
 
 		}
 	}

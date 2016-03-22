@@ -1,8 +1,9 @@
-hash: fc903d148598a3dcae4bfe5745527f8693b5640b8b04ce778ac2444900c8eaad
-updated: 2016-03-21T15:37:53.695245996-06:00
+hash: d405f00be8b5fc54f7513c40deab5370874eb121770229b2de072186808af6a9
+updated: 2016-03-21T16:49:46.32175672-06:00
 imports:
 - name: github.com/asaskevich/govalidator
-  version: 5208815a79dd0135690e0d716d4663c2fbd41ac4
+  version: 9699ab6b38bee2e02cd3fe8b99ecf67665395c96
+  repo: https://github.com/asaskevich/govalidator
 - name: github.com/aws/aws-sdk-go
   version: 4151ef572710e04d25d9385114b33847ba6a923a
   vcs: git
@@ -54,7 +55,8 @@ imports:
 - name: github.com/go-ini/ini
   version: 776aa739ce9373377cd16f526cdf06cb4c89b40f
 - name: github.com/go-swagger/go-swagger
-  version: afe049c8bf597822d445aad54f65d844e4b5025f
+  version: ff42df2bf231f6a12383b36332f8364254ea86d6
+  vcs: git
   subpackages:
   - spec
   - errors
@@ -63,37 +65,45 @@ imports:
   - swag
   - httpkit
   - httpkit/middleware
+  - jsonpointer
+  - jsonreference
   - httpkit/middleware/header
   - httpkit/middleware/untyped
   - internal/validate
-  - jsonpointer
-  - jsonreference
 - name: github.com/gorilla/context
   version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
+  repo: https://github.com/gorilla/context
 - name: github.com/jessevdk/go-flags
   version: 6b9493b3cb60367edd942144879646604089e3f7
-  vcs: git
+  repo: https://github.com/jessevdk/go-flags
 - name: github.com/jmespath/go-jmespath
   version: 0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74
 - name: github.com/naoina/denco
   version: 9af2ba0e24214bac003821f4a501b131b2e04c75
+  repo: https://github.com/naoina/denco
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
   vcs: git
 - name: github.com/opencontainers/runc
-  version: e32651842a04f1f6d174f6a2c16cbcb6ceba4924
+  version: 4d7929274dde43218f48e7ad14739a0fbd839385
   subpackages:
   - libcontainer/user
 - name: github.com/opennota/urlesc
   version: 5fa9ff0392746aeae1c4b37fcc42c65afa7a9587
+  repo: https://github.com/opennota/urlesc
 - name: github.com/PuerkitoBio/purell
   version: d69616f51cdfcd7514d6a380847a152dfc2a749d
+  repo: https://github.com/PuerkitoBio/purell
 - name: github.com/tylerb/graceful
-  version: 9a3d4236b03bb5d26f7951134d248f9d5510d599
+  version: c78c8d9dded2ad16ad81b1fa526a81b2bb8049f6
+  repo: https://github.com/tylerb/graceful
 - name: golang.org/x/net
-  version: 9d8ef8d73b53840886e4a772c72f2b7d396cb37c
+  version: e7da8edaa52631091740908acaf2c2d4c9b3ce90
+  repo: https://go.googlesource.com/net
   subpackages:
+  - context
   - netutil
 - name: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
+  repo: https://gopkg.in/yaml.v2
 devImports: []

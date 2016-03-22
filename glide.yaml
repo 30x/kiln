@@ -12,9 +12,9 @@ import:
 - package: github.com/docker/engine-api/client
   vcs: git
   version: v0.2.3
-- package: github.com/jessevdk/go-flags
+- package: github.com/go-swagger/go-swagger
   vcs: git
-  version: 6b9493b3cb60367edd942144879646604089e3f7
+  version: 0.5.0
 
   
   

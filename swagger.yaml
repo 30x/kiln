@@ -2,7 +2,7 @@ swagger: '2.0'
 info:
   version: 0.0.0
   title: APIs for building docker images.
-basePath: /beeswax/deploy/api/v1
+basePath: /beeswax/images/api/v1
 consumes:
   - application/json
 produces:

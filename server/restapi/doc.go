@@ -9,8 +9,6 @@
     Consumes:
     - application/json
 
-    - text/html
-
 
     Produces:
     - application/json
