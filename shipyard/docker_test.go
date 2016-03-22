@@ -19,9 +19,9 @@ var _ = Describe("docker", func() {
 	Describe("Image Operations", func() {
 
 		AssertImageTests := func() {
-			// It("Should create image successfully", func() {
-			// 	createImage(imageCreator)
-			// })
+			It("Should create image successfully", func() {
+				createImage(imageCreator)
+			})
 
 			It("Tag and Push", func() {
 				_, dockerInfo := createImage(imageCreator)
@@ -63,17 +63,17 @@ var _ = Describe("docker", func() {
 			AssertImageTests()
 		})
 
-		// Context("Amazon ECS", func() {
-		// 	BeforeEach(func() {
-		// 		var error error
-		// 		imageCreator, error = NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
+		Context("Amazon ECS", func() {
+			BeforeEach(func() {
+				var error error
+				imageCreator, error = NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
 
-		// 		Expect(error).Should(BeNil(), "Could not create local docker image creator")
+				Expect(error).Should(BeNil(), "Could not create local docker image creator")
 
-		// 	})
+			})
 
-		// 	AssertImageTests()
-		// })
+			AssertImageTests()
+		})
 
 	})
 
