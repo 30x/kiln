@@ -31,16 +31,16 @@ paths:
       produces:
         - application/json
       responses:
-        '200':
-          description: The request was for a valid repo, application, and image
+        '201':
+          description: The request was for a valid repo, application, and image.  The image was created
           schema:
             $ref: '#/definitions/Image'
         '409':
-          description: Application already exists
+          description: Application and image already exists
           schema:
             $ref: '#/definitions/Error'
         '404':
-          description: The repository does not exist
+          description: The repository and application does not exist
           schema:
             $ref: '#/definitions/Error'
       parameters:

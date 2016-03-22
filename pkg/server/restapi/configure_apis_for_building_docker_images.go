@@ -11,9 +11,9 @@ import (
 	middleware "github.com/go-swagger/go-swagger/httpkit/middleware"
 	strfmt "github.com/go-swagger/go-swagger/strfmt"
 
-	"github.com/30x/shipyard/server/models"
-	"github.com/30x/shipyard/server/restapi/operations"
-	"github.com/30x/shipyard/shipyard"
+	"github.com/30x/shipyard/pkg/server/models"
+	"github.com/30x/shipyard/pkg/server/restapi/operations"
+	"github.com/30x/shipyard/pkg/shipyard"
 )
 
 // This file is safe to edit. Once it exists it will not be overwritten
@@ -110,7 +110,7 @@ func configureAPI(api *operations.ApisForBuildingDockerImagesAPI) http.Handler {
 			return InternalError(message)
 		}
 
-		response := operations.NewCreateApplicationOK()
+		response := operations.NewCreateApplicationCreated()
 
 		response.Payload = &models.Image{
 			Created: strfmt.NewDateTime(),

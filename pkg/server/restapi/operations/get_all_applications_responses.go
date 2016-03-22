@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-swagger/go-swagger/httpkit"
 
-	"github.com/30x/shipyard/server/models"
+	"github.com/30x/shipyard/pkg/server/models"
 )
 
 /*GetAllApplicationsOK The request was for a repository and applications exist within that repository

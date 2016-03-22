@@ -17,7 +17,7 @@ package restapi
 import (
 	"net/http"
 
-	"github.com/30x/shipyard/shipyard"
+	"github.com/30x/shipyard/pkg/shipyard"
 	"github.com/go-swagger/go-swagger/httpkit"
 	"github.com/go-swagger/go-swagger/httpkit/middleware"
 )

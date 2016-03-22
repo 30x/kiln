@@ -8,39 +8,39 @@ import (
 
 	"github.com/go-swagger/go-swagger/httpkit"
 
-	"github.com/30x/shipyard/server/models"
+	"github.com/30x/shipyard/pkg/server/models"
 )
 
-/*CreateApplicationOK The request was for a valid repo, application, and image
+/*CreateApplicationCreated The request was for a valid repo, application, and image.  The image was created
 
-swagger:response createApplicationOK
+swagger:response createApplicationCreated
 */
-type CreateApplicationOK struct {
+type CreateApplicationCreated struct {
 
 	// In: body
 	Payload *models.Image `json:"body,omitempty"`
 }
 
-// NewCreateApplicationOK creates CreateApplicationOK with default headers values
-func NewCreateApplicationOK() *CreateApplicationOK {
-	return &CreateApplicationOK{}
+// NewCreateApplicationCreated creates CreateApplicationCreated with default headers values
+func NewCreateApplicationCreated() *CreateApplicationCreated {
+	return &CreateApplicationCreated{}
 }
 
-// WithPayload adds the payload to the create application o k response
-func (o *CreateApplicationOK) WithPayload(payload *models.Image) *CreateApplicationOK {
+// WithPayload adds the payload to the create application created response
+func (o *CreateApplicationCreated) WithPayload(payload *models.Image) *CreateApplicationCreated {
 	o.Payload = payload
 	return o
 }
 
-// SetPayload sets the payload to the create application o k response
-func (o *CreateApplicationOK) SetPayload(payload *models.Image) {
+// SetPayload sets the payload to the create application created response
+func (o *CreateApplicationCreated) SetPayload(payload *models.Image) {
 	o.Payload = payload
 }
 
 // WriteResponse to the client
-func (o *CreateApplicationOK) WriteResponse(rw http.ResponseWriter, producer httpkit.Producer) {
+func (o *CreateApplicationCreated) WriteResponse(rw http.ResponseWriter, producer httpkit.Producer) {
 
-	rw.WriteHeader(200)
+	rw.WriteHeader(201)
 	if o.Payload != nil {
 		if err := producer.Produce(rw, o.Payload); err != nil {
 			panic(err) // let the recovery middleware deal with this
@@ -48,7 +48,7 @@ func (o *CreateApplicationOK) WriteResponse(rw http.ResponseWriter, producer htt
 	}
 }
 
-/*CreateApplicationNotFound The repository does not exist
+/*CreateApplicationNotFound The repository and application does not exist
 
 swagger:response createApplicationNotFound
 */
@@ -85,7 +85,7 @@ func (o *CreateApplicationNotFound) WriteResponse(rw http.ResponseWriter, produc
 	}
 }
 
-/*CreateApplicationConflict Application already exists
+/*CreateApplicationConflict Application and image already exists
 
 swagger:response createApplicationConflict
 */

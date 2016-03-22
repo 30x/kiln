@@ -9,7 +9,7 @@ import (
 	"github.com/go-swagger/go-swagger/swag"
 	graceful "github.com/tylerb/graceful"
 
-	"github.com/30x/shipyard/server/restapi/operations"
+	"github.com/30x/shipyard/pkg/server/restapi/operations"
 )
 
 //go:generate swagger generate server -t ../.. -A ApisForBuildingDockerImages -f ./swagger.yml
