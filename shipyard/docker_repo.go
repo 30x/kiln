@@ -15,6 +15,10 @@ import (
 	"github.com/docker/engine-api/types/filters"
 	"io"
 	"strings"
+    "net/http"
+    "crypto/tls"
+    "path/filepath"
+    "fmt"
 )
 
 //LocalImageCreator is a struct that holds our pointer to the docker client
@@ -27,7 +31,8 @@ type LocalImageCreator struct {
 
 //NewLocalImageCreator creates an instance of the LocalImageCreator from the docker environment variables, and returns the instance
 func NewLocalImageCreator(repo string) (ImageCreator, error) {
-	client, err := client.NewEnvClient()
+    
+	client, err := newEnvClient()
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +50,34 @@ func NewLocalImageCreator(repo string) (ImageCreator, error) {
 	}
 
 	return imageCreator, nil
+}
+
+// newEnvClient initializes a new API client based on environment variables.. Taken from github.com/docker/engine-api/client.go and fixes bug when no TLS is present
+// Use DOCKER_HOST to set the url to the docker server.
+// Use DOCKER_API_VERSION to set the version of the API to reach, leave empty for latest.
+// Use DOCKER_CERT_PATH to load the tls certificates from.
+// Use DOCKER_TLS_VERIFY to enable or disable TLS verification, off by default.
+func newEnvClient() (*client.Client, error) {
+	var transport *http.Transport
+    dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
+    dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
+    
+	if  dockerCertPath != ""  && dockerTLSVerify != ""{
+		tlsc := &tls.Config{}
+
+		cert, err := tls.LoadX509KeyPair(filepath.Join(dockerCertPath, "cert.pem"), filepath.Join(dockerCertPath, "key.pem"))
+		if err != nil {
+			return nil, fmt.Errorf("Error loading x509 key pair: %s", err)
+		}
+
+		tlsc.Certificates = append(tlsc.Certificates, cert)
+		tlsc.InsecureSkipVerify = dockerTLSVerify == ""
+		transport = &http.Transport{
+			TLSClientConfig: tlsc,
+		}
+	}
+
+	return client.NewClient(os.Getenv("DOCKER_HOST"), os.Getenv("DOCKER_API_VERSION"), transport, nil)
 }
 
 //SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
@@ -157,11 +190,9 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.
 	//that happens
 	authConfig := generateAuthConfiguration(imageCreator.remoteRepo)
 
-	if authConfig != "" {
-		imagePushOptions.RegistryAuth = authConfig
-	}
+	imagePushOptions.RegistryAuth = authConfig
 
-	//not sure why we need this when authconfig is already provided
+	//not sure why we need this when authconfig is already provided, but required at the API level
 	privledgedFunction := func() (string, error) {
 		return authConfig, nil
 	}
@@ -195,9 +226,9 @@ func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo, logs io.
 	//that happens
 	authConfig := generateAuthConfiguration(imageCreator.remoteRepo)
 
-	if authConfig != "" {
-		imagePullOpts.RegistryAuth = authConfig
-	}
+	
+	imagePullOpts.RegistryAuth = authConfig
+	
 
 	privledgedFunction := func() (string, error) {
 		return authConfig, nil
@@ -223,14 +254,14 @@ func generateAuthConfiguration(remoteRepo string) string {
 
 	if !exists {
 		LogWarn.Printf("Could not find repo %s in auth configuration.  Returning empty auth", authConfig)
-		return ""
+        authConfig = &types.AuthConfig{}
 	}
 
 	encoded, err := encodeAuthToBase64(authConfig)
 
 	if err != nil {
 		LogWarn.Printf("Could not marshall credentials for encoding, returning empty string")
-		return ""
+		return "{}"
 	}
 
 	return encoded

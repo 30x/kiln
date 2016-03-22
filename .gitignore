@@ -39,3 +39,4 @@ shipyard/bin
 .idea
 .vscode
 debug.test
+debug

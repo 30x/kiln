@@ -153,7 +153,7 @@ func doSetup(inputZip string) (*SourceInfo, *DockerInfo) {
 
 	dockerFile := &DockerFile{
 		ParentImage: "node:4.3.0-onbuild",
-		DockerInfo: DockerInfo{
+		DockerInfo: &DockerInfo{
 			RepoName:  "test" + UUIDString(),
 			ImageName: "test",
 			Revision:  "v1.0",
@@ -173,7 +173,7 @@ func doSetup(inputZip string) (*SourceInfo, *DockerInfo) {
 
 	Expect(err).Should(BeNil(), "Unable to create tar file")
 
-	return workspace, &dockerFile.DockerInfo
+	return workspace, dockerFile.DockerInfo
 
 }
 
