@@ -58,8 +58,8 @@ paths:
           in: formData
           description: The file data as a multipart
           required: true
-          type: string
-          format: byte
+          type: file
+        #   format: byte
     parameters:
       - $ref: '#/parameters/repository'
   '/{repository}/apps/{application}/images':
