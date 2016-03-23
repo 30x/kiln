@@ -2,6 +2,7 @@ package restapi
 
 import (
 	"crypto/tls"
+	// "encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -51,19 +52,21 @@ func configureAPI(api *operations.ApisForBuildingDockerImagesAPI) http.Handler {
 		defer workspace.Clean()
 
 		//copy the file data to a zip file
-		base64FileData := params.File
+		base64FileData := params.File.Data
 
-		byteData := []byte{}
+		// byteData := []byte{}
 
-		err = base64FileData.UnmarshalText(byteData)
+		// err = base64FileData.UnmarshalText(byteData)
 
-		if err != nil {
-			message := fmt.Sprintf("Unable to unmarshall base64 into bytes %s", err)
-			return InternalError(message)
-		}
+		// _, err = base64.URLEncoding.Decode(byteData, []byte(base64FileData))
+
+		// if err != nil {
+		// 	message := fmt.Sprintf("Unable to unmarshall base64 into bytes %s", err)
+		// 	return InternalError(message)
+		// }
 
 		//get the zip file and write bytes to it
-		err = workspace.WriteZipeFileData(byteData)
+		err = workspace.WriteZipeFileData(base64FileData)
 
 		if err != nil {
 			message := fmt.Sprintf("Unable to write zip file %s", err)
@@ -119,9 +122,38 @@ func configureAPI(api *operations.ApisForBuildingDockerImagesAPI) http.Handler {
 
 		return response
 	})
+
 	api.GetAllApplicationsHandler = operations.GetAllApplicationsHandlerFunc(func(params operations.GetAllApplicationsParams) middleware.Responder {
-		return middleware.NotImplemented("operation .GetAllApplications has not yet been implemented")
+
+		dockerInfo := &shipyard.DockerInfo{
+			RepoName: params.Repository,
+		}
+
+		images, err := imageCreator.SearchRemoteImages(dockerInfo)
+
+		if err != nil {
+			message := fmt.Sprintf("Could not search docker images %+v.  Error is %s", dockerInfo, err)
+			return InternalError(message)
+		}
+
+		response := operations.NewGetAllApplicationsOK()
+
+		for _, image := range images {
+
+			if image.RepoTags == nil || len(image.RepoTags) == 0 {
+				continue
+			}
+
+			application := &models.Application{
+				Name: image.RepoTags[0],
+			}
+
+			response.Payload = append(response.Payload, application)
+		}
+
+		return response
 	})
+
 	api.GetImageHandler = operations.GetImageHandlerFunc(func(params operations.GetImageParams) middleware.Responder {
 		return middleware.NotImplemented("operation .GetImage has not yet been implemented")
 	})

@@ -39,7 +39,7 @@ type CreateApplicationParams struct {
 	  Required: true
 	  In: formData
 	*/
-	File strfmt.Base64
+	File httpkit.File
 	/*The Docker repository name
 	  Required: true
 	  In: path
@@ -72,9 +72,11 @@ func (o *CreateApplicationParams) BindRequest(r *http.Request, route *middleware
 		res = append(res, err)
 	}
 
-	fdFile, fdhkFile, _ := fds.GetOK("file")
-	if err := o.bindFile(fdFile, fdhkFile, route.Formats); err != nil {
-		res = append(res, err)
+	file, fileHeader, err := r.FormFile("file")
+	if err != nil {
+		res = append(res, errors.New(400, "reading file %q failed: %v", "file", err))
+	} else {
+		o.File = httpkit.File{Data: file, Header: fileHeader}
 	}
 
 	rRepository, rhkRepository, _ := route.Params.GetOK("repository")
@@ -106,27 +108,6 @@ func (o *CreateApplicationParams) bindApplication(rawData []string, hasKey bool,
 	}
 
 	o.Application = raw
-
-	return nil
-}
-
-func (o *CreateApplicationParams) bindFile(rawData []string, hasKey bool, formats strfmt.Registry) error {
-	if !hasKey {
-		return errors.Required("file", "formData")
-	}
-	var raw string
-	if len(rawData) > 0 {
-		raw = rawData[len(rawData)-1]
-	}
-	if err := validate.RequiredString("file", "formData", raw); err != nil {
-		return err
-	}
-
-	value, err := formats.Parse("byte", raw)
-	if err != nil {
-		return errors.InvalidType("file", "formData", "strfmt.Base64", raw)
-	}
-	o.File = *(value.(*strfmt.Base64))
 
 	return nil
 }

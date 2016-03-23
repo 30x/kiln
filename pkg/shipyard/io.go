@@ -4,12 +4,13 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"errors"
-	uuid "github.com/nu7hatch/gouuid"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 const DEFAULT_TMP_DIR = "/tmp"
@@ -130,23 +131,41 @@ func (sourceInfo *SourceInfo) ExtractZipFile() error {
 }
 
 //WriteZipeFileData create a 0 byte file and write the bytes to the file.  Closes on return
-func (sourceInfo *SourceInfo) WriteZipeFileData(data []byte) error{
-    file := os.NewFile(DEFAULT_FILE_MODE, sourceInfo.SourceZipFile)
-    
-    defer file.Close()
-    
-    count, err := file.Write(data)
-    
-    if err != nil{
-        LogError.Printf("Unable to write bytes to file at %s.  Error is %s", sourceInfo.SourceZipFile, err)
-        return err
-    }
-    
-    LogInfo.Printf("Wrote %d bytes to file %s", count, sourceInfo.SourceZipFile)
-    
-    return nil
-    
-    
+// func (sourceInfo *SourceInfo) WriteZipeFileData(data []byte) error{
+//     file := os.NewFile(DEFAULT_FILE_MODE, sourceInfo.SourceZipFile)
+
+//     defer file.Close()
+
+//     count, err := file.Write(data)
+
+//     if err != nil{
+//         LogError.Printf("Unable to write bytes to file at %s.  Error is %s", sourceInfo.SourceZipFile, err)
+//         return err
+//     }
+
+//     LogInfo.Printf("Wrote %d bytes to file %s", count, sourceInfo.SourceZipFile)
+
+//     return nil
+
+// }
+
+//WriteZipeFileData write hte zip file data from a reader
+func (sourceInfo *SourceInfo) WriteZipeFileData(reader io.Reader) error {
+	file := os.NewFile(DEFAULT_FILE_MODE, sourceInfo.SourceZipFile)
+
+	defer file.Close()
+
+	count, err := io.Copy(file, reader)
+
+	if err != nil {
+		LogError.Printf("Unable to write bytes to file at %s.  Error is %s", sourceInfo.SourceZipFile, err)
+		return err
+	}
+
+	LogInfo.Printf("Wrote %d bytes to file %s", count, sourceInfo.SourceZipFile)
+
+	return nil
+
 }
 
 //BuildTarFile.  Copies the docker file into the current working directory, tars the source and returns

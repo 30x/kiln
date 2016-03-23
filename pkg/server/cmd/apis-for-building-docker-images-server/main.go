@@ -38,7 +38,6 @@ func main() {
 	}
 
 	server.ConfigureAPI()
-    server.Port = 5280
 
 	if err := server.Serve(); err != nil {
 		log.Fatalln(err)
