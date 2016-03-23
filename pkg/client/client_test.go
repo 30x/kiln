@@ -1,9 +1,8 @@
 package client_test
 
 import (
+	"os"
 	"testing"
-
-	"io/ioutil"
 
 	"github.com/30x/shipyard/pkg/client/client"
 	"github.com/30x/shipyard/pkg/client/client/operations"
@@ -26,19 +25,13 @@ func TestCreateImage(t *testing.T) {
 	createApplicationParams.Application = "echo1"
 	createApplicationParams.Revision = "v1.0"
 
-	fileBytes, err := ioutil.ReadFile("../../testresources/echo-test.zip")
+	file, err := os.Open("../../testresources/echo-test.zip")
 
 	if err != nil {
-		t.Fatal("Couldn't read file")
+		t.Fatal("Could not open file for upload")
 	}
 
-	base64, err := strfmt.Base64.MarshalText(fileBytes)
-
-	if err != nil {
-		t.Fatal("Couldn't encode file")
-	}
-
-	createApplicationParams.File = base64
+	createApplicationParams.File = *file
 
 	response, err := client.Operations.CreateApplication(createApplicationParams)
 

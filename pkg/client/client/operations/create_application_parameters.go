@@ -4,6 +4,8 @@ package operations
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"os"
+
 	"github.com/go-swagger/go-swagger/client"
 	"github.com/go-swagger/go-swagger/errors"
 
@@ -31,7 +33,7 @@ type CreateApplicationParams struct {
 	  The file data as a multipart
 
 	*/
-	File strfmt.Base64
+	File os.File
 	/*Repository
 	  The Docker repository name
 
@@ -51,7 +53,7 @@ func (o *CreateApplicationParams) WithApplication(application string) *CreateApp
 }
 
 // WithFile adds the file to the create application params
-func (o *CreateApplicationParams) WithFile(file strfmt.Base64) *CreateApplicationParams {
+func (o *CreateApplicationParams) WithFile(file os.File) *CreateApplicationParams {
 	o.File = file
 	return o
 }
@@ -82,13 +84,9 @@ func (o *CreateApplicationParams) WriteToRequest(r client.Request, reg strfmt.Re
 		}
 	}
 
-	// form param file
-	frFile := o.File
-	fFile := frFile.String()
-	if fFile != "" {
-		if err := r.SetFormParam("file", fFile); err != nil {
-			return err
-		}
+	// form file param file
+	if err := r.SetFileParam("file", &o.File); err != nil {
+		return err
 	}
 
 	// path param repository
