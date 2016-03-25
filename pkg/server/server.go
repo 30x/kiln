@@ -48,7 +48,8 @@ func init() {
 	decoder = schema.NewDecoder()
 
 	var error error
-	imageCreator, error = shipyard.NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
+	// imageCreator, error = shipyard.NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
+	imageCreator, error = shipyard.NewLocalImageCreator("localhost:5000")
 
 	//we should die here if we're unable to start
 	if error != nil {
