@@ -84,6 +84,12 @@ func newEnvClient() (*client.Client, error) {
 		LogError.Fatalf("You must sent the DOCKER_HOST env variable")
 	}
 
+	parts := strings.SplitN(dockerHost, "://", 2)
+
+	if len(parts) != 2 {
+		LogError.Fatalf("You must specify a protocol on your server.  tcp:// or http:// is required")
+	}
+
 	return client.NewClient(dockerHost, os.Getenv("DOCKER_API_VERSION"), transport, nil)
 }
 
