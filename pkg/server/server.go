@@ -15,6 +15,8 @@ import (
 //TODO make an env variable.  100 Meg max
 const maxFileSize = 1024 * 1024 * 100
 
+const dockerRegistryVar = "DOCKER_REGISTRY_URL"
+
 //Server struct to create an instance of hte server
 type Server struct {
 	router  *mux.Router
@@ -26,8 +28,8 @@ func NewServer() (server *Server) {
 	r := mux.NewRouter()
 	routes := r.PathPrefix("/beeswax/images/api/v1").Subrouter()
 
-	// routes.Methods("POST").Headers("Content-Type", "multipart/form-data").Path("/{repository}/applications").HandlerFunc(postApplication)
-	routes.Methods("POST").Path("/{repository}/applications").HandlerFunc(postApplication)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/{repository}/applications").HandlerFunc(postApplication)
+	// routes.Methods("POST").Path("/{repository}/applications").HandlerFunc(postApplication)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/{repository}/applications").HandlerFunc(GetApplications)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/{repository}/applications/{application}").HandlerFunc(GetApplication)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/{repository}/applications/{application}/images").HandlerFunc(GetImages)
@@ -48,8 +50,15 @@ func init() {
 	decoder = schema.NewDecoder()
 
 	var error error
+
+	repoURL := os.Getenv(dockerRegistryVar)
+
+	if repoURL == "" {
+		shipyard.LogError.Fatalf("You must set the %s environment variable.  An example would be localhost:5000", dockerRegistryVar)
+	}
+
 	// imageCreator, error = shipyard.NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
-	imageCreator, error = shipyard.NewLocalImageCreator("localhost:5000")
+	imageCreator, error = shipyard.NewLocalImageCreator(repoURL)
 
 	//we should die here if we're unable to start
 	if error != nil {
@@ -197,6 +206,7 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//TODO make this a real writes
+	// logWriter := &bytes.Buffer{}
 	logWriter := os.Stdout
 
 	err = imageCreator.BuildImage(dockerBuild, logWriter)

@@ -120,15 +120,15 @@ func TestDockerFile(t *testing.T) {
 		t.Fatalf("Unable to create a workspace %s", err)
 	}
 
-    dockerInfo := &DockerInfo{
-			RepoName:  "testRepo",
-			ImageName: "testImage",
-			Revision:  "v1.0",
-		}
-        
+	dockerInfo := &DockerInfo{
+		RepoName:  "testRepo",
+		ImageName: "testImage",
+		Revision:  "v1.0",
+	}
+
 	dockerFile := &DockerFile{
 		ParentImage: "node:4.3.0-onbuild",
-		DockerInfo: dockerInfo,
+		DockerInfo:  dockerInfo,
 	}
 
 	err = sourceInfo.CreateDockerFile(dockerFile)
@@ -143,7 +143,7 @@ func TestDockerFile(t *testing.T) {
 		`FROM node:4.3.0-onbuild
 
 #Taken from the runtime on start
-EXPOSE 8080
+EXPOSE 9000
 
 LABEL com.github.30x.shipyard.repo=testRepo
 LABEL com.github.30x.shipyard.app=testImage

@@ -7,18 +7,19 @@ This implementation supports the local docker API, as well as the docker provide
 import (
 	"os"
 	// "io"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"path/filepath"
+	"strings"
+
 	"github.com/docker/docker/cliconfig"
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
 	"github.com/docker/engine-api/types/filters"
-	"io"
-	"strings"
-    "net/http"
-    "crypto/tls"
-    "path/filepath"
-    "fmt"
 )
 
 //LocalImageCreator is a struct that holds our pointer to the docker client
@@ -31,7 +32,7 @@ type LocalImageCreator struct {
 
 //NewLocalImageCreator creates an instance of the LocalImageCreator from the docker environment variables, and returns the instance
 func NewLocalImageCreator(repo string) (ImageCreator, error) {
-    
+
 	client, err := newEnvClient()
 	if err != nil {
 		return nil, err
@@ -59,10 +60,10 @@ func NewLocalImageCreator(repo string) (ImageCreator, error) {
 // Use DOCKER_TLS_VERIFY to enable or disable TLS verification, off by default.
 func newEnvClient() (*client.Client, error) {
 	var transport *http.Transport
-    dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
-    dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
-    
-	if  dockerCertPath != ""  && dockerTLSVerify != ""{
+	dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
+	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
+
+	if dockerCertPath != "" && dockerTLSVerify != "" {
 		tlsc := &tls.Config{}
 
 		cert, err := tls.LoadX509KeyPair(filepath.Join(dockerCertPath, "cert.pem"), filepath.Join(dockerCertPath, "key.pem"))
@@ -77,7 +78,13 @@ func newEnvClient() (*client.Client, error) {
 		}
 	}
 
-	return client.NewClient(os.Getenv("DOCKER_HOST"), os.Getenv("DOCKER_API_VERSION"), transport, nil)
+	dockerHost := os.Getenv("DOCKER_HOST")
+
+	if dockerHost == "" {
+		LogError.Fatalf("You must sent the DOCKER_HOST env variable")
+	}
+
+	return client.NewClient(dockerHost, os.Getenv("DOCKER_API_VERSION"), transport, nil)
 }
 
 //SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
@@ -226,9 +233,7 @@ func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo, logs io.
 	//that happens
 	authConfig := generateAuthConfiguration(imageCreator.remoteRepo)
 
-	
 	imagePullOpts.RegistryAuth = authConfig
-	
 
 	privledgedFunction := func() (string, error) {
 		return authConfig, nil
@@ -254,7 +259,7 @@ func generateAuthConfiguration(remoteRepo string) string {
 
 	if !exists {
 		LogWarn.Printf("Could not find repo %s in auth configuration.  Returning empty auth", authConfig)
-        authConfig = &types.AuthConfig{}
+		authConfig = &types.AuthConfig{}
 	}
 
 	encoded, err := encodeAuthToBase64(authConfig)

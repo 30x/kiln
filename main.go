@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"strconv"
+
 	"github.com/30x/shipyard/pkg/server"
 	"github.com/30x/shipyard/pkg/shipyard"
 )
@@ -11,7 +14,17 @@ import (
 func main() {
 
 	server := server.NewServer()
-	port := 5280
+	portString := os.Getenv("PORT")
+
+	if portString == "" {
+		shipyard.LogError.Fatal("You must specifiy the PORT environment variable")
+	}
+
+	port, err := strconv.Atoi(portString)
+
+	if err != nil {
+		shipyard.LogError.Fatal("You must specify a valid integer for the PORT value")
+	}
 
 	if err := server.Start(port); err != nil {
 		shipyard.LogError.Fatalln(err)

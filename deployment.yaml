@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: shipyard
+  labels:
+    name: shipyard
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: shipyard
+        microservice: "true"
+      annotations:
+        trafficHosts: "deploy.k8s.local"
+        pathPort: "5280"
+        publicPaths: "/beeswax/images"
+    spec:
+      containers:
+      - image: tnine/shipyard:v0
+        imagePullPolicy: Always
+        name: shipyard
+        ports:
+        - containerPort: 5280
+        env:
+        - name: PORT
+          value: "5280"
+        - name: DOCKER_REGISTRY_URL
+          value: 172.17.4.99:5000
+        - name: DOCKER_HOST   
+          value: 172.17.4.99:2375

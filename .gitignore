@@ -40,3 +40,4 @@ shipyard/bin
 .vscode
 debug.test
 debug
+build

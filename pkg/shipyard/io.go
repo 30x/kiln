@@ -154,14 +154,6 @@ func (sourceInfo *SourceInfo) WriteZipFileData(reader io.Reader) error {
 
 }
 
-//WriteZipFileData write the zip file data from a reader
-func (sourceInfo *SourceInfo) GetZipFile() *os.File {
-	file := os.NewFile(DEFAULT_FILE_MODE, sourceInfo.SourceZipFile)
-
-	return file
-
-}
-
 //BuildTarFile Copies the docker file into the current working directory, tars the source and returns
 func (sourceInfo *SourceInfo) BuildTarFile() error {
 
@@ -237,7 +229,7 @@ func (sourceInfo *SourceInfo) Clean() error {
 const templateString = `FROM {{.ParentImage}}
 
 #Taken from the runtime on start
-EXPOSE 8080
+EXPOSE 9000
 
 LABEL ` + TAG_REPO + `={{.DockerInfo.RepoName}}
 LABEL ` + TAG_APPLICATION + `={{.DockerInfo.ImageName}}
