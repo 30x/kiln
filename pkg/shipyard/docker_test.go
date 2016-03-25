@@ -1,14 +1,15 @@
 package shipyard_test
 
 import (
-	. "github.com/30x/shipyard/shipyard"
+	. "github.com/30x/shipyard/pkg/shipyard"
+	"github.com/docker/engine-api/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"fmt"
-	"github.com/docker/engine-api/types"
 	"os"
 	"strings"
+	// "github.com/docker/engine-api/types"
 )
 
 var _ = Describe("docker", func() {
@@ -82,7 +83,7 @@ var _ = Describe("docker", func() {
 //helper functions called within the tests
 func createImage(imageCreator ImageCreator) (*SourceInfo, *DockerInfo) {
 
-	const validTestZip = "../testresources/echo-test.zip"
+	const validTestZip = "../../testresources/echo-test.zip"
 
 	workspace, dockerInfo := doSetup(validTestZip)
 
@@ -150,6 +151,10 @@ func doSetup(inputZip string) (*SourceInfo, *DockerInfo) {
 
 	//now that the zip file is extracted, copy the docker file
 	err = workspace.ExtractZipFile()
+
+	if err != nil {
+		Fail("Unable to extract workspace" + err.Error())
+	}
 
 	dockerFile := &DockerFile{
 		ParentImage: "node:4.3.0-onbuild",

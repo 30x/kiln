@@ -130,28 +130,14 @@ func (sourceInfo *SourceInfo) ExtractZipFile() error {
 	return nil
 }
 
-//WriteZipeFileData create a 0 byte file and write the bytes to the file.  Closes on return
-// func (sourceInfo *SourceInfo) WriteZipeFileData(data []byte) error{
-//     file := os.NewFile(DEFAULT_FILE_MODE, sourceInfo.SourceZipFile)
+//WriteZipFileData write the zip file data from a reader
+func (sourceInfo *SourceInfo) WriteZipFileData(reader io.Reader) error {
+	file, err := os.Create(sourceInfo.SourceZipFile)
 
-//     defer file.Close()
-
-//     count, err := file.Write(data)
-
-//     if err != nil{
-//         LogError.Printf("Unable to write bytes to file at %s.  Error is %s", sourceInfo.SourceZipFile, err)
-//         return err
-//     }
-
-//     LogInfo.Printf("Wrote %d bytes to file %s", count, sourceInfo.SourceZipFile)
-
-//     return nil
-
-// }
-
-//WriteZipeFileData write hte zip file data from a reader
-func (sourceInfo *SourceInfo) WriteZipeFileData(reader io.Reader) error {
-	file := os.NewFile(DEFAULT_FILE_MODE, sourceInfo.SourceZipFile)
+	if err != nil {
+		LogError.Printf("Unable to write bytes to file at %s.  Error is %s", sourceInfo.SourceZipFile, err)
+		return err
+	}
 
 	defer file.Close()
 
@@ -168,7 +154,15 @@ func (sourceInfo *SourceInfo) WriteZipeFileData(reader io.Reader) error {
 
 }
 
-//BuildTarFile.  Copies the docker file into the current working directory, tars the source and returns
+//WriteZipFileData write the zip file data from a reader
+func (sourceInfo *SourceInfo) GetZipFile() *os.File {
+	file := os.NewFile(DEFAULT_FILE_MODE, sourceInfo.SourceZipFile)
+
+	return file
+
+}
+
+//BuildTarFile Copies the docker file into the current working directory, tars the source and returns
 func (sourceInfo *SourceInfo) BuildTarFile() error {
 
 	target := filepath.Join(sourceInfo.TargetTarName)
