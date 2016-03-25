@@ -27,5 +27,5 @@ spec:
           value: "5280"
         - name: DOCKER_REGISTRY_URL
           value: 172.17.4.99:5000
-        - name: DOCKER_HOST   
-          value: 172.17.4.99:2375
+        - name: DOCKER_HOST
+          value: tcp://172.17.4.99:2375
