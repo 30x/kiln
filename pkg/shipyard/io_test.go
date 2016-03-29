@@ -1,146 +1,115 @@
-package shipyard
+package shipyard_test
 
 import (
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
-	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	. "github.com/30x/shipyard/pkg/shipyard"
 )
 
-//TestCreateWorkspace Tests creating the temporary working directory
-func TestCreateWorkspace(t *testing.T) {
-	workspace, err := CreateNewWorkspace()
+var _ = Describe("Io", func() {
 
-	if err != nil {
-		t.Fatal("Should not return an error creating a valid workspace")
-	}
+	It("Create workspace ", func() {
+		workspace, err := CreateNewWorkspace()
 
-	//if could not find directory, it's a fail
-	if _, err := os.Stat(workspace.SourceDirectory); os.IsNotExist(err) {
-		t.Fatal("Could not find directory " + workspace.SourceDirectory)
-	}
+		Expect(err).Should(BeNil(), "Should not return an error creating a valid workspace")
 
-	if _, err := os.Stat(workspace.RootDirectory); os.IsNotExist(err) {
-		t.Fatal("Could not find directory " + workspace.RootDirectory)
-	}
+		//if could not find directory, it's a fail
+		Expect(workspace.SourceDirectory).Should(BeADirectory(), "Could not find directory "+workspace.SourceDirectory)
 
-	if workspace.SourceZipFile == "" {
-		t.Fatal("sourceZipFile should be specified")
-	}
+		Expect(workspace.RootDirectory).Should(BeADirectory(), "Could not find directory "+workspace.RootDirectory)
 
-	if workspace.TargetTarName == "" {
-		t.Fatal("targetTarName should be specified")
-	}
+		Expect(workspace.SourceZipFile).ShouldNot(BeEmpty(), "SourceZipFile should be specified")
 
-	if !strings.Contains(workspace.DockerFile, workspace.SourceDirectory) {
-		t.Fatal("Docker file should be in the source directory")
-	}
+		Expect(workspace.TargetTarName).ShouldNot(BeEmpty(), "TargetTarName should be specified")
 
-	subString := strings.Replace(workspace.DockerFile, workspace.SourceDirectory, "", 1)
+		Expect(workspace.DockerFile).Should(ContainSubstring(workspace.SourceDirectory), "Docker file should be in the source directory")
 
-	if subString != "/Dockerfile" {
-		t.Fatal("Dockerfile was not in the correct location")
-	}
+		subString := strings.Replace(workspace.DockerFile, workspace.SourceDirectory, "", 1)
 
-	//otherwise success
-}
+		Expect(subString).Should(Equal("/Dockerfile"), "Dockerfile was not in the correct location")
 
-//TestNoPermissions Tests an error is correctly thrown when the system cant' create the directory
-func TestNoPermissions(t *testing.T) {
+	})
 
-	os.Setenv(SHIPYARD_ENV_VARIABLE, "/usr/ishouldntbecreated")
+	It("No Permissions", func() {
+		os.Setenv(SHIPYARD_ENV_VARIABLE, "/usr/ishouldntbecreated")
 
-	//unset variable
-	defer os.Setenv(SHIPYARD_ENV_VARIABLE, DEFAULT_TMP_DIR)
+		//unset variable after return
+		defer os.Setenv(SHIPYARD_ENV_VARIABLE, DEFAULT_TMP_DIR)
 
-	workspace, err := CreateNewWorkspace()
+		workspace, err := CreateNewWorkspace()
 
-	if workspace != nil && err == nil {
-		t.Fatal("Should not have been able to create the directory")
-	}
+		Expect(workspace).Should(BeNil(), "Should have been able to create the directory")
 
-}
+		Expect(err).ShouldNot(BeNil(), "Should not have been able to create the directory")
+	})
 
-//TestNoPermissions Tests an error is correctly thrown when the system cant' create the directory
-func TestUnzip(t *testing.T) {
+	It("Test unzip", func() {
+		const validTestZip = "../../testresources/echo-test.zip"
 
-	const validTestZip = "../testresources/echo-test.zip"
+		Expect(validTestZip).Should(BeAnExistingFile(), "Could not find source file ")
 
-	if _, err := os.Stat(validTestZip); os.IsNotExist(err) {
-		t.Fatal("Could not find source file " + validTestZip)
-	}
+		workspace, err := CreateNewWorkspace()
 
-	workspace, err := CreateNewWorkspace()
+		Expect(err).Should(BeNil(), "Should have been able to create the directory")
 
-	if err != nil {
-		t.Fatal("Should not have been able to create the directory")
-	}
+		Expect(workspace).ShouldNot(BeNil(), "Workspace should not be nil")
 
-	if workspace == nil {
-		t.Fatal("Workspace should not be nil")
-	}
+		//create a symlink to a valid test zip into our zip workspace
+		err = CopyFile(validTestZip, workspace.SourceZipFile)
 
-	//create a symlink to a valid test zip into our zip workspace
-	err = CopyFile(validTestZip, workspace.SourceZipFile)
+		Expect(err).Should(BeNil(), "Could not link test archive for verification of unzip")
 
-	if err != nil {
-		t.Fatal("Could not link test archive for verification of unzip", err)
-	}
+		err = workspace.ExtractZipFile()
 
-	err = workspace.ExtractZipFile()
+		Expect(err).Should(BeNil(), "Could not extract zip file ")
 
-	if err != nil {
-		t.Fatal("Could not extract zip file ", err)
-	}
+		//now validate the file
+		log.Printf("Testing for source files in " + workspace.SourceDirectory)
 
-	//now validate the file
-	log.Printf("Testing for source files in " + workspace.SourceDirectory)
+		testFile := workspace.SourceDirectory + "/index.js"
 
-	testFile := workspace.SourceDirectory + "/index.js"
+		Expect(testFile).Should(BeAnExistingFile(), "Could not find source file ")
 
-	if stat, err := os.Stat(testFile); err != nil || stat == nil {
-		t.Fatal("Could not find source file "+testFile, err)
-	}
+		testFile = workspace.SourceDirectory + "/package.json"
 
-	testFile = workspace.SourceDirectory + "/package.json"
+		Expect(testFile).Should(BeAnExistingFile(), "Could not find source file "+testFile)
 
-	if stat, err := os.Stat(testFile); err != nil || stat == nil {
-		t.Fatal("Could not find source file "+testFile, err)
-	}
+	})
 
-}
+	It("Test Docker file", func() {
+		sourceInfo, err := CreateNewWorkspace()
 
-//TestCreateDockerFile tests creating a docker file with the valid info
-func TestDockerFile(t *testing.T) {
+		Expect(err).Should(BeNil(), "Unable to create a workspace %s", err)
 
-	sourceInfo, err := CreateNewWorkspace()
+		dockerInfo := &DockerInfo{
+			RepoName:  "testRepo",
+			ImageName: "testImage",
+			Revision:  "v1.0",
+		}
 
-	if err != nil {
-		t.Fatalf("Unable to create a workspace %s", err)
-	}
+		dockerFile := &DockerFile{
+			ParentImage: "node:4.3.0-onbuild",
+			DockerInfo:  dockerInfo,
+		}
 
-	dockerInfo := &DockerInfo{
-		RepoName:  "testRepo",
-		ImageName: "testImage",
-		Revision:  "v1.0",
-	}
+		err = sourceInfo.CreateDockerFile(dockerFile)
 
-	dockerFile := &DockerFile{
-		ParentImage: "node:4.3.0-onbuild",
-		DockerInfo:  dockerInfo,
-	}
+		Expect(err).Should(BeNil(), "Received an error creating template %s")
 
-	err = sourceInfo.CreateDockerFile(dockerFile)
+		//test they're the same
 
-	if err != nil {
-		t.Fatalf("Received an error creating template %s", err)
-	}
+		bytes, err := ioutil.ReadFile(sourceInfo.DockerFile)
 
-	//test they're the same
+		Expect(err).Should(BeNil(), "Could not read file %s", err)
 
-	expected :=
-		`FROM node:4.3.0-onbuild
+		expected :=
+			`FROM node:4.3.0-onbuild
 
 #Taken from the runtime on start
 EXPOSE 9000
@@ -149,16 +118,9 @@ LABEL com.github.30x.shipyard.repo=testRepo
 LABEL com.github.30x.shipyard.app=testImage
 LABEL com.github.30x.shipyard.revision=v1.0
 `
-	bytes, err := ioutil.ReadFile(sourceInfo.DockerFile)
+		fileAsString := string(bytes)
 
-	if err != nil {
-		t.Fatalf("Could not read file %s", err)
-	}
+		Expect(fileAsString).Should(Equal(expected), "File is not as excepcted.  Received \n %s \n but expected \n %s \n ", fileAsString, expected)
+	})
 
-	fileAsString := string(bytes)
-
-	if expected != fileAsString {
-		t.Fatalf("File is not as excepcted.  Received \n %s \n but expected \n %s \n ", fileAsString, expected)
-	}
-
-}
+})
