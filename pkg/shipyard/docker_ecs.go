@@ -48,7 +48,7 @@ func NewEcsImageCreator(repo string, region string) (ImageCreator, error) {
 }
 
 //SearchRemoteImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]types.Image, error) {
+func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) (*[]types.Image, error) {
 
 	//revision exists, perform a search for this revision
 	if search.Revision != "" {
@@ -58,7 +58,7 @@ func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]ty
 		LogInfo.Printf("Searching for revision %s in repo %s", search.Revision, repoString)
 
 		//revi
-		return []types.Image{}, nil
+		return &[]types.Image{}, nil
 	}
 
 	//initialize the filter map
@@ -116,11 +116,11 @@ func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) ([]ty
 
 	}
 
-	return results, nil
+	return &results, nil
 }
 
 //SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator EcsImageCreator) SearchLocalImages(search *DockerInfo) ([]types.Image, error) {
+func (imageCreator EcsImageCreator) SearchLocalImages(search *DockerInfo) (*[]types.Image, error) {
 	return imageCreator.dockerCreator.SearchLocalImages(search)
 }
 

@@ -54,6 +54,7 @@ func NewLocalImageCreator(repo string) (ImageCreator, error) {
 }
 
 // newEnvClient initializes a new API client based on environment variables.. Taken from github.com/docker/engine-api/client.go and fixes bug when no TLS is present
+// as well as adds validation to the conneciton URL to give users a more useful error message
 // Use DOCKER_HOST to set the url to the docker server.
 // Use DOCKER_API_VERSION to set the version of the API to reach, leave empty for latest.
 // Use DOCKER_CERT_PATH to load the tls certificates from.
@@ -94,24 +95,28 @@ func newEnvClient() (*client.Client, error) {
 }
 
 //SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator LocalImageCreator) SearchLocalImages(search *DockerInfo) ([]types.Image, error) {
+func (imageCreator LocalImageCreator) SearchLocalImages(search *DockerInfo) (*[]types.Image, error) {
 
 	filter := createFilter(search)
 
 	opts := types.ImageListOptions{All: false, Filters: *filter}
 
-	return imageCreator.client.ImageList(opts)
+	images, err := imageCreator.client.ImageList(opts)
+
+	return &images, err
 }
 
 //SearchRemoteImages search remote images
-func (imageCreator LocalImageCreator) SearchRemoteImages(search *DockerInfo) ([]types.Image, error) {
+func (imageCreator LocalImageCreator) SearchRemoteImages(search *DockerInfo) (*[]types.Image, error) {
 	//TODO connect to remote repo here
 
 	filter := createFilter(search)
 
 	opts := types.ImageListOptions{All: false, Filters: *filter}
 
-	return imageCreator.client.ImageList(opts)
+	images, err := imageCreator.client.ImageList(opts)
+
+	return &images, err
 
 }
 

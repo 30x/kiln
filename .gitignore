@@ -41,3 +41,5 @@ shipyard/bin
 debug.test
 debug
 build
+ingress.yaml
+deployer.yaml

@@ -21,34 +21,108 @@ var _ = Describe("docker", func() {
 
 		AssertImageTests := func() {
 			It("Should create image successfully", func() {
-				createImage(imageCreator)
+				repoName := "test" + UUIDString()
+				imageName := "test"
+				revision := "v1.0"
+
+				createImage(imageCreator, repoName, imageName, revision)
 			})
 
 			It("Tag and Push", func() {
-				_, dockerInfo := createImage(imageCreator)
+				repoName := "test" + UUIDString()
+				imageName := "test"
+				revision := "v1.0"
+
+				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision)
 
 				err := imageCreator.PushImage(dockerInfo, os.Stdout)
 
 				Expect(err).Should(BeNil(), "Unable to push image", err)
+
 				imageSearch := &DockerInfo{
 					RepoName:  dockerInfo.RepoName,
 					ImageName: dockerInfo.ImageName,
 				}
 
-				images, err := imageCreator.SearchRemoteImages(imageSearch)
+				assertRemoteImageExists(imageCreator, dockerInfo, imageSearch)
 
-				Expect(err).Should(BeNil(), "Unable to list images", err)
-
-				printImages(&images)
-
-				dockerTag := dockerInfo.GetTagName()
-
-				Expect(imageExists(&images, dockerTag)).Should(Equal(true), "Could not find image with the docker tags", dockerTag)
-
-				err = imageCreator.PullImage(dockerInfo, os.Stdout)
-
-				Expect(err).Should(BeNil(), "Could not pull image from remote repo, upload may have failed", err)
 			})
+
+			It("Test Search", func() {
+
+				//push first image
+				repoName := "test" + UUIDString()
+				imageName1 := "test1"
+				revision10 := "v1.0"
+
+				_, dockerInfo10 := createImage(imageCreator, repoName, imageName1, revision10)
+
+				err := imageCreator.PushImage(dockerInfo10, os.Stdout)
+
+				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				revision11 := "v1.1"
+
+				_, dockerInfo11 := createImage(imageCreator, repoName, imageName1, revision11)
+
+				err = imageCreator.PushImage(dockerInfo11, os.Stdout)
+
+				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				//push second image
+				imageName2 := "test2"
+
+				_, dockerInfo2 := createImage(imageCreator, repoName, imageName2, revision10)
+
+				err = imageCreator.PushImage(dockerInfo2, os.Stdout)
+
+				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				//perform a search on all 3 images since they have the same repo name and ensure they're returned
+				imageSearch := &DockerInfo{
+					RepoName: dockerInfo2.RepoName,
+				}
+
+				assertLocalImageExists(imageCreator, dockerInfo10, imageSearch)
+				assertLocalImageExists(imageCreator, dockerInfo11, imageSearch)
+				assertLocalImageExists(imageCreator, dockerInfo2, imageSearch)
+
+				assertRemoteImageExists(imageCreator, dockerInfo10, imageSearch)
+				assertRemoteImageExists(imageCreator, dockerInfo11, imageSearch)
+				assertRemoteImageExists(imageCreator, dockerInfo2, imageSearch)
+
+				//refine to repo and app
+
+				imageSearch = &DockerInfo{
+					RepoName:  dockerInfo10.RepoName,
+					ImageName: dockerInfo10.ImageName,
+				}
+
+				assertLocalImageExists(imageCreator, dockerInfo10, imageSearch)
+				assertLocalImageExists(imageCreator, dockerInfo11, imageSearch)
+				assertNoLocalImageExists(imageCreator, dockerInfo2, imageSearch)
+
+				assertRemoteImageExists(imageCreator, dockerInfo10, imageSearch)
+				assertRemoteImageExists(imageCreator, dockerInfo11, imageSearch)
+				assertNoRemoteImageExists(imageCreator, dockerInfo2, imageSearch)
+
+				//now search for specific revision
+				imageSearch = &DockerInfo{
+					RepoName:  dockerInfo11.RepoName,
+					ImageName: dockerInfo11.ImageName,
+					Revision:  dockerInfo11.Revision,
+				}
+
+				assertNoLocalImageExists(imageCreator, dockerInfo10, imageSearch)
+				assertLocalImageExists(imageCreator, dockerInfo11, imageSearch)
+				assertNoLocalImageExists(imageCreator, dockerInfo2, imageSearch)
+
+				assertNoRemoteImageExists(imageCreator, dockerInfo10, imageSearch)
+				assertRemoteImageExists(imageCreator, dockerInfo11, imageSearch)
+				assertNoRemoteImageExists(imageCreator, dockerInfo2, imageSearch)
+
+			})
+
 		}
 
 		//test the local machine impl
@@ -81,11 +155,11 @@ var _ = Describe("docker", func() {
 })
 
 //helper functions called within the tests
-func createImage(imageCreator ImageCreator) (*SourceInfo, *DockerInfo) {
+func createImage(imageCreator ImageCreator, repoName string, appName string, revision string) (*SourceInfo, *DockerInfo) {
 
 	const validTestZip = "../../testresources/echo-test.zip"
 
-	workspace, dockerInfo := doSetup(validTestZip)
+	workspace, dockerInfo := doSetup(validTestZip, repoName, appName, revision)
 
 	//clean up the workspace after the test.  Comment this out for debugging
 	//defer workspace.Clean()
@@ -103,15 +177,7 @@ func createImage(imageCreator ImageCreator) (*SourceInfo, *DockerInfo) {
 
 	//get the image from docker and ensure it exists
 
-	images, err := imageCreator.SearchLocalImages(&DockerInfo{})
-
-	Expect(err).Should(BeNil(), "Unable to list images", err)
-
-	printImages(&images)
-
-	dockerTag := dockerImage.GetTagName()
-
-	Expect(imageExists(&images, dockerTag)).Should(Equal(true), "Could not find image with the docker tags", dockerTag)
+	assertLocalImageExists(imageCreator, dockerImage.DockerInfo, &DockerInfo{})
 
 	//pull by label
 
@@ -121,20 +187,14 @@ func createImage(imageCreator ImageCreator) (*SourceInfo, *DockerInfo) {
 		Revision:  dockerInfo.Revision,
 	}
 
-	images, err = imageCreator.SearchLocalImages(search)
-
-	Expect(err).Should(BeNil(), "Unable to list images", err)
-
-	printImages(&images)
-
-	Expect(imageExists(&images, dockerTag)).Should(Equal(true), "Could not find image with the docker tags", dockerTag)
+	assertLocalImageExists(imageCreator, dockerImage.DockerInfo, search)
 
 	return workspace, dockerImage.DockerInfo
 
 }
 
 //DoSetup Copies the specified inputZip file into the source directory and adds the docker file to it
-func doSetup(inputZip string) (*SourceInfo, *DockerInfo) {
+func doSetup(inputZip string, repoName string, appName string, revision string) (*SourceInfo, *DockerInfo) {
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
 
@@ -159,9 +219,9 @@ func doSetup(inputZip string) (*SourceInfo, *DockerInfo) {
 	dockerFile := &DockerFile{
 		ParentImage: "node:4.3.0-onbuild",
 		DockerInfo: &DockerInfo{
-			RepoName:  "test" + UUIDString(),
-			ImageName: "test",
-			Revision:  "v1.0",
+			RepoName:  repoName,
+			ImageName: appName,
+			Revision:  revision,
 		},
 	}
 
@@ -169,9 +229,7 @@ func doSetup(inputZip string) (*SourceInfo, *DockerInfo) {
 
 	Expect(err).Should(BeNil(), "Could not find asset ", err)
 
-	if stat, err := os.Stat(workspace.DockerFile); err != nil || stat == nil {
-		Fail("Could not find docker file " + workspace.DockerFile + " " + err.Error())
-	}
+	Expect(workspace.DockerFile).Should(BeAnExistingFile(), "Could not find docker file "+workspace.DockerFile)
 
 	//now tar it up
 	err = workspace.BuildTarFile()
@@ -191,6 +249,63 @@ func printImages(images *[]types.Image) {
 		fmt.Println("VirtualSize: ", img.VirtualSize)
 		fmt.Println("ParentId: ", img.ParentID)
 	}
+}
+
+//assertLocalImageExists search local images and ensures they exist
+func assertLocalImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
+
+	result := searchLocalImages(imageCreator, dockerInfo, imageSearch)
+
+	Expect(result).Should(BeTrue(), "Could not find image with the docker tags", imageSearch.GetTagName())
+
+}
+
+func assertNoLocalImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
+	result := searchLocalImages(imageCreator, dockerInfo, imageSearch)
+
+	Expect(result).Should(BeFalse(), "Shouldn't  find image with the docker tags", imageSearch.GetTagName())
+}
+
+//returns true if the image exists, false otherwise
+func searchLocalImages(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) bool {
+
+	images, err := imageCreator.SearchLocalImages(imageSearch)
+
+	Expect(err).Should(BeNil(), "Unable to list images", err)
+
+	dockerTag := dockerInfo.GetTagName()
+
+	return imageExists(images, dockerTag)
+
+}
+
+//assertRemoteImageExists Searches remote images and ensures they exist
+func assertRemoteImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
+
+	result := searchRemoteImageExists(imageCreator, dockerInfo, imageSearch)
+
+	Expect(result).Should(BeTrue(), "Could not find image with the docker tags", imageSearch.GetTagName())
+
+}
+
+func assertNoRemoteImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
+
+	result := searchRemoteImageExists(imageCreator, dockerInfo, imageSearch)
+
+	Expect(result).Should(BeFalse(), "Should not find image with the docker tags", imageSearch.GetTagName())
+
+}
+
+func searchRemoteImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) bool {
+
+	images, err := imageCreator.SearchRemoteImages(imageSearch)
+
+	Expect(err).Should(BeNil(), "Unable to list images", err)
+
+	dockerTag := dockerInfo.GetTagName()
+
+	return imageExists(images, dockerTag)
+
 }
 
 //imageExists.  Returns true if an image has been tagged with the specified repo name
