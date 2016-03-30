@@ -1,18 +1,24 @@
 package shipyard
 
 import (
-	"github.com/docker/engine-api/types"
 	"io"
+
+	"github.com/docker/engine-api/types"
 )
 
 //ImageCreator the interface an ImageCreator instance must implement
 type ImageCreator interface {
+	//GetRepositories get all remote repositories
+	GetRepositories() (*[]string, error)
 
-	//SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
-	SearchLocalImages(search *DockerInfo) ([]types.Image, error)
+	//GetApplications get all remote application for the specified repository
+	GetApplications(repository string) (*[]string, error)
 
-	//SearchRemoteImages search remote images
-	SearchRemoteImages(search *DockerInfo) ([]types.Image, error)
+	//GetImages get all the images for the specified repository and application
+	GetImages(repository string, application string) (*[]types.Image, error)
+
+	//GetLocalImages return all local images
+	GetLocalImages() (*[]types.Image, error)
 
 	//BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
 	BuildImage(dockerInfo *DockerBuild, logs io.Writer) error

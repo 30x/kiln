@@ -54,6 +54,7 @@ func NewLocalImageCreator(repo string) (ImageCreator, error) {
 }
 
 // newEnvClient initializes a new API client based on environment variables.. Taken from github.com/docker/engine-api/client.go and fixes bug when no TLS is present
+// as well as adds validation to the conneciton URL to give users a more useful error message
 // Use DOCKER_HOST to set the url to the docker server.
 // Use DOCKER_API_VERSION to set the version of the API to reach, leave empty for latest.
 // Use DOCKER_CERT_PATH to load the tls certificates from.
@@ -93,27 +94,78 @@ func newEnvClient() (*client.Client, error) {
 	return client.NewClient(dockerHost, os.Getenv("DOCKER_API_VERSION"), transport, nil)
 }
 
-//SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator LocalImageCreator) SearchLocalImages(search *DockerInfo) ([]types.Image, error) {
+//GetRepositories get all remote repositories
+func (imageCreator LocalImageCreator) GetRepositories() (*[]string, error) {
+	opts := types.ImageListOptions{All: false}
 
-	filter := createFilter(search)
+	images, err := imageCreator.client.ImageList(opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getTags(images, TAG_REPO), nil
+}
+
+//GetApplications get all remote application for the specified repository
+func (imageCreator LocalImageCreator) GetApplications(repository string) (*[]string, error) {
+	filter := filters.NewArgs()
+
+	//append filters as required based on the input
+
+	newFilter := TAG_REPO + "=" + repository
+	filters.Add("label", newFilter)
 
 	opts := types.ImageListOptions{All: false, Filters: *filter}
 
-	return imageCreator.client.ImageList(opts)
+	images, err := imageCreator.client.ImageList(opts)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return getTags(images, TAG_APPLICATION), nil
 }
 
-//SearchRemoteImages search remote images
-func (imageCreator LocalImageCreator) SearchRemoteImages(search *DockerInfo) ([]types.Image, error) {
-	//TODO connect to remote repo here
+//GetImages get all the images for the specified repository and application
+func (imageCreator LocalImageCreator) GetImages(repository string, application string) (*[]types.Image, error) {
 
-	filter := createFilter(search)
+	filters := filters.NewArgs()
 
-	opts := types.ImageListOptions{All: false, Filters: *filter}
+	//append filters as required based on the input
 
-	return imageCreator.client.ImageList(opts)
+	repoFilter := TAG_REPO + "=" + search.RepoName
+	filters.Add("label", repoFilter)
+
+	applicationFilter := TAG_APPLICATION + "=" + search.ImageName
+	filters.Add("label", applicationFilter)
+
+	opts := types.ImageListOptions{All: false, Filters: *filters}
+
+	images, err := imageCreator.client.ImageList(opts)
+
+	return &images, err
+}
+
+func getTags(images *[]types.Image, tagToParse string) *[]string {
+	nameSet := NewStringSet()
+
+	for _, image := range images {
+		repo := image.Labels[tagToParse]
+
+		if repo == "" {
+			continue
+		}
+
+		nameSet.Add(repo)
+	}
+
+	return nameSet.AsSlice(), nil
 
 }
+
+//GetLocalImages return all local images
+func (imageCreator LocalImageCreator) GetLocalImages() (*[]types.Image, error) {}
 
 //createFilter generate filter from search
 func createFilter(search *DockerInfo) *filters.Args {
