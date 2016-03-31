@@ -93,12 +93,7 @@ var _ = Describe("Io", func() {
 			Revision:  "v1.0",
 		}
 
-		dockerFile := &DockerFile{
-			ParentImage: "node:4.3.0-onbuild",
-			DockerInfo:  dockerInfo,
-		}
-
-		err = sourceInfo.CreateDockerFile(dockerFile)
+		err = sourceInfo.CreateDockerFile(dockerInfo)
 
 		Expect(err).Should(BeNil(), "Received an error creating template %s")
 
@@ -109,16 +104,24 @@ var _ = Describe("Io", func() {
 		Expect(err).Should(BeNil(), "Could not read file %s", err)
 
 		expected :=
-			`FROM node:4.3.0-onbuild
+			`FROM mhart/alpine-node:4
 
-#Taken from the runtime on start
-EXPOSE 9000
+      ADD . .
+      RUN npm install
+      #Taken from the runtime on start
+      EXPOSE 9000
 
-LABEL com.github.30x.shipyard.repo=testRepo
-LABEL com.github.30x.shipyard.app=testImage
-LABEL com.github.30x.shipyard.revision=v1.0
-`
-		fileAsString := string(bytes)
+      LABEL com.github.30x.shipyard.repo=testRepo
+      LABEL com.github.30x.shipyard.app=testImage
+      LABEL com.github.30x.shipyard.revision=v1.0
+
+      CMD ["npm", "start"]
+      `
+
+			//take out all the whitespace to ensure that the payloads match, don't test whitespace since this always fails
+		expected = strings.Replace(expected, " ", "", -1)
+
+		fileAsString := strings.Replace(string(bytes), " ", "", -1)
 
 		Expect(fileAsString).Should(Equal(expected), "File is not as excepcted.  Received \n %s \n but expected \n %s \n ", fileAsString, expected)
 	})

@@ -17,6 +17,9 @@ type ImageCreator interface {
 	//GetImages get all the images for the specified repository and application
 	GetImages(repository string, application string) (*[]types.Image, error)
 
+	//GetImageRevision get the image for the specified repository, application, and revision.  Nil is returned if one does not exist
+	GetImageRevision(repository string, application string, revision string) (*types.Image, error)
+
 	//GetLocalImages return all local images
 	GetLocalImages() (*[]types.Image, error)
 

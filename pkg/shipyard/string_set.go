@@ -6,10 +6,12 @@ type StringSet struct {
 }
 
 //NewStringSet create a new string set
-func NewStringSet() {
+func NewStringSet() *StringSet {
 	set := &StringSet{
 		set: make(map[string]bool),
 	}
+
+	return set
 }
 
 //Add add to the set.  Return true if it was new, false if it already existed
@@ -29,5 +31,5 @@ func (set *StringSet) AsSlice() *[]string {
 		i++
 	}
 
-	return keys
+	return &keys
 }

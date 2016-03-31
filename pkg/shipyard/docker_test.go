@@ -39,16 +39,11 @@ var _ = Describe("docker", func() {
 
 				Expect(err).Should(BeNil(), "Unable to push image", err)
 
-				imageSearch := &DockerInfo{
-					RepoName:  dockerInfo.RepoName,
-					ImageName: dockerInfo.ImageName,
-				}
-
-				assertRemoteImageExists(imageCreator, dockerInfo, imageSearch)
+				assertImageExists(imageCreator, dockerInfo)
 
 			})
 
-			FIt("Test Search", func() {
+			It("Test Search", func() {
 
 				//push first image
 				repoName := "test" + UUIDString()
@@ -78,67 +73,31 @@ var _ = Describe("docker", func() {
 
 				Expect(err).Should(BeNil(), "Unable to push image", err)
 
-				//perform a search on all 3 images since they have the same repo name and ensure they're returned
-				imageSearch := &DockerInfo{
-					RepoName: dockerInfo2.RepoName,
-				}
+				//applications
+				assertApplicationsExist(imageCreator, dockerInfo2.RepoName, dockerInfo10.ImageName, dockerInfo11.ImageName, dockerInfo2.ImageName)
 
-				assertLocalImageExists(imageCreator, dockerInfo10, imageSearch)
-				assertLocalImageExists(imageCreator, dockerInfo11, imageSearch)
-				assertLocalImageExists(imageCreator, dockerInfo2, imageSearch)
-
-				assertRemoteImageExists(imageCreator, dockerInfo10, imageSearch)
-				assertRemoteImageExists(imageCreator, dockerInfo11, imageSearch)
-				assertRemoteImageExists(imageCreator, dockerInfo2, imageSearch)
-
-				//refine to repo and app
-
-				imageSearch = &DockerInfo{
-					RepoName:  dockerInfo10.RepoName,
-					ImageName: dockerInfo10.ImageName,
-				}
-
-				assertLocalImageExists(imageCreator, dockerInfo10, imageSearch)
-				assertLocalImageExists(imageCreator, dockerInfo11, imageSearch)
-				assertNoLocalImageExists(imageCreator, dockerInfo2, imageSearch)
-
-				assertRemoteImageExists(imageCreator, dockerInfo10, imageSearch)
-				assertRemoteImageExists(imageCreator, dockerInfo11, imageSearch)
-				assertNoRemoteImageExists(imageCreator, dockerInfo2, imageSearch)
-
-				//now search for specific revision
-				imageSearch = &DockerInfo{
-					RepoName:  dockerInfo11.RepoName,
-					ImageName: dockerInfo11.ImageName,
-					Revision:  dockerInfo11.Revision,
-				}
-
-				assertNoLocalImageExists(imageCreator, dockerInfo10, imageSearch)
-				assertLocalImageExists(imageCreator, dockerInfo11, imageSearch)
-				assertNoLocalImageExists(imageCreator, dockerInfo2, imageSearch)
-
-				assertNoRemoteImageExists(imageCreator, dockerInfo10, imageSearch)
-				assertRemoteImageExists(imageCreator, dockerInfo11, imageSearch)
-				assertNoRemoteImageExists(imageCreator, dockerInfo2, imageSearch)
-
+				//images
+				assertImageExists(imageCreator, dockerInfo10)
+				assertImageExists(imageCreator, dockerInfo11)
+				assertImageExists(imageCreator, dockerInfo2)
 			})
 
 		}
 
 		//test the local machine impl
-		// Context("Local Docker Machine", func() {
-		// 	BeforeEach(func() {
-		// 		var error error
-		// 		imageCreator, error = NewLocalImageCreator("localhost:5000")
+		Context("Local Docker Machine", func() {
+			BeforeEach(func() {
+				var error error
+				imageCreator, error = NewLocalImageCreator("localhost:5000")
 
-		// 		Expect(error).Should(BeNil(), "Could not create local docker image creator")
+				Expect(error).Should(BeNil(), "Could not create local docker image creator")
 
-		// 	})
+			})
 
-		// 	AssertImageTests()
-		// })
+			AssertImageTests()
+		})
 
-		FContext("Amazon ECS", func() {
+		Context("Amazon ECS", func() {
 			BeforeEach(func() {
 				var error error
 				imageCreator, error = NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
@@ -216,16 +175,13 @@ func doSetup(inputZip string, repoName string, appName string, revision string) 
 		Fail("Unable to extract workspace" + err.Error())
 	}
 
-	dockerFile := &DockerFile{
-		ParentImage: "node:4.3.0-onbuild",
-		DockerInfo: &DockerInfo{
-			RepoName:  repoName,
-			ImageName: appName,
-			Revision:  revision,
-		},
+	dockerInfo := &DockerInfo{
+		RepoName:  repoName,
+		ImageName: appName,
+		Revision:  revision,
 	}
 
-	err = workspace.CreateDockerFile(dockerFile)
+	err = workspace.CreateDockerFile(dockerInfo)
 
 	Expect(err).Should(BeNil(), "Could not find asset ", err)
 
@@ -236,7 +192,7 @@ func doSetup(inputZip string, repoName string, appName string, revision string) 
 
 	Expect(err).Should(BeNil(), "Unable to create tar file")
 
-	return workspace, dockerFile.DockerInfo
+	return workspace, dockerInfo
 
 }
 
@@ -251,6 +207,74 @@ func printImages(images *[]types.Image) {
 	}
 }
 
+func assertApplicationsExist(imageCreator ImageCreator, repoName string, expectedValues ...string) {
+
+	apps, err := imageCreator.GetApplications(repoName)
+
+	Expect(err).Should(BeNil(), "An error occured getting applications %s", err)
+
+	for _, expected := range expectedValues {
+		found := stringExists(apps, expected)
+
+		Expect(found).Should(BeTrue(), "Could not find application %s for repo %s", expected, repoName)
+	}
+}
+
+func assertApplicationVersionsExist(imageCreator ImageCreator, repoName string, applicationName string, versions ...string) {
+
+	images, err := imageCreator.GetImages(repoName, applicationName)
+
+	Expect(err).Should(BeNil(), "An Error occured getting images")
+
+	for _, version := range versions {
+
+		//loop through the images and verify them.
+
+		found := false
+
+		for _, image := range *images {
+
+			for _, repoTag := range image.RepoTags {
+
+				expected := fmt.Sprintf("%s/%s:%s", repoName, applicationName, version)
+
+				if repoTag == expected {
+					found = true
+					break
+				}
+			}
+
+			if found {
+				break
+			}
+
+		}
+
+		Expect(found).Should(BeTrue(), "Expected to find version %s for repo %s and applicationName %s", version, repoName, applicationName)
+
+	}
+}
+
+func assertImageExists(imageCreator ImageCreator, expectedImage *DockerInfo) {
+	image, err := imageCreator.GetImageRevision(expectedImage.RepoName, expectedImage.ImageName, expectedImage.Revision)
+
+	Expect(err).Should(BeNil(), "Could not retrieve image.  %s", err)
+	Expect(image).ShouldNot(BeNil(), "Image should be returned")
+
+	found := false
+
+	expected := expectedImage.GetTagName()
+
+	for _, tag := range image.RepoTags {
+		if tag == expected {
+			found = true
+			break
+		}
+	}
+
+	Expect(found).Should(BeTrue(), "Image image should be %s", expectedImage.GetTagName())
+}
+
 //assertLocalImageExists search local images and ensures they exist
 func assertLocalImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
 
@@ -260,45 +284,10 @@ func assertLocalImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, i
 
 }
 
-func assertNoLocalImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
-	result := searchLocalImages(imageCreator, dockerInfo, imageSearch)
-
-	Expect(result).Should(BeFalse(), "Shouldn't  find image with the docker tags", imageSearch.GetTagName())
-}
-
 //returns true if the image exists, false otherwise
 func searchLocalImages(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) bool {
 
-	images, err := imageCreator.SearchLocalImages(imageSearch)
-
-	Expect(err).Should(BeNil(), "Unable to list images", err)
-
-	dockerTag := dockerInfo.GetTagName()
-
-	return imageExists(images, dockerTag)
-
-}
-
-//assertRemoteImageExists Searches remote images and ensures they exist
-func assertRemoteImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
-
-	result := searchRemoteImageExists(imageCreator, dockerInfo, imageSearch)
-
-	Expect(result).Should(BeTrue(), "Could not find image with the docker tags", imageSearch.GetTagName())
-
-}
-
-func assertNoRemoteImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
-
-	result := searchRemoteImageExists(imageCreator, dockerInfo, imageSearch)
-
-	Expect(result).Should(BeFalse(), "Should not find image with the docker tags", imageSearch.GetTagName())
-
-}
-
-func searchRemoteImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) bool {
-
-	images, err := imageCreator.SearchRemoteImages(imageSearch)
+	images, err := imageCreator.GetLocalImages()
 
 	Expect(err).Should(BeNil(), "Unable to list images", err)
 
@@ -318,6 +307,18 @@ func imageExists(images *[]types.Image, repoTagName string) bool {
 			}
 		}
 
+	}
+
+	return false
+}
+
+//stringExists return true if the st
+func stringExists(array *[]string, search string) bool {
+
+	for _, string := range *array {
+		if search == string {
+			return true
+		}
 	}
 
 	return false

@@ -1,8 +1,11 @@
 package shipyard
 
 import (
+	"errors"
 	"io"
 	"strings"
+
+	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -48,29 +51,130 @@ func NewEcsImageCreator(repo string, region string) (ImageCreator, error) {
 	}, nil
 }
 
-//SearchRemoteImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) (*[]types.Image, error) {
+//GetRepositories get all remote repositories
+func (imageCreator EcsImageCreator) GetRepositories() (*[]string, error) {
 
-	//revision exists, perform a search for this revision
-	if search.Revision != "" {
-		//  search.Revision
-		repoString := search.GetImageName()
+	repositoryResult := newRepositoryResult()
 
-		LogInfo.Printf("Searching for revision %s in repo %s", search.Revision, repoString)
+	err := imageCreator.getResults(repositoryResult)
 
-		//revi
-		return &[]types.Image{}, nil
-	}
+	return repositoryResult.getResults(), err
+}
 
-	//initialize the filter map
-	describeRequest := &ecr.DescribeRepositoriesInput{
-		MaxResults: aws.Int64(100),
-		// RepositoryNames: []*string{
-		// 	aws.String(searchString),
-		// },
+//GetApplications get all remote application for the specified repository
+func (imageCreator EcsImageCreator) GetApplications(repository string) (*[]string, error) {
+	applicationResult := newApplicationResult()
+
+	err := imageCreator.getResults(applicationResult)
+
+	return applicationResult.getResults(), err
+
+}
+
+//GetImages get all the images for the specified repository and application
+func (imageCreator EcsImageCreator) GetImages(repository string, application string) (*[]types.Image, error) {
+
+	repositoryName := repository + "/" + application
+
+	listRequest := &ecr.ListImagesInput{
+		MaxResults:     aws.Int64(100),
+		RepositoryName: &repositoryName,
 	}
 
 	results := []types.Image{}
+
+	for {
+
+		response, err := imageCreator.awsClient.ListImages(listRequest)
+
+		//call failed, bail
+		if err != nil {
+			return nil, err
+		}
+
+		for _, awsImage := range response.ImageIds {
+			if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
+				LogWarn.Printf("Was unable to marshall response from aws image, skipping")
+				continue
+			}
+
+			repoTag := repository + ":" + *awsImage.ImageTag
+
+			dockerImage := types.Image{
+				ID:       *awsImage.ImageDigest,
+				RepoTags: []string{repoTag},
+			}
+
+			results = append(results, dockerImage)
+		}
+
+		//no token, break out of the loop
+		if response.NextToken == nil {
+			break
+		}
+
+		//otherwise reset our describe for the next request
+		listRequest.NextToken = response.NextToken
+
+	}
+
+	return &results, nil
+
+}
+
+//GetImageRevision get the image revision
+func (imageCreator EcsImageCreator) GetImageRevision(repository string, application string, revision string) (*types.Image, error) {
+	repositoryName := repository + "/" + application
+
+	imageID := &ecr.ImageIdentifier{
+		ImageTag: &revision,
+	}
+
+	imageRequest := ecr.BatchGetImageInput{
+		RepositoryName: &repositoryName,
+		ImageIds:       []*ecr.ImageIdentifier{imageID},
+	}
+
+	response, err := imageCreator.awsClient.BatchGetImage(&imageRequest)
+
+	//call failed, bail
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response.Images) < 1 {
+		errorMsg := fmt.Sprintf("Could not find images with repository %s, application %s, and revision %s", repository, application, revision)
+
+		return nil, errors.New(errorMsg)
+	}
+
+	awsImage := response.Images[0].ImageId
+
+	if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
+		LogWarn.Printf("Was unable to marshall response from aws image, skipping")
+		return nil, nil
+	}
+
+	repoTag := repositoryName + ":" + *awsImage.ImageTag
+
+	dockerImage := types.Image{
+		ID:       *awsImage.ImageDigest,
+		RepoTags: []string{repoTag},
+	}
+
+	return &dockerImage, nil
+}
+
+//GetLocalImages return all local images
+func (imageCreator EcsImageCreator) GetLocalImages() (*[]types.Image, error) {
+	return imageCreator.dockerCreator.GetLocalImages()
+}
+
+//iterate all the results and add them to the result builder  TODO paging client side
+func (imageCreator EcsImageCreator) getResults(resultBuilder resultBuilder) error {
+	describeRequest := &ecr.DescribeRepositoriesInput{
+		MaxResults: aws.Int64(100),
+	}
 
 	for {
 
@@ -78,33 +182,15 @@ func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) (*[]t
 
 		//call failed, bail
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		for _, repository := range response.Repositories {
 
-			awsImages, err := imageCreator.getImages(repository.RepositoryName)
+			name := repository.RepositoryName
 
-			if err != nil {
-				return nil, err
-			}
+			resultBuilder.add(name)
 
-			for _, awsImage := range awsImages {
-
-				if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
-					LogWarn.Printf("Was unable to marshall response from aws image, skipping")
-					continue
-				}
-
-				repoTag := *repository.RepositoryName + ":" + *awsImage.ImageTag
-
-				dockerImage := types.Image{
-					ID:       *awsImage.ImageDigest,
-					RepoTags: []string{repoTag},
-				}
-
-				results = append(results, dockerImage)
-			}
 		}
 
 		//no token, break out of the loop
@@ -114,22 +200,81 @@ func (imageCreator EcsImageCreator) SearchRemoteImages(search *DockerInfo) (*[]t
 
 		//otherwise reset our describe for the next request
 		describeRequest.NextToken = response.NextToken
-
 	}
 
-	return &results, nil
+	return nil
 }
 
-//SearchLocalImages return all images with matching labels.  The label name is the key, the values are the value strings
-func (imageCreator EcsImageCreator) SearchLocalImages(search *DockerInfo) (*[]types.Image, error) {
-	return imageCreator.dockerCreator.SearchLocalImages(search)
+type resultBuilder interface {
+	//possibly add the repository to the results
+	add(repositoryName *string)
+
+	//Get the results
+	getResults() *[]string
 }
 
-//BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
+type repositoryResult struct {
+	repoSet *StringSet
+}
+
+//create a new instance of the repository result
+func newRepositoryResult() *repositoryResult {
+	return &repositoryResult{
+		repoSet: NewStringSet(),
+	}
+}
+
+func (repositoryResult *repositoryResult) add(repositoryName *string) {
+	parts := strings.Split(*repositoryName, "/")
+
+	//not the right length, drop it
+	if len(parts) != 2 {
+		return
+	}
+
+	repositoryResult.repoSet.Add(parts[0])
+}
+
+//Get the results
+func (repositoryResult *repositoryResult) getResults() *[]string {
+	return repositoryResult.repoSet.AsSlice()
+}
+
+type applicationResult struct {
+	repoSet *StringSet
+}
+
+//create a new instance of the application result
+func newApplicationResult() *applicationResult {
+	return &applicationResult{
+		repoSet: NewStringSet(),
+	}
+}
+
+func (applicationResult *applicationResult) add(repositoryName *string) {
+	parts := strings.Split(*repositoryName, "/")
+
+	//not the right length, drop it
+	if len(parts) != 2 {
+		return
+	}
+
+	applicationResult.repoSet.Add(parts[1])
+}
+
+//Get the results
+func (applicationResult *applicationResult) getResults() *[]string {
+	return applicationResult.repoSet.AsSlice()
+}
+
+//BuildImage build the image
 func (imageCreator EcsImageCreator) BuildImage(dockerInfo *DockerBuild, logs io.Writer) error {
-
 	return imageCreator.dockerCreator.BuildImage(dockerInfo, logs)
+}
 
+//PullImage pull the specified image to our the docker runtime
+func (imageCreator EcsImageCreator) PullImage(dockerInfo *DockerInfo, logs io.Writer) error {
+	return imageCreator.dockerCreator.PullImage(dockerInfo, logs)
 }
 
 //PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
@@ -153,12 +298,6 @@ func (imageCreator EcsImageCreator) PushImage(dockerInfo *DockerInfo, logs io.Wr
 	}
 
 	return imageCreator.dockerCreator.PushImage(dockerInfo, logs)
-}
-
-//PullImage pull the specified image to our the docker runtime
-func (imageCreator EcsImageCreator) PullImage(dockerInfo *DockerInfo, logs io.Writer) error {
-
-	return nil
 }
 
 //return true if the image exists
@@ -196,263 +335,4 @@ func (imageCreator EcsImageCreator) createImage(imageName string) error {
 
 	return err
 
-}
-
-//Search Each search will implement their ECS calls differently, as a result, we simply intanciate the correct type and delegate to it.  An impl of the command pattern
-type Search interface {
-	//Search
-	search() (*[]types.Image, error)
-}
-
-//searchAll The search for all repositories
-type searchAll struct {
-	awsClient *ecr.ECR
-}
-
-func (searchAll *searchAll) search() (*[]types.Image, error) {
-
-	//initialize the filter map
-	describeRequest := &ecr.DescribeRepositoriesInput{
-		MaxResults: aws.Int64(100),
-	}
-
-	results := []types.Image{}
-
-	for {
-
-		response, err := searchAll.awsClient.DescribeRepositories(describeRequest)
-
-		//call failed, bail
-		if err != nil {
-			return nil, err
-		}
-
-		for _, repository := range response.Repositories {
-
-			awsImages, err := searchAll.getImages(repository.RepositoryName)
-
-			if err != nil {
-				return nil, err
-			}
-
-			for _, awsImage := range awsImages {
-
-				if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
-					LogWarn.Printf("Was unable to marshall response from aws image, skipping")
-					continue
-				}
-
-				repoTag := *repository.RepositoryName + ":" + *awsImage.ImageTag
-
-				dockerImage := types.Image{
-					ID:       *awsImage.ImageDigest,
-					RepoTags: []string{repoTag},
-				}
-
-				results = append(results, dockerImage)
-			}
-		}
-
-		//no token, break out of the loop
-		if response.NextToken == nil {
-			break
-		}
-
-		//otherwise reset our describe for the next request
-		describeRequest.NextToken = response.NextToken
-
-	}
-
-	return &results, nil
-}
-
-type searchRepository struct {
-	awsClient *ecr.ECR
-}
-
-func (searchRepository *searchRepository) search() (*[]types.Image, error) {
-
-	//initialize the filter map
-	describeRequest := &ecr.DescribeRepositoriesInput{
-		MaxResults: aws.Int64(100),
-		// RepositoryNames: []*string{
-		// 	aws.String(searchString),
-		// },
-	}
-
-	results := []types.Image{}
-
-	for {
-
-		response, err := searchRepository.awsClient.DescribeRepositories(describeRequest)
-
-		//call failed, bail
-		if err != nil {
-			return nil, err
-		}
-
-		for _, repository := range response.Repositories {
-
-			awsImages, err := imageCreator.getImages(repository.RepositoryName)
-
-			if err != nil {
-				return nil, err
-			}
-
-			for _, awsImage := range awsImages {
-
-				if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
-					LogWarn.Printf("Was unable to marshall response from aws image, skipping")
-					continue
-				}
-
-				repoTag := *repository.RepositoryName + ":" + *awsImage.ImageTag
-
-				dockerImage := types.Image{
-					ID:       *awsImage.ImageDigest,
-					RepoTags: []string{repoTag},
-				}
-
-				results = append(results, dockerImage)
-			}
-		}
-
-		//no token, break out of the loop
-		if response.NextToken == nil {
-			break
-		}
-
-		//otherwise reset our describe for the next request
-		describeRequest.NextToken = response.NextToken
-
-	}
-
-	return &results, nil
-}
-
-type searchApplication struct {
-	awsClient *ecr.ECR
-}
-
-func (search *searchApplication) search() (*[]types.Image, error) {
-
-	//initialize the filter map
-	describeRequest := &ecr.DescribeRepositoriesInput{
-		MaxResults: aws.Int64(100),
-		// RepositoryNames: []*string{
-		// 	aws.String(searchString),
-		// },
-	}
-
-	results := []types.Image{}
-
-	for {
-
-		response, err := imageCreator.awsClient.DescribeRepositories(describeRequest)
-
-		//call failed, bail
-		if err != nil {
-			return nil, err
-		}
-
-		for _, repository := range response.Repositories {
-
-			awsImages, err := imageCreator.getImages(repository.RepositoryName)
-
-			if err != nil {
-				return nil, err
-			}
-
-			for _, awsImage := range awsImages {
-
-				if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
-					LogWarn.Printf("Was unable to marshall response from aws image, skipping")
-					continue
-				}
-
-				repoTag := *repository.RepositoryName + ":" + *awsImage.ImageTag
-
-				dockerImage := types.Image{
-					ID:       *awsImage.ImageDigest,
-					RepoTags: []string{repoTag},
-				}
-
-				results = append(results, dockerImage)
-			}
-		}
-
-		//no token, break out of the loop
-		if response.NextToken == nil {
-			break
-		}
-
-		//otherwise reset our describe for the next request
-		describeRequest.NextToken = response.NextToken
-
-	}
-
-	return &results, nil
-}
-
-type searchApplicationRevision struct {
-}
-
-func (search *searchApplicationRevision) search() (*[]types.Image, error) {
-
-	//initialize the filter map
-	describeRequest := &ecr.DescribeRepositoriesInput{
-		MaxResults: aws.Int64(100),
-		// RepositoryNames: []*string{
-		// 	aws.String(searchString),
-		// },
-	}
-
-	results := []types.Image{}
-
-	for {
-
-		response, err := imageCreator.awsClient.DescribeRepositories(describeRequest)
-
-		//call failed, bail
-		if err != nil {
-			return nil, err
-		}
-
-		for _, repository := range response.Repositories {
-
-			awsImages, err := imageCreator.getImages(repository.RepositoryName)
-
-			if err != nil {
-				return nil, err
-			}
-
-			for _, awsImage := range awsImages {
-
-				if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
-					LogWarn.Printf("Was unable to marshall response from aws image, skipping")
-					continue
-				}
-
-				repoTag := *repository.RepositoryName + ":" + *awsImage.ImageTag
-
-				dockerImage := types.Image{
-					ID:       *awsImage.ImageDigest,
-					RepoTags: []string{repoTag},
-				}
-
-				results = append(results, dockerImage)
-			}
-		}
-
-		//no token, break out of the loop
-		if response.NextToken == nil {
-			break
-		}
-
-		//otherwise reset our describe for the next request
-		describeRequest.NextToken = response.NextToken
-
-	}
-
-	return &results, nil
 }

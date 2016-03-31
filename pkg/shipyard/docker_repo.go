@@ -104,19 +104,19 @@ func (imageCreator LocalImageCreator) GetRepositories() (*[]string, error) {
 		return nil, err
 	}
 
-	return getTags(images, TAG_REPO), nil
+	return getTags(&images, TAG_REPO), nil
 }
 
 //GetApplications get all remote application for the specified repository
 func (imageCreator LocalImageCreator) GetApplications(repository string) (*[]string, error) {
-	filter := filters.NewArgs()
+	filters := filters.NewArgs()
 
 	//append filters as required based on the input
 
 	newFilter := TAG_REPO + "=" + repository
 	filters.Add("label", newFilter)
 
-	opts := types.ImageListOptions{All: false, Filters: *filter}
+	opts := types.ImageListOptions{All: false, Filters: filters}
 
 	images, err := imageCreator.client.ImageList(opts)
 
@@ -124,7 +124,7 @@ func (imageCreator LocalImageCreator) GetApplications(repository string) (*[]str
 		return nil, err
 	}
 
-	return getTags(images, TAG_APPLICATION), nil
+	return getTags(&images, TAG_APPLICATION), nil
 }
 
 //GetImages get all the images for the specified repository and application
@@ -134,23 +134,52 @@ func (imageCreator LocalImageCreator) GetImages(repository string, application s
 
 	//append filters as required based on the input
 
-	repoFilter := TAG_REPO + "=" + search.RepoName
+	repoFilter := TAG_REPO + "=" + repository
 	filters.Add("label", repoFilter)
 
-	applicationFilter := TAG_APPLICATION + "=" + search.ImageName
+	applicationFilter := TAG_APPLICATION + "=" + application
 	filters.Add("label", applicationFilter)
 
-	opts := types.ImageListOptions{All: false, Filters: *filters}
+	opts := types.ImageListOptions{All: false, Filters: filters}
 
 	images, err := imageCreator.client.ImageList(opts)
 
 	return &images, err
 }
 
+//GetImageRevision get the image revision
+func (imageCreator LocalImageCreator) GetImageRevision(repository string, application string, revision string) (*types.Image, error) {
+
+	filters := filters.NewArgs()
+
+	//append filters as required based on the input
+
+	repoFilter := TAG_REPO + "=" + repository
+	filters.Add("label", repoFilter)
+
+	applicationFilter := TAG_APPLICATION + "=" + application
+	filters.Add("label", applicationFilter)
+
+	revisionFilter := TAG_REVISION + "=" + revision
+	filters.Add("label", revisionFilter)
+
+	opts := types.ImageListOptions{All: false, Filters: filters}
+
+	images, err := imageCreator.client.ImageList(opts)
+
+	if err == nil && len(images) > 0 {
+		return &images[0], err
+	}
+
+	return nil, err
+
+}
+
+//parse the tag out of the returned image
 func getTags(images *[]types.Image, tagToParse string) *[]string {
 	nameSet := NewStringSet()
 
-	for _, image := range images {
+	for _, image := range *images {
 		repo := image.Labels[tagToParse]
 
 		if repo == "" {
@@ -160,12 +189,19 @@ func getTags(images *[]types.Image, tagToParse string) *[]string {
 		nameSet.Add(repo)
 	}
 
-	return nameSet.AsSlice(), nil
+	return nameSet.AsSlice()
 
 }
 
 //GetLocalImages return all local images
-func (imageCreator LocalImageCreator) GetLocalImages() (*[]types.Image, error) {}
+func (imageCreator LocalImageCreator) GetLocalImages() (*[]types.Image, error) {
+
+	opts := types.ImageListOptions{All: false}
+
+	images, err := imageCreator.client.ImageList(opts)
+
+	return &images, err
+}
 
 //createFilter generate filter from search
 func createFilter(search *DockerInfo) *filters.Args {

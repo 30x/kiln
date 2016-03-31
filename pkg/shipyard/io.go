@@ -226,14 +226,18 @@ func (sourceInfo *SourceInfo) Clean() error {
 }
 
 //The TEMPLATE for generating a go file
-const templateString = `FROM {{.ParentImage}}
+const templateString = `FROM mhart/alpine-node:4
 
+ADD . .
+RUN npm install
 #Taken from the runtime on start
 EXPOSE 9000
 
-LABEL ` + TAG_REPO + `={{.DockerInfo.RepoName}}
-LABEL ` + TAG_APPLICATION + `={{.DockerInfo.ImageName}}
-LABEL ` + TAG_REVISION + `={{.DockerInfo.Revision}}
+LABEL ` + TAG_REPO + `={{.RepoName}}
+LABEL ` + TAG_APPLICATION + `={{.ImageName}}
+LABEL ` + TAG_REVISION + `={{.Revision}}
+
+CMD ["npm", "start"]
 `
 
 //constant that's initialized below.  Constants must only be primitive types
@@ -244,14 +248,8 @@ func init() {
 	dockerTemplate = template.Must(template.New("Dockerfile").Parse(templateString))
 }
 
-//DockerFile the type descriving the docker info
-type DockerFile struct {
-	ParentImage string
-	*DockerInfo
-}
-
 //CreateDockerFile creates a dockerfile at the specified location from the specfiied dockerInfo
-func (sourceInfo *SourceInfo) CreateDockerFile(dockerInfo *DockerFile) error {
+func (sourceInfo *SourceInfo) CreateDockerFile(dockerInfo *DockerInfo) error {
 
 	parentPath := filepath.Dir(sourceInfo.DockerFile)
 
