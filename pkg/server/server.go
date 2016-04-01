@@ -168,11 +168,6 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 		Revision:  createApplication.Revision,
 	}
 
-	dockerFile := &shipyard.DockerFile{
-		ParentImage: "node:4.3.0-onbuild",
-		DockerInfo:  dockerInfo,
-	}
-
 	err = workspace.ExtractZipFile()
 
 	if err != nil {
@@ -182,7 +177,7 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = workspace.CreateDockerFile(dockerFile)
+	err = workspace.CreateDockerFile(dockerInfo)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not create docker file %s ", err)
