@@ -101,7 +101,6 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
-
 	}
 
 	//defer closing after request completes
@@ -141,16 +140,6 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 	defer workspace.Clean()
 
 	//copy the file data to a zip file
-
-	// byteData := []byte{}
-
-	// size, err := base64.URLEncoding.Decode(byteData, []byte(createApplication.File))
-
-	// if err != nil {
-	// 	message := fmt.Sprintf("Unable to unmarshall base64 into %d bytes %s", size, err)
-	// 	internalError(message, w)
-	// 	return
-	// }
 
 	//TODO REMOVE this copy
 	//get the zip file and write bytes to it
@@ -231,20 +220,133 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func GetApplications(http.ResponseWriter, *http.Request) {
+//GetApplications returns an application
+func GetApplications(w http.ResponseWriter, r *http.Request) {
 
+	vars := mux.Vars(r)
+	repository := vars["repository"]
+
+	appNames, err := imageCreator.GetApplications(repository)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not get images for repository %s.  Error is %s", repository, err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	applications := []*Application{}
+
+	for _, appName := range *appNames {
+		application := &Application{
+			Name: appName,
+		}
+		applications = append(applications, application)
+	}
+
+	json.NewEncoder(w).Encode(applications)
 }
 
-func GetApplication(http.ResponseWriter, *http.Request) {
+//GetApplication return an application, if it exists
+func GetApplication(w http.ResponseWriter, r *http.Request) {
 
+	//TODO finish this
+	// vars := mux.Vars(r)
+	// repository := vars["repository"]
+	// application := vars["application"]
+
+	// appNames, err := imageCreator.GetApplications(repository)
+
+	// if err != nil {
+	// 	message := fmt.Sprintf("Could not get images for repository %s.  Error is %s", repository, err)
+	// 	shipyard.LogError.Printf(message)
+	// 	internalError(message, w)
+	// 	return
+	// }
+
+	// applications := []*Application{}
+
+	// for _, appName := range *appNames {
+	// 	application := &Application{
+	// 		Name: appName,
+	// 	}
+	// 	applications = append(applications, application)
+	// }
+
+	// json.NewEncoder(w).Encode(applications)
 }
 
-func GetImages(http.ResponseWriter, *http.Request) {
+//GetImages get the images for the given application
+func GetImages(w http.ResponseWriter, r *http.Request) {
 
+	vars := mux.Vars(r)
+	repository := vars["repository"]
+	application := vars["application"]
+
+	dockerImages, err := imageCreator.GetImages(repository, application)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not get images for repository %s and application %s.  Error is %s", repository, application, err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	images := []*Image{}
+
+	for _, image := range *dockerImages {
+
+		name := shipyard.GetImageNameFromTags(image.RepoTags)
+
+		//can't parse it, skip it
+		if name == nil {
+			continue
+		}
+
+		image := &Image{
+			Created: time.Unix(image.Created, 0),
+			ImageID: *name,
+			Size:    image.Size,
+		}
+
+		images = append(images, image)
+	}
+
+	json.NewEncoder(w).Encode(images)
 }
 
-func GetImage(http.ResponseWriter, *http.Request) {
+//GetImage get the image
+func GetImage(w http.ResponseWriter, r *http.Request) {
 
+	vars := mux.Vars(r)
+	repository := vars["repository"]
+	application := vars["application"]
+	revision := vars["revision"]
+
+	image, err := imageCreator.GetImageRevision(repository, application, revision)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not get images for repository %s,  application %s, and revision %s.  Error is %s", repository, application, revision, err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	name := shipyard.GetImageNameFromTags(image.RepoTags)
+
+	//not found, return a 404
+	if name == nil {
+		notFound(fmt.Sprintf("Could not get images for repository %s,  application %s, and revision %s.", repository, application, revision), w)
+		return
+	}
+
+	imageResponse := &Image{
+		Created: time.Unix(image.Created, 0),
+		ImageID: *name,
+		Size:    image.Size,
+	}
+
+	json.NewEncoder(w).Encode(imageResponse)
 }
 
 //write a non 200 error response
@@ -269,4 +371,10 @@ func internalError(message string, w http.ResponseWriter) {
 func validationFailure(message string, w http.ResponseWriter) {
 	//log the error before we return it for debugging purposes
 	writeErrorResponse(http.StatusInternalServerError, message, w)
+}
+
+// notFound the error response when an internal error occurs
+func notFound(message string, w http.ResponseWriter) {
+	//log the error before we return it for debugging purposes
+	writeErrorResponse(http.StatusNotFound, message, w)
 }

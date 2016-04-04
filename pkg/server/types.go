@@ -15,14 +15,17 @@ type Image struct {
 	Links   []Link    `json:"_links"`
 }
 
+//Repository represents an image struct
+type Repository NamedObject
+
 //Application represents an image struct
-type Application struct {
+type Application NamedObject
+
+//NamedObject An object that just contains name and links
+type NamedObject struct {
 	Name  string `json:"name"`
 	Links []Link `json:"_links"`
 }
-
-//Applications An array of applications
-type Applications []Application
 
 //Link a link that represents a struct
 type Link struct {

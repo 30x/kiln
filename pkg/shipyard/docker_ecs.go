@@ -225,14 +225,13 @@ func newRepositoryResult() *repositoryResult {
 }
 
 func (repositoryResult *repositoryResult) add(repositoryName *string) {
-	parts := strings.Split(*repositoryName, "/")
+	name := GetImageName(repositoryName)
 
-	//not the right length, drop it
-	if len(parts) != 2 {
+	if name == nil {
 		return
 	}
 
-	repositoryResult.repoSet.Add(parts[0])
+	repositoryResult.repoSet.Add(*name)
 }
 
 //Get the results

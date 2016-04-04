@@ -1,10 +1,6 @@
-hash: 3ee5d3eccd268b4c2b1563894daef997cb76c53a2847794dc69e97557ed0814b
-updated: 2016-03-24T18:52:05.094415895-06:00
+hash: 8bfa46278db2fea3d9429a1447c0419c5bb3223a096deba7427b1f1b7d97d006
+updated: 2016-04-05T11:20:43.175404496-06:00
 imports:
-- name: github.com/30x/shipyard
-  version: f253963ddc6b519b08aefca82a90f0db9a324435
-  subpackages:
-  - shipyard
 - name: github.com/aws/aws-sdk-go
   version: 4151ef572710e04d25d9385114b33847ba6a923a
   vcs: git
@@ -60,19 +56,23 @@ imports:
 - name: github.com/gorilla/handlers
   version: ee54c7b44cab12289237fb8631314790076e728b
   vcs: git
+- name: github.com/gorilla/http
+  version: 5dff1c014197bd33cbefc3ff9de164ada759b81b
+  vcs: git
+  subpackages:
+  - client
 - name: github.com/gorilla/mux
   version: 0eeaf8392f5b04950925b8a69fe70f110fa7cbfc
   vcs: git
 - name: github.com/gorilla/schema
   version: ddf016c1034e9cfd3eb5b276f626c8f04d765f6f
-  vcs: git
 - name: github.com/jmespath/go-jmespath
   version: 0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
   vcs: git
 - name: github.com/opencontainers/runc
-  version: 5439bd2d95229c4e213a219174c7b9da284e3487
+  version: 3f4f4420fded8d19cf29a1b6a631b7e31f7f9c68
   subpackages:
   - libcontainer/user
 devImports: []
