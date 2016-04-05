@@ -2,10 +2,10 @@ package server_test
 
 import (
 	"bytes"
+	"net"
 
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/30x/shipyard/pkg/server"
@@ -39,23 +39,14 @@ var _ = Describe("Server Test", func() {
 
 		//wait for host to start for 10 seconds
 		for i := 0; i < 20; i++ {
-			response := &bytes.Buffer{}
-			_, err := http.Get(response, hostBase+"/repositories")
 
-			httpErr := err.Error() //(http.StatusError)
+			host := fmt.Sprintf("localhost:%d", port)
 
-			if !strings.Contains(httpErr, "200") {
-				started = true
-				break
-			}
-
-			// if httpErr == nil {
-			// 	started = true
-			// 	break
-			// }
+			conn, err := net.Dial("tcp", host)
 
 			//done waiting, continue
 			if err == nil {
+				conn.Close()
 				started = true
 				break
 			}
