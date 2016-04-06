@@ -2,14 +2,19 @@ package server_test
 
 import (
 	"bytes"
+	"io"
+	"mime/multipart"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/30x/shipyard/pkg/server"
+	"github.com/30x/shipyard/pkg/shipyard"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -84,22 +89,52 @@ var _ = Describe("Server Test", func() {
 
 		Expect(len(repositories)).Should(Equal(0), "no repositories should be present")
 
-		// Expect(err).Should(BeNil(), "Should not return an error creating a valid workspace")
+		//now create a new images
 
-		// //if could not find directory, it's a fail
-		// Expect(workspace.SourceDirectory).Should(BeADirectory(), "Could not find directory "+workspace.SourceDirectory)
+		namespace := "test" + shipyard.UUIDString()
+		application := "application"
+		revision := "v1.0"
 
-		// Expect(workspace.RootDirectory).Should(BeADirectory(), "Could not find directory "+workspace.RootDirectory)
+		req, err = http.NewRequest("POST", getApplicationsUrl(hostBase, namespace), response)
+		req.Header.Add("Content-Type", "application/json")
 
-		// Expect(workspace.SourceZipFile).ShouldNot(BeEmpty(), "SourceZipFile should be specified")
+		//add the form parameters
+		req.Form.Add("application", application)
+		req.Form.Add("revision", revision)
 
-		// Expect(workspace.TargetTarName).ShouldNot(BeEmpty(), "TargetTarName should be specified")
-
-		// Expect(workspace.DockerFile).Should(ContainSubstring(workspace.SourceDirectory), "Docker file should be in the source directory")
-
-		// subString := strings.Replace(workspace.DockerFile, workspace.SourceDirectory, "", 1)
-
-		// Expect(subString).Should(Equal("/Dockerfile"), "Dockerfile was not in the correct location")
+		resp, err = client.Do(req)
 
 	})
 })
+
+func newfileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile(paramName, filepath.Base(path))
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
+
+	for key, val := range params {
+		_ = writer.WriteField(key, val)
+	}
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return http.NewRequest("POST", uri, body)
+}
+
+//getApplicationsUrl get the appplicationsUrl
+func getApplicationsUrl(hostBase string, namespace string) string {
+
+	return fmt.Sprintf("%s/namespaces/%s/applications/", hostBase, namespace)
+}

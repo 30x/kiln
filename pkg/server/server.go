@@ -29,7 +29,6 @@ func NewServer() (server *Server) {
 	routes := r.PathPrefix("/beeswax/images/api/v1").Subrouter()
 
 	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/namespaces/{namspace}/applications").HandlerFunc(postApplication)
-	// routes.Methods("POST").Path("/{namspace}/applications").HandlerFunc(postApplication)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces").HandlerFunc(getNamespaces)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namspace}/applications").HandlerFunc(getApplications)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namspace}/applications/{application}").HandlerFunc(getApplication)
@@ -92,8 +91,6 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createApplication := new(CreateApplication)
-
 	// file, handler, err := r.FormFile("file")
 	file, _, err := r.FormFile("file")
 
@@ -106,6 +103,8 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 
 	//defer closing after request completes
 	defer file.Close()
+
+	createApplication := new(CreateApplication)
 
 	// r.PostForm is a map of our POST form values without the file
 	err = decoder.Decode(createApplication, r.Form)

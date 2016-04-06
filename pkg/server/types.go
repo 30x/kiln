@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -35,9 +34,8 @@ type Link struct {
 
 //CreateApplication the structure for creating an appliction via form
 type CreateApplication struct {
-	Application string  `schema:"application"`
-	Revision    string  `schema:"revision"`
-	File        os.File `schema:"file"`
+	Application string `schema:"application"`
+	Revision    string `schema:"revision"`
 }
 
 //Validate validate the application input is correct
