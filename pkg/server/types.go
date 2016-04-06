@@ -15,8 +15,8 @@ type Image struct {
 	Links   []Link    `json:"_links"`
 }
 
-//Repository represents an image struct
-type Repository NamedObject
+//Namespace represents an image struct
+type Namespace NamedObject
 
 //Application represents an image struct
 type Application NamedObject

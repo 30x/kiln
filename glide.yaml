@@ -18,9 +18,3 @@ import:
 - package: github.com/gorilla/mux
   vcs: git
   version: 0eeaf8392f5b04950925b8a69fe70f110fa7cbfc
-- package: github.com/gorilla/mux
-  vcs: git
-  version: 0eeaf8392f5b04950925b8a69fe70f110fa7cbfc
-- package: github.com/gorilla/http
-  vcs: git
-  version: 5dff1c014197bd33cbefc3ff9de164ada759b81b

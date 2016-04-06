@@ -3,13 +3,13 @@ package server_test
 import (
 	"bytes"
 	"net"
+	"net/http"
 
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/30x/shipyard/pkg/server"
-	"github.com/gorilla/http"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -18,6 +18,7 @@ var _ = Describe("Server Test", func() {
 
 	var testServer *server.Server
 	var hostBase string
+	var client *http.Client
 
 	//set up the server and client
 	var _ = BeforeSuite(func() {
@@ -56,19 +57,28 @@ var _ = Describe("Server Test", func() {
 
 		Expect(started).Should(BeTrue(), "Server should have started")
 
+		client = &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return nil
+			},
+		}
+
 	})
 
 	It("Get Repositories ", func() {
 
 		response := &bytes.Buffer{}
-		bytesRead, err := http.Get(response, hostBase+"/repositories")
+
+		req, err := http.NewRequest("GET", hostBase+"/namespaces", response)
+		req.Header.Add("Content-Type", "application/json")
+		resp, err := client.Do(req)
 
 		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
-		Expect(bytesRead > 0).Should(BeTrue(), "Should have a response body")
+		Expect(resp.ContentLength > 0).Should(BeTrue(), "Should have a response body")
 
 		//unmarshall
-		repositories := []*server.Repository{}
+		repositories := []*server.Namespace{}
 
 		json.Unmarshal(response.Bytes(), &repositories)
 

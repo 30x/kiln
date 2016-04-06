@@ -28,12 +28,13 @@ func NewServer() (server *Server) {
 	r := mux.NewRouter()
 	routes := r.PathPrefix("/beeswax/images/api/v1").Subrouter()
 
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/{repository}/applications").HandlerFunc(postApplication)
-	// routes.Methods("POST").Path("/{repository}/applications").HandlerFunc(postApplication)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/{repository}/applications").HandlerFunc(GetApplications)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/{repository}/applications/{application}").HandlerFunc(GetApplication)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/{repository}/applications/{application}/images").HandlerFunc(GetImages)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/{repository}/applications/{application}/images/{revision}").HandlerFunc(GetImage)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/namespaces/{namspace}/applications").HandlerFunc(postApplication)
+	// routes.Methods("POST").Path("/{namspace}/applications").HandlerFunc(postApplication)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces").HandlerFunc(getNamespaces)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namspace}/applications").HandlerFunc(getApplications)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namspace}/applications/{application}").HandlerFunc(getApplication)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namspace}/applications/{application}/images").HandlerFunc(getImages)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namspace}/applications/{application}/images/{revision}").HandlerFunc(getImage)
 
 	server = &Server{
 		router: r,
@@ -80,7 +81,7 @@ func (server *Server) Start(port int) error {
 func postApplication(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	repository := vars["repository"]
+	namspace := vars["namspace"]
 
 	err := r.ParseMultipartForm(maxFileSize)
 
@@ -152,7 +153,7 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dockerInfo := &shipyard.DockerInfo{
-		RepoName:  repository,
+		RepoName:  namspace,
 		ImageName: createApplication.Application,
 		Revision:  createApplication.Revision,
 	}
@@ -221,15 +222,15 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 //GetApplications returns an application
-func GetApplications(w http.ResponseWriter, r *http.Request) {
+func getApplications(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	repository := vars["repository"]
+	namspace := vars["namspace"]
 
-	appNames, err := imageCreator.GetApplications(repository)
+	appNames, err := imageCreator.GetApplications(namspace)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for repository %s.  Error is %s", repository, err)
+		message := fmt.Sprintf("Could not get images for namspace %s.  Error is %s", namspace, err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -247,18 +248,26 @@ func GetApplications(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(applications)
 }
 
+//getNamespaces get the namespaces
+func getNamespaces(w http.ResponseWriter, r *http.Request) {
+
+	namespaces := []*Namespace{}
+
+	json.NewEncoder(w).Encode(namespaces)
+}
+
 //GetApplication return an application, if it exists
-func GetApplication(w http.ResponseWriter, r *http.Request) {
+func getApplication(w http.ResponseWriter, r *http.Request) {
 
 	//TODO finish this
 	// vars := mux.Vars(r)
-	// repository := vars["repository"]
+	// namspace := vars["namspace"]
 	// application := vars["application"]
 
-	// appNames, err := imageCreator.GetApplications(repository)
+	// appNames, err := imageCreator.GetApplications(namspace)
 
 	// if err != nil {
-	// 	message := fmt.Sprintf("Could not get images for repository %s.  Error is %s", repository, err)
+	// 	message := fmt.Sprintf("Could not get images for namspace %s.  Error is %s", namspace, err)
 	// 	shipyard.LogError.Printf(message)
 	// 	internalError(message, w)
 	// 	return
@@ -277,16 +286,16 @@ func GetApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 //GetImages get the images for the given application
-func GetImages(w http.ResponseWriter, r *http.Request) {
+func getImages(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	repository := vars["repository"]
+	namspace := vars["namspace"]
 	application := vars["application"]
 
-	dockerImages, err := imageCreator.GetImages(repository, application)
+	dockerImages, err := imageCreator.GetImages(namspace, application)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for repository %s and application %s.  Error is %s", repository, application, err)
+		message := fmt.Sprintf("Could not get images for namspace %s and application %s.  Error is %s", namspace, application, err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -316,17 +325,17 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 //GetImage get the image
-func GetImage(w http.ResponseWriter, r *http.Request) {
+func getImage(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	repository := vars["repository"]
+	namspace := vars["namspace"]
 	application := vars["application"]
 	revision := vars["revision"]
 
-	image, err := imageCreator.GetImageRevision(repository, application, revision)
+	image, err := imageCreator.GetImageRevision(namspace, application, revision)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for repository %s,  application %s, and revision %s.  Error is %s", repository, application, revision, err)
+		message := fmt.Sprintf("Could not get images for namspace %s,  application %s, and revision %s.  Error is %s", namspace, application, revision, err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -336,7 +345,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 
 	//not found, return a 404
 	if name == nil {
-		notFound(fmt.Sprintf("Could not get images for repository %s,  application %s, and revision %s.", repository, application, revision), w)
+		notFound(fmt.Sprintf("Could not get images for namspace %s,  application %s, and revision %s.", namspace, application, revision), w)
 		return
 	}
 
