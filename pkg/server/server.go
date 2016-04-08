@@ -30,13 +30,20 @@ func NewServer() (server *Server) {
 	routes := r.PathPrefix("/beeswax/images/api/v1").Subrouter()
 
 	//allow the trailing slash
-	routes.StrictSlash(false)
+	//Note that when setting this to true, all URLS must end with a slash so we match paths both with and without the trailing slash
+	// routes.StrictSlash(true)
 
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/namespaces/{namespace}/applications/").HandlerFunc(postApplication)
 	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/namespaces/{namespace}/applications").HandlerFunc(postApplication)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/").HandlerFunc(getNamespaces)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces").HandlerFunc(getNamespaces)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/").HandlerFunc(getApplications)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications").HandlerFunc(getApplications)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/").HandlerFunc(getApplication)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}").HandlerFunc(getApplication)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/").HandlerFunc(getImages)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images").HandlerFunc(getImages)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(getImage)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(getImage)
 
 	server = &Server{
@@ -256,6 +263,24 @@ func getApplications(w http.ResponseWriter, r *http.Request) {
 func getNamespaces(w http.ResponseWriter, r *http.Request) {
 
 	namespaces := []*Namespace{}
+
+	namespaceNames, err := imageCreator.GetRepositories()
+
+	if err != nil {
+		message := fmt.Sprintf("Unable to retrieve namespaces.  %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	// copy everything over
+	for _, namespace := range *namespaceNames {
+		namespaceObj := &Namespace{
+			Name: namespace,
+		}
+
+		namespaces = append(namespaces, namespaceObj)
+	}
 
 	json.NewEncoder(w).Encode(namespaces)
 }

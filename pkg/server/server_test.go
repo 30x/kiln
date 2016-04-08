@@ -3,6 +3,7 @@ package server_test
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -69,11 +70,9 @@ var _ = Describe("Server Test", func() {
 
 		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
-		Expect(httpResponse.ContentLength > 0).Should(BeTrue(), "Should have a response body")
-
 		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
-		Expect(len(namespaces)).Should(Equal(0), "no namespaces should be present")
+		//we explicity don't test since other images might be present in the docker registry
 
 		//now create a new images
 
@@ -92,8 +91,6 @@ var _ = Describe("Server Test", func() {
 		httpResponse, namespaces, err = getNamespaces(hostBase)
 
 		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
-
-		Expect(httpResponse.ContentLength > 0).Should(BeTrue(), "Should have a response body")
 
 		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
@@ -117,10 +114,6 @@ var _ = Describe("Server Test", func() {
 
 		//now ensure it is created
 		httpResponse, applications, err := getApplications(hostBase, namespace)
-
-		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
-
-		Expect(httpResponse.ContentLength > 0).Should(BeTrue(), "Should have a response body")
 
 		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
@@ -157,8 +150,6 @@ var _ = Describe("Server Test", func() {
 
 		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
-		Expect(httpResponse.ContentLength > 0).Should(BeTrue(), "Should have a response body")
-
 		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
 		Expect(len(images)).Should(Equal(1), "Images should be of length 1")
@@ -185,8 +176,6 @@ var _ = Describe("Server Test", func() {
 		httpResponse, images, err = getImages(hostBase, namespace, application)
 
 		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
-
-		Expect(httpResponse.ContentLength > 0).Should(BeTrue(), "Should have a response body")
 
 		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
@@ -233,18 +222,27 @@ func assertContainsApplication(applications []*server.Application, expectedAppli
 
 //getNamespaces perform a get request on namespaces
 func getNamespaces(hostBase string) (*http.Response, []*server.Namespace, error) {
-	responseBuffer := &bytes.Buffer{}
 
-	url := fmt.Sprintf("%s/namespaces", hostBase)
+	url := fmt.Sprintf("%s/namespaces/", hostBase)
 
-	req, err := http.NewRequest("GET", url, responseBuffer)
+	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
+	if err != nil {
+		return nil, nil, err
+	}
+
 	repositories := []*server.Namespace{}
 
-	json.Unmarshal(responseBuffer.Bytes(), &repositories)
+	bytes, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	json.Unmarshal(bytes, &repositories)
 
 	return response, repositories, err
 
@@ -252,17 +250,21 @@ func getNamespaces(hostBase string) (*http.Response, []*server.Namespace, error)
 
 //getApplications get the applications
 func getApplications(hostBase string, namespace string) (*http.Response, []*server.Application, error) {
-	responseBuffer := &bytes.Buffer{}
-
 	url := getApplicationsURL(hostBase, namespace)
-	req, err := http.NewRequest("GET", url, responseBuffer)
+	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
 	repositories := []*server.Application{}
 
-	json.Unmarshal(responseBuffer.Bytes(), &repositories)
+	bytes, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	json.Unmarshal(bytes, &repositories)
 
 	return response, repositories, err
 
@@ -270,19 +272,24 @@ func getApplications(hostBase string, namespace string) (*http.Response, []*serv
 
 //getImages get the images from the response
 func getImages(hostBase string, namespace string, application string) (*http.Response, []*server.Image, error) {
-	responseBuffer := &bytes.Buffer{}
 
 	url := fmt.Sprintf("%s/images", getApplicationsURL(hostBase, namespace))
-	req, err := http.NewRequest("GET", url, responseBuffer)
+	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
-	repositories := []*server.Image{}
+	images := []*server.Image{}
 
-	json.Unmarshal(responseBuffer.Bytes(), &repositories)
+	bytes, err := ioutil.ReadAll(response.Body)
 
-	return response, repositories, err
+	if err != nil {
+		return nil, nil, err
+	}
+
+	json.Unmarshal(bytes, &images)
+
+	return response, images, err
 
 }
 
@@ -339,7 +346,7 @@ func getApplicationsURL(hostBase string, namespace string) string {
 
 	applicationsURL := fmt.Sprintf("%s/namespaces/%s/applications", hostBase, namespace)
 
-	shipyard.LogInfo.Printf("Getting URL %s", applicationsURL)
+	// shipyard.LogInfo.Printf("Creating URL %s", applicationsURL)
 
 	return applicationsURL
 }
