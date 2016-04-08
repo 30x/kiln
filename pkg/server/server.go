@@ -136,6 +136,29 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	dockerInfo := &shipyard.DockerInfo{
+		RepoName:  namespace,
+		ImageName: createApplication.Application,
+		Revision:  createApplication.Revision,
+	}
+
+	//check if the image exists, if it does, return a 409
+
+	existingImage, err := imageCreator.GetImageRevision(dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+
+	if err != nil {
+		message := fmt.Sprintf("Unable to check if image exists for %v", dockerInfo)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	//image exists, don't allow the user to create it
+	if existingImage != nil {
+		writeErrorResponse(http.StatusConflict, fmt.Sprintf("An image in namespace %s with application %s and revision %s already exists", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision), w)
+		return
+	}
+
 	workspace, err := shipyard.CreateNewWorkspace()
 
 	if err != nil {
@@ -150,6 +173,8 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 	//remove workspace after the request completes
 	defer workspace.Clean()
 
+	//
+
 	//copy the file data to a zip file
 
 	//TODO REMOVE this copy
@@ -160,12 +185,6 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 		message := fmt.Sprintf("Unable to write zip file %s", err)
 		internalError(message, w)
 		return
-	}
-
-	dockerInfo := &shipyard.DockerInfo{
-		RepoName:  namespace,
-		ImageName: createApplication.Application,
-		Revision:  createApplication.Revision,
 	}
 
 	err = workspace.ExtractZipFile()

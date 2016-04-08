@@ -152,7 +152,7 @@ var _ = Describe("Server Test", func() {
 
 		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
-		Expect(len(images)).Should(Equal(1), "Images should be of length 1")
+		Expect(len(images) >= 1).Should(BeTrue(), "Images should be >= than length 1")
 
 		Expect(images[0].Created).ShouldNot(BeNil())
 
@@ -179,7 +179,7 @@ var _ = Describe("Server Test", func() {
 
 		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
-		Expect(len(images)).Should(Equal(2), "Images should be of length 2")
+		Expect(len(images) >= 2).Should(BeTrue(), "Images should be of length >= 2")
 
 		Expect(images[0].Created).ShouldNot(BeNil())
 
@@ -273,7 +273,10 @@ func getApplications(hostBase string, namespace string) (*http.Response, []*serv
 //getImages get the images from the response
 func getImages(hostBase string, namespace string, application string) (*http.Response, []*server.Image, error) {
 
-	url := fmt.Sprintf("%s/images", getApplicationsURL(hostBase, namespace))
+	url := getImagesURL(hostBase, namespace, application)
+
+	shipyard.LogInfo.Printf("Ivoking get at URL %s", url)
+
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
@@ -349,4 +352,12 @@ func getApplicationsURL(hostBase string, namespace string) string {
 	// shipyard.LogInfo.Printf("Creating URL %s", applicationsURL)
 
 	return applicationsURL
+}
+
+func getApplicationURL(hostBase string, namespace string, application string) string {
+	return fmt.Sprintf("%s/%s", getApplicationsURL(hostBase, namespace), application)
+}
+
+func getImagesURL(hostBase string, namespace string, application string) string {
+	return fmt.Sprintf("%s/images/", getApplicationURL(hostBase, namespace, application))
 }
