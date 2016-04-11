@@ -32,26 +32,28 @@ type Link struct {
 	Href        string `json:"href"`
 }
 
-//CreateApplication the structure for creating an appliction via form
-type CreateApplication struct {
+//CreateImage the structure for creating an appliction via form
+type CreateImage struct {
+	Namespace   string `schema:"namespace"`
 	Application string `schema:"application"`
 	Revision    string `schema:"revision"`
 }
 
 //Validate validate the application input is correct
-func (createApplication *CreateApplication) Validate() *Validation {
+func (createImage *CreateImage) Validate() *Validation {
 	errors := &Validation{
 		messages: make(map[string]string),
 	}
 
-	// re := regexp.MustCompile(".+@.+\\..+")
-	// matched := re.Match([]byte(msg.Email))
+	if createImage.Namespace == "" {
+		errors.Add("Namespace", "Namespace must be specified")
+	}
 
-	if createApplication.Application == "" {
+	if createImage.Application == "" {
 		errors.Add("Application", "Application must be specified")
 	}
 
-	if createApplication.Revision == "" {
+	if createImage.Revision == "" {
 		errors.Add("Revision", "Please enter a valid revision")
 	}
 

@@ -33,8 +33,8 @@ func NewServer() (server *Server) {
 	//Note that when setting this to true, all URLS must end with a slash so we match paths both with and without the trailing slash
 	// routes.StrictSlash(true)
 
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/namespaces/{namespace}/applications/").HandlerFunc(postApplication)
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/namespaces/{namespace}/applications").HandlerFunc(postApplication)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/images/").HandlerFunc(postApplication)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/images").HandlerFunc(postApplication)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/").HandlerFunc(getNamespaces)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces").HandlerFunc(getNamespaces)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/").HandlerFunc(getApplications)
@@ -89,10 +89,6 @@ func (server *Server) Start(port int) error {
 
 //postApplication and render a response
 func postApplication(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	namespace := vars["namespace"]
-
 	err := r.ParseMultipartForm(maxFileSize)
 
 	if err != nil {
@@ -115,10 +111,10 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 	//defer closing after request completes
 	defer file.Close()
 
-	createApplication := new(CreateApplication)
+	createImage := new(CreateImage)
 
 	// r.PostForm is a map of our POST form values without the file
-	err = decoder.Decode(createApplication, r.Form)
+	err = decoder.Decode(createImage, r.Form)
 
 	if err != nil {
 		message := fmt.Sprintf("Unable parse form %s", err)
@@ -129,7 +125,7 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 
 	// Do something with person.Name or person.Phone
 
-	validation := createApplication.Validate()
+	validation := createImage.Validate()
 
 	if validation.HasErrors() {
 		validation.WriteResponse(w)
@@ -137,9 +133,9 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dockerInfo := &shipyard.DockerInfo{
-		RepoName:  namespace,
-		ImageName: createApplication.Application,
-		Revision:  createApplication.Revision,
+		RepoName:  createImage.Namespace,
+		ImageName: createImage.Application,
+		Revision:  createImage.Revision,
 	}
 
 	//check if the image exists, if it does, return a 409

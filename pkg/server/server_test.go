@@ -317,6 +317,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 		return nil, err
 	}
 
+	writer.WriteField("namespace", namespace)
 	writer.WriteField("application", application)
 	writer.WriteField("revision", revision)
 
@@ -329,7 +330,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 		return nil, err
 	}
 
-	uri := getApplicationsURL(hostBase, namespace)
+	uri := fmt.Sprintf("%s/images", hostBase)
 
 	request, err := http.NewRequest("POST", uri, body)
 
