@@ -1,0 +1,106 @@
+title: API for building docker images
+conventions:
+  error_response: '#Error'
+entities:
+  Apigee:
+    usage: read
+    well_known_URLs: /
+    query_paths: images namespaces namespaces;{name} namespaces;{name}/applications namespaces;{name}/applications;{name} namespaces;{name}/applications;{name}/images
+    properties:
+      images:
+        description: >
+          The list of all images. New images are created by posting to this relationship.
+        type: string
+        format: uri
+        relationship:
+          entities: '#Image'
+          multiplicity: 0:n
+          collection_resource: ./common.yaml#MultiValuedRelationship
+          consumes: multi-part/form-data
+      namespaces:
+        description: >
+          The list of all namspaces. New namespaces are created by posting an image that references them.
+        type: string
+        format: uri
+        relationship:
+          readOnly: true
+          entities: '#Namespace'
+          multiplicity: 0:n
+          collection_resource: ./common.yaml#MultiValuedRelationship
+  Image:
+    description: >
+      Images are stored in a registry. They are classified by the application (aka repo) of which they are a revision, and the namespace within which they reside.
+    usage: read delete
+    allOf: 
+    - $ref: ./common.yaml#/entities/PersistentResource
+    properties:
+      imageId:
+        usage: read
+        type: string
+      size:
+        usage: read
+        type: integer
+      file:
+        usage: create
+        type: string
+        format: file
+      namespace:
+        usage: create read
+        type: string
+      application:
+        usage: create read
+        type: string 
+      revision:
+        usage: create read
+        type: string
+  Namespace:
+    description: >
+      Namespaces are subdivisions of a larger Docker registry that are isolated and owned by an individual, group or institution
+      Namespaces are created implicitly by POSTing an image that references the new namespace.
+    usage: read
+    allOf: 
+    - $ref: ./common.yaml#/entities/Resource
+    properties:
+      name:
+        type: string
+      applications:
+        description: >
+          The list of applications in the namespace. Confusingly, in Docker terminology, applictions are called 'repos'.
+          Applications are not created explicitly: they are created as a side-effect of creating an image for the application
+          in a namespace.
+        usage: read
+        type: string
+        format: uri
+        relationship:
+          readOnly: true
+          entities: '#Application'
+          multiplicity: 0:n
+          collection_resource: ./common.yaml#MultiValuedRelationship
+  Application:
+    description: >
+      Applications group together images that are related to the same piece of software.  Applications are created implicitly by POSTing an image that references the new application.
+    usage: read
+    allOf: 
+    - $ref: ./common.yaml#/entities/Resource
+    properties:
+      name:
+        type: string
+      images:
+        description: >
+          The list of images for this application. New images are created by POSTing to /images and referencing the appropriate application and namespace.
+        type: string
+        format: uri
+        relationship:
+          readOnly: true
+          entities: '#Image'
+          multiplicity: 0:n
+          collection_resource: ./common.yaml#MultiValuedRelationship
+  Error:
+    readOnly: true
+    properties:
+      message:
+        type: string
+      logs:
+        type: array
+        items:
+          type: string
