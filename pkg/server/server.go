@@ -329,27 +329,18 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 	length := len(*dockerImages)
 
 	//pre-allocate slice for efficiency
-	images := make([]*Image, length, length)
+	images := make([]*Image, length)
 
 	shipyard.LogInfo.Printf("Processing %d images from the server", images)
 
-	for _, image := range *dockerImages {
+	for i, image := range *dockerImages {
 
-		name := shipyard.GetImageNameFromTags(image.RepoTags)
-
-		//can't parse it, skip it
-		if name == nil {
-			shipyard.LogWarn.Printf("Could not parse the name %s", image.RepoTags)
-			continue
-		}
-
-		image := &Image{
+		resultImage := &Image{
 			Created: time.Unix(image.Created, 0),
-			ImageID: *name,
-			Size:    image.Size,
+			ImageID: image.ID,
 		}
 
-		images = append(images, image)
+		images[i] = resultImage
 	}
 
 	json.NewEncoder(w).Encode(images)
@@ -372,18 +363,15 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := shipyard.GetImageNameFromTags(image.RepoTags)
-
 	//not found, return a 404
-	if name == nil {
+	if image == nil {
 		notFound(fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.", namespace, application, revision), w)
 		return
 	}
 
 	imageResponse := &Image{
 		Created: time.Unix(image.Created, 0),
-		ImageID: *name,
-		Size:    image.Size,
+		ImageID: image.ID,
 	}
 
 	json.NewEncoder(w).Encode(imageResponse)

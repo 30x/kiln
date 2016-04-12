@@ -90,6 +90,8 @@ func (imageCreator EcsImageCreator) GetImages(repository string, application str
 		}
 
 		for _, awsImage := range response.ImageIds {
+
+			// awsImage.
 			if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
 				LogWarn.Printf("Was unable to marshall response from aws image, skipping")
 				continue
@@ -222,13 +224,14 @@ func newRepositoryResult() *repositoryResult {
 }
 
 func (repositoryResult *repositoryResult) add(repositoryName *string) {
-	name := GetImageName(repositoryName)
+	parts := strings.Split(*repositoryName, "/")
 
-	if name == nil {
+	//not the right length, drop it
+	if len(parts) != 2 {
 		return
 	}
 
-	repositoryResult.repoSet.Add(*name)
+	repositoryResult.repoSet.Add(parts[0])
 }
 
 //Get the results

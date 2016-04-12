@@ -118,8 +118,6 @@ var _ = Describe("Server Test", func() {
 
 			Expect(images[0].Created).ShouldNot(BeNil())
 
-			Expect(images[0].Size > 0).Should(BeTrue())
-
 			Expect(images[0].ImageID).ShouldNot(BeNil())
 
 			Expect(strings.Index(images[0].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
@@ -147,15 +145,11 @@ var _ = Describe("Server Test", func() {
 
 			Expect(images[0].Created).ShouldNot(BeNil())
 
-			Expect(images[0].Size > 0).Should(BeTrue())
-
 			Expect(images[0].ImageID).ShouldNot(BeNil())
 
 			Expect(strings.Index(images[0].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
 			Expect(images[1].Created).ShouldNot(BeNil())
-
-			Expect(images[1].Size > 0).Should(BeTrue())
 
 			Expect(images[1].ImageID).ShouldNot(BeNil())
 			Expect(strings.Index(images[1].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")

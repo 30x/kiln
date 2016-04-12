@@ -9,7 +9,6 @@ import (
 //Image represents an image struct
 type Image struct {
 	Created time.Time `json:"created"`
-	Size    int64     `json:"size"`
 	ImageID string    `json:"imageId"`
 	Links   []Link    `json:"_links"`
 }
