@@ -27,6 +27,15 @@ entities:
           entities: '#Namespace'
           multiplicity: 0:n
           collection_resource: ./common.yaml#MultiValuedRelationship
+      builds:
+        description: >
+          The list of all namspaces. New namespaces are created by posting an image that references them.
+        type: string
+        format: uri
+        relationship:
+          usage: create
+          entities: '#Build'
+          multiplicity: 0:n
   Image:
     description: >
       Images are stored in a registry. They are classified by the application (aka repo) of which they are a revision, and the namespace within which they reside.
@@ -52,6 +61,33 @@ entities:
         type: string 
       revision:
         usage: create read
+        type: string
+  Build:
+    description: >
+      Builds are used to create images in the registry from source files.
+    usage: ''
+    properties:
+      image:
+        usage: read
+        type: string
+        format: uri
+      logs:
+        usage: read
+        type: array
+        items:
+          type: string
+      file:
+        usage: create
+        type: string
+        format: file
+      namespace:
+        usage: create
+        type: string
+      application:
+        usage: create
+        type: string 
+      revision:
+        usage: create
         type: string
   Namespace:
     description: >

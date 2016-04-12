@@ -26,6 +26,14 @@ definitions:
         type: string
         format: uri
         x-interface: '#/x-interfaces/Apigee.namespaces'
+      builds:
+        description: 'The list of all namspaces. New namespaces are created by posting
+          an image that references them.
+
+          '
+        type: string
+        format: uri
+        x-interface: '#/x-interfaces/Apigee.builds'
     x-interface: '#/x-interfaces/Apigee'
   Image:
     description: 'Images are stored in a registry. They are classified by the application
@@ -50,6 +58,28 @@ definitions:
       revision:
         type: string
     x-interface: '#/x-interfaces/Image'
+  Build:
+    description: 'Builds are used to create images in the registry from source files.
+
+      '
+    properties:
+      image:
+        type: string
+        format: uri
+      logs:
+        type: array
+        items:
+          type: string
+      file:
+        type: string
+        format: file
+      namespace:
+        type: string
+      application:
+        type: string
+      revision:
+        type: string
+    x-interface: '#/x-interfaces/Build'
   Namespace:
     description: 'Namespaces are subdivisions of a larger Docker registry that are
       isolated and owned by an individual, group or institution Namespaces are created
@@ -234,6 +264,77 @@ x-interfaces:
         default:
           $ref: '#/responses/default'
     x-id: Apigee
+  Apigee.builds:
+    post:
+      description: Create a new Build
+      parameters:
+      - description: The representation of the new Build being created
+        in: body
+        name: body
+        schema:
+          $ref: '#/definitions/Build'
+      - description: The media type of the body
+        in: header
+        name: Content-Type
+        required: true
+        type: string
+      responses:
+        '201':
+          description: Created new Build
+          headers:
+            Content-Type:
+              description: The media type of the returned body
+              type: string
+            ETag:
+              description: Value of ETag required for subsequent updates
+              type: string
+            Location:
+              description: perma-link URL of newly-created Build
+              type: string
+          schema:
+            $ref: '#/definitions/Build'
+        '400':
+          $ref: '#/responses/400'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        '406':
+          $ref: '#/responses/406'
+        default:
+          $ref: '#/responses/default'
+    head:
+      description: Retrieve HEAD
+      responses:
+        '200':
+          $ref: '#/responses/standard_200'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        default:
+          $ref: '#/responses/default'
+    options:
+      description: Retrieve OPTIONS
+      parameters:
+      - $ref: '#/parameters/Access-Control-Request-Method'
+      - $ref: '#/parameters/Access-Control-Request-Headers'
+      responses:
+        '200':
+          $ref: '#/responses/options_200'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        default:
+          $ref: '#/responses/default'
+    x-id: Apigee.builds
   Apigee.images:
     get:
       parameters:
@@ -577,6 +678,67 @@ x-interfaces:
         default:
           $ref: '#/responses/default'
     x-id: Application.images
+  Build:
+    get:
+      description: Retrieve a Build
+      parameters:
+      - $ref: '#/parameters/Accept'
+      responses:
+        '200':
+          description: successful
+          headers:
+            Content-Location:
+              description: perma-link URL of resource
+              type: string
+            Content-Type:
+              description: The media type of the returned body
+              type: string
+            ETag:
+              description: this value must be echoed in the If-Match header of every
+                PATCH or PUT
+              type: string
+          schema:
+            $ref: '#/definitions/Build'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        '406':
+          $ref: '#/responses/406'
+        default:
+          $ref: '#/responses/default'
+    head:
+      description: retrieve HEAD
+      responses:
+        '200':
+          $ref: '#/responses/standard_200'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        default:
+          $ref: '#/responses/default'
+    options:
+      description: Retrieve OPTIONS
+      parameters:
+      - $ref: '#/parameters/Access-Control-Request-Method'
+      - $ref: '#/parameters/Access-Control-Request-Headers'
+      responses:
+        '200':
+          $ref: '#/responses/options_200'
+        '401':
+          $ref: '#/responses/401'
+        '403':
+          $ref: '#/responses/403'
+        '404':
+          $ref: '#/responses/404'
+        default:
+          $ref: '#/responses/default'
+    x-id: Build
   Image:
     get:
       description: Retrieve an Image
