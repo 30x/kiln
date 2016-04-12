@@ -326,7 +326,12 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	images := []*Image{}
+	length := len(*dockerImages)
+
+	//pre-allocate slice for efficiency
+	images := make([]*Image, length, length)
+
+	shipyard.LogInfo.Printf("Processing %d images from the server", images)
 
 	for _, image := range *dockerImages {
 
@@ -334,6 +339,7 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 
 		//can't parse it, skip it
 		if name == nil {
+			shipyard.LogWarn.Printf("Could not parse the name %s", image.RepoTags)
 			continue
 		}
 

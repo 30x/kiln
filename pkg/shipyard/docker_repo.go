@@ -276,6 +276,8 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.
 		Tag:            revision,
 	}
 
+	LogInfo.Printf("Tagging local image id of %s with remote tag of %s and tag %s", localTag, remoteTag, revision)
+
 	err := imageCreator.client.ImageTag(imageTagOptions)
 
 	if err != nil {

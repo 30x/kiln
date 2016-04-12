@@ -13,6 +13,7 @@ import (
 
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/30x/shipyard/pkg/server"
@@ -121,6 +122,8 @@ var _ = Describe("Server Test", func() {
 
 			Expect(images[0].ImageID).ShouldNot(BeNil())
 
+			Expect(strings.Index(images[0].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
 			//now try to post again, with a new revision
 
 			revision2 := "v1.1"
@@ -148,11 +151,14 @@ var _ = Describe("Server Test", func() {
 
 			Expect(images[0].ImageID).ShouldNot(BeNil())
 
+			Expect(strings.Index(images[0].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
 			Expect(images[1].Created).ShouldNot(BeNil())
 
 			Expect(images[1].Size > 0).Should(BeTrue())
 
 			Expect(images[1].ImageID).ShouldNot(BeNil())
+			Expect(strings.Index(images[1].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
 		})
 
@@ -319,7 +325,7 @@ func getImages(hostBase string, namespace string, application string) (*http.Res
 
 	url := getImagesURL(hostBase, namespace, application)
 
-	shipyard.LogInfo.Printf("Ivoking get at URL %s", url)
+	shipyard.LogInfo.Printf("Invoking get at URL %s", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/json")
@@ -333,6 +339,10 @@ func getImages(hostBase string, namespace string, application string) (*http.Res
 	if err != nil {
 		return nil, nil, err
 	}
+
+	body := string(bytes)
+
+	shipyard.LogInfo.Printf("Response is %s", body)
 
 	json.Unmarshal(bytes, &images)
 
