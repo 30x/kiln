@@ -8,8 +8,8 @@ import (
 
 //ImageCreator the interface an ImageCreator instance must implement
 type ImageCreator interface {
-	//GetRepositories get all remote repositories
-	GetRepositories() (*[]string, error)
+	//GetRepositories get all remote Namespaces
+	GetNamespaces() (*[]string, error)
 
 	//GetApplications get all remote application for the specified repository
 	GetApplications(repository string) (*[]string, error)

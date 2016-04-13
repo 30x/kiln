@@ -218,13 +218,22 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image := &Image{
-		ImageID: dockerInfo.GetTagName(),
-		Created: time.Now(),
+	image, err := server.getImageInternal(createImage.Namespace, createImage.Application, createImage.Revision)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not retrieve image for verification.  Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	buildResult := &Build{
+		Image: image,
+		Logs:  []string{},
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(image)
+	json.NewEncoder(w).Encode(buildResult)
 
 }
 
@@ -260,7 +269,7 @@ func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
 
 	namespaces := []*Namespace{}
 
-	namespaceNames, err := server.imageCreator.GetRepositories()
+	namespaceNames, err := server.imageCreator.GetNamespaces()
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to retrieve namespaces.  %s", err)
@@ -354,7 +363,7 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 	application := vars["application"]
 	revision := vars["revision"]
 
-	image, err := server.imageCreator.GetImageRevision(namespace, application, revision)
+	image, err := server.getImageInternal(namespace, application, revision)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.  Error is %s", namespace, application, revision, err)
@@ -369,12 +378,28 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	json.NewEncoder(w).Encode(image)
+}
+
+//getImageInternal get an image.  Image can be nil if not found, or an error will be returned if
+func (server *Server) getImageInternal(namespace string, application string, revision string) (*Image, error) {
+
+	image, err := server.imageCreator.GetImageRevision(namespace, application, revision)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if image == nil {
+		return nil, nil
+	}
+
 	imageResponse := &Image{
 		Created: time.Unix(image.Created, 0),
 		ImageID: image.ID,
 	}
 
-	json.NewEncoder(w).Encode(imageResponse)
+	return imageResponse, nil
 }
 
 //write a non 200 error response

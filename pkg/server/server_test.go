@@ -50,6 +50,23 @@ var _ = Describe("Server Test", func() {
 			//now check the resposne code
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
+			buildOutput := server.Build{}
+
+			bytes, err := ioutil.ReadAll(response.Body)
+
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+
+			//check build response
+			json.Unmarshal(bytes, &buildOutput)
+
+			Expect(buildOutput.Image).ShouldNot(BeNil())
+
+			Expect(buildOutput.Image.Created).ShouldNot(BeNil())
+
+			Expect(buildOutput.Image.ImageID).ShouldNot(BeNil())
+
+			Expect(strings.Index(buildOutput.Image.ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
 			httpResponse, namespaces, err = getNamespaces(hostBase)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)

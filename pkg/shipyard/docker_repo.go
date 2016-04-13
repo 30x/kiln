@@ -94,8 +94,8 @@ func newEnvClient() (*client.Client, error) {
 	return client.NewClient(dockerHost, os.Getenv("DOCKER_API_VERSION"), transport, nil)
 }
 
-//GetRepositories get all remote repositories
-func (imageCreator LocalImageCreator) GetRepositories() (*[]string, error) {
+//GetNamespaces get all remote repositories
+func (imageCreator LocalImageCreator) GetNamespaces() (*[]string, error) {
 	opts := types.ImageListOptions{All: false}
 
 	images, err := imageCreator.client.ImageList(opts)
