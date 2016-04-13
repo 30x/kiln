@@ -26,6 +26,7 @@
                     <th>Property Name</th>
                     <th>Property Description</th>
                     <th>Property Type</th>
+                    <th>usage</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -33,19 +34,22 @@
                     <td>images</td>
                     <td>The list of all images. New images are created by posting to this relationship.
 </td>
-                    <td>url of <a href="#Image">Image</a>                    </td>
+                    <td>0:n (<a href="#Image">Image</a>)                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>namespaces</td>
                     <td>The list of all namspaces. New namespaces are created by posting an image that references them.
 </td>
-                    <td>url of <a href="#Namespace">Namespace</a>                    </td>
+                    <td>0:n (<a href="#Namespace">Namespace</a>)                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>builds</td>
                     <td>The list of all namspaces. New namespaces are created by posting an image that references them.
 </td>
-                    <td>url of <a href="#Build">Build</a>                    </td>
+                    <td>0:n (<a href="#Build">Build</a>)                    </td>
+                    <td>r                    </td>
                   </tr>
                 </tbody>
               </table>            </td>
@@ -64,6 +68,7 @@
                     <th>Property Name</th>
                     <th>Property Description</th>
                     <th>Property Type</th>
+                    <th>usage</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -71,31 +76,31 @@
                     <td>imageId</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>size</td>
                     <td></td>
                     <td>integer                    </td>
-                  </tr>
-                  <tr>
-                    <td>file</td>
-                    <td></td>
-                    <td>string                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>namespace</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>application</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>revision</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>r                    </td>
                   </tr>
                 </tbody>
               </table>            </td>
@@ -111,38 +116,45 @@
                     <th>Property Name</th>
                     <th>Property Description</th>
                     <th>Property Type</th>
+                    <th>usage</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td>image</td>
                     <td></td>
-                    <td>string                    </td>
+                    <td>url of <a href="#Image">Image</a>                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>logs</td>
                     <td></td>
                     <td>[string]                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>file</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>c                    </td>
                   </tr>
                   <tr>
                     <td>namespace</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>c r                    </td>
                   </tr>
                   <tr>
                     <td>application</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>c r                    </td>
                   </tr>
                   <tr>
                     <td>revision</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>c r                    </td>
                   </tr>
                 </tbody>
               </table>            </td>
@@ -161,6 +173,7 @@
                     <th>Property Name</th>
                     <th>Property Description</th>
                     <th>Property Type</th>
+                    <th>usage</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -168,12 +181,14 @@
                     <td>name</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>applications</td>
                     <td>The list of applications in the namespace. Confusingly, in Docker terminology, applictions are called 'repos'. Applications are not created explicitly: they are created as a side-effect of creating an image for the application in a namespace.
 </td>
-                    <td>url of <a href="#Application">Application</a>                    </td>
+                    <td>0:n (<a href="#Application">Application</a>)                    </td>
+                    <td>r                    </td>
                   </tr>
                 </tbody>
               </table>            </td>
@@ -192,6 +207,7 @@
                     <th>Property Name</th>
                     <th>Property Description</th>
                     <th>Property Type</th>
+                    <th>usage</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -199,12 +215,14 @@
                     <td>name</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>images</td>
                     <td>The list of images for this application. New images are created by POSTing to /images and referencing the appropriate application and namespace.
 </td>
-                    <td>url of <a href="#Image">Image</a>                    </td>
+                    <td>0:n (<a href="#Image">Image</a>)                    </td>
+                    <td>r                    </td>
                   </tr>
                 </tbody>
               </table>            </td>
@@ -219,6 +237,7 @@
                     <th>Property Name</th>
                     <th>Property Description</th>
                     <th>Property Type</th>
+                    <th>usage</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,11 +245,13 @@
                     <td>message</td>
                     <td></td>
                     <td>string                    </td>
+                    <td>r                    </td>
                   </tr>
                   <tr>
                     <td>logs</td>
                     <td></td>
                     <td>[string]                    </td>
+                    <td>r                    </td>
                   </tr>
                 </tbody>
               </table>            </td>

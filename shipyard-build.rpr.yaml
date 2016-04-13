@@ -3,7 +3,7 @@ conventions:
   error_response: '#Error'
 entities:
   Apigee:
-    usage: read
+    readOnly: true
     well_known_URLs: /
     query_paths: images namespaces namespaces;{name} namespaces;{name}/applications namespaces;{name}/applications;{name} namespaces;{name}/applications;{name}/images
     properties:
@@ -44,23 +44,19 @@ entities:
     - $ref: ./common.yaml#/entities/PersistentResource
     properties:
       imageId:
-        usage: read
+        readOnly: true
         type: string
       size:
-        usage: read
+        readOnly: true
         type: integer
-      file:
-        usage: create
-        type: string
-        format: file
       namespace:
-        usage: create read
+        readOnly: true
         type: string
       application:
-        usage: create read
+        readOnly: true
         type: string 
       revision:
-        usage: create read
+        readOnly: true
         type: string
   Build:
     description: >
@@ -68,11 +64,12 @@ entities:
     usage: ''
     properties:
       image:
-        usage: read
+        readOnly: true
         type: string
         format: uri
+        relationship: '#Image'
       logs:
-        usage: read
+        readOnly: true
         type: array
         items:
           type: string
@@ -81,19 +78,19 @@ entities:
         type: string
         format: file
       namespace:
-        usage: create
+        usage: create read
         type: string
       application:
-        usage: create
+        usage: create read
         type: string 
       revision:
-        usage: create
+        usage: create read
         type: string
   Namespace:
     description: >
       Namespaces are subdivisions of a larger Docker registry that are isolated and owned by an individual, group or institution
       Namespaces are created implicitly by POSTing an image that references the new namespace.
-    usage: read
+    readOnly: true
     allOf: 
     - $ref: ./common.yaml#/entities/Resource
     properties:
@@ -115,7 +112,7 @@ entities:
   Application:
     description: >
       Applications group together images that are related to the same piece of software.  Applications are created implicitly by POSTing an image that references the new application.
-    usage: read
+    readOnly: true
     allOf: 
     - $ref: ./common.yaml#/entities/Resource
     properties:
