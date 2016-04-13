@@ -15,16 +15,15 @@ import (
 //TODO make an env variable.  100 Meg max
 const maxFileSize = 1024 * 1024 * 100
 
-const dockerRegistryVar = "DOCKER_REGISTRY_URL"
-
 //Server struct to create an instance of hte server
 type Server struct {
-	router  *mux.Router
-	decoder *schema.Decoder
+	router       *mux.Router
+	decoder      *schema.Decoder
+	imageCreator shipyard.ImageCreator
 }
 
 //NewServer Create a new server
-func NewServer() (server *Server) {
+func NewServer(imageCreator shipyard.ImageCreator) *Server {
 	r := mux.NewRouter()
 
 	routes := r.PathPrefix("/beeswax/images/api/v1").Subrouter()
@@ -33,48 +32,30 @@ func NewServer() (server *Server) {
 	//Note that when setting this to true, all URLS must end with a slash so we match paths both with and without the trailing slash
 	// routes.StrictSlash(true)
 
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/images/").HandlerFunc(postApplication)
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/images").HandlerFunc(postApplication)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/").HandlerFunc(getNamespaces)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces").HandlerFunc(getNamespaces)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/").HandlerFunc(getApplications)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications").HandlerFunc(getApplications)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/").HandlerFunc(getApplication)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}").HandlerFunc(getApplication)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/").HandlerFunc(getImages)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images").HandlerFunc(getImages)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(getImage)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(getImage)
+	//now set up the decoder and return the server
+	decoder := schema.NewDecoder()
 
-	server = &Server{
-		router: r,
+	server := &Server{
+		router:       r,
+		decoder:      decoder,
+		imageCreator: imageCreator,
 	}
+
+	//a bit hacky, but need the pointer to the server
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/images/").HandlerFunc(server.postApplication)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/images").HandlerFunc(server.postApplication)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/").HandlerFunc(server.getNamespaces)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces").HandlerFunc(server.getNamespaces)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/").HandlerFunc(server.getApplications)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications").HandlerFunc(server.getApplications)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/").HandlerFunc(server.getApplication)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}").HandlerFunc(server.getApplication)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/").HandlerFunc(server.getImages)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images").HandlerFunc(server.getImages)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(server.getImage)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(server.getImage)
 
 	return server
-
-}
-
-var decoder *schema.Decoder
-var imageCreator shipyard.ImageCreator
-
-func init() {
-	decoder = schema.NewDecoder()
-
-	var error error
-
-	repoURL := os.Getenv(dockerRegistryVar)
-
-	if repoURL == "" {
-		shipyard.LogError.Fatalf("You must set the %s environment variable.  An example would be localhost:5000", dockerRegistryVar)
-	}
-
-	// imageCreator, error = shipyard.NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
-	imageCreator, error = shipyard.NewLocalImageCreator(repoURL)
-
-	//we should die here if we're unable to start
-	if error != nil {
-		shipyard.LogError.Fatalf("Unable to create image creator %s", error)
-	}
 
 }
 
@@ -88,7 +69,7 @@ func (server *Server) Start(port int) error {
 }
 
 //postApplication and render a response
-func postApplication(w http.ResponseWriter, r *http.Request) {
+func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(maxFileSize)
 
 	if err != nil {
@@ -114,7 +95,7 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 	createImage := new(CreateImage)
 
 	// r.PostForm is a map of our POST form values without the file
-	err = decoder.Decode(createImage, r.Form)
+	err = server.decoder.Decode(createImage, r.Form)
 
 	if err != nil {
 		message := fmt.Sprintf("Unable parse form %s", err)
@@ -140,7 +121,7 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 
 	//check if the image exists, if it does, return a 409
 
-	existingImage, err := imageCreator.GetImageRevision(dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	existingImage, err := server.imageCreator.GetImageRevision(dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to check if image exists for %v", dockerInfo)
@@ -219,7 +200,7 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 	// logWriter := &bytes.Buffer{}
 	logWriter := os.Stdout
 
-	err = imageCreator.BuildImage(dockerBuild, logWriter)
+	err = server.imageCreator.BuildImage(dockerBuild, logWriter)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not build image from docker info %+v.  Error is %s", dockerInfo, err)
@@ -228,7 +209,7 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = imageCreator.PushImage(dockerInfo, logWriter)
+	err = server.imageCreator.PushImage(dockerInfo, logWriter)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not push image from docker info %+v.  Error is %s", dockerInfo, err)
@@ -237,23 +218,32 @@ func postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image := &Image{
-		ImageID: dockerInfo.GetTagName(),
-		Created: time.Now(),
+	image, err := server.getImageInternal(createImage.Namespace, createImage.Application, createImage.Revision)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not retrieve image for verification.  Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	buildResult := &Build{
+		Image: image,
+		Logs:  []string{},
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(image)
+	json.NewEncoder(w).Encode(buildResult)
 
 }
 
 //GetApplications returns an application
-func getApplications(w http.ResponseWriter, r *http.Request) {
+func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	namespace := vars["namespace"]
 
-	appNames, err := imageCreator.GetApplications(namespace)
+	appNames, err := server.imageCreator.GetApplications(namespace)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get images for namespace %s.  Error is %s", namespace, err)
@@ -275,11 +265,11 @@ func getApplications(w http.ResponseWriter, r *http.Request) {
 }
 
 //getNamespaces get the namespaces
-func getNamespaces(w http.ResponseWriter, r *http.Request) {
+func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
 
 	namespaces := []*Namespace{}
 
-	namespaceNames, err := imageCreator.GetRepositories()
+	namespaceNames, err := server.imageCreator.GetNamespaces()
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to retrieve namespaces.  %s", err)
@@ -301,7 +291,7 @@ func getNamespaces(w http.ResponseWriter, r *http.Request) {
 }
 
 //GetApplication return an application, if it exists
-func getApplication(w http.ResponseWriter, r *http.Request) {
+func (server *Server) getApplication(w http.ResponseWriter, r *http.Request) {
 
 	//TODO finish this
 	// vars := mux.Vars(r)
@@ -330,13 +320,13 @@ func getApplication(w http.ResponseWriter, r *http.Request) {
 }
 
 //GetImages get the images for the given application
-func getImages(w http.ResponseWriter, r *http.Request) {
+func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	namespace := vars["namespace"]
 	application := vars["application"]
 
-	dockerImages, err := imageCreator.GetImages(namespace, application)
+	dockerImages, err := server.imageCreator.GetImages(namespace, application)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get images for namespace %s and application %s.  Error is %s", namespace, application, err)
@@ -345,38 +335,35 @@ func getImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	images := []*Image{}
+	length := len(*dockerImages)
 
-	for _, image := range *dockerImages {
+	//pre-allocate slice for efficiency
+	images := make([]*Image, length)
 
-		name := shipyard.GetImageNameFromTags(image.RepoTags)
+	shipyard.LogInfo.Printf("Processing %d images from the server", images)
 
-		//can't parse it, skip it
-		if name == nil {
-			continue
-		}
+	for i, image := range *dockerImages {
 
-		image := &Image{
+		resultImage := &Image{
 			Created: time.Unix(image.Created, 0),
-			ImageID: *name,
-			Size:    image.Size,
+			ImageID: image.ID,
 		}
 
-		images = append(images, image)
+		images[i] = resultImage
 	}
 
 	json.NewEncoder(w).Encode(images)
 }
 
 //GetImage get the image
-func getImage(w http.ResponseWriter, r *http.Request) {
+func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	namespace := vars["namespace"]
 	application := vars["application"]
 	revision := vars["revision"]
 
-	image, err := imageCreator.GetImageRevision(namespace, application, revision)
+	image, err := server.getImageInternal(namespace, application, revision)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.  Error is %s", namespace, application, revision, err)
@@ -385,21 +372,34 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := shipyard.GetImageNameFromTags(image.RepoTags)
-
 	//not found, return a 404
-	if name == nil {
+	if image == nil {
 		notFound(fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.", namespace, application, revision), w)
 		return
 	}
 
-	imageResponse := &Image{
-		Created: time.Unix(image.Created, 0),
-		ImageID: *name,
-		Size:    image.Size,
+	json.NewEncoder(w).Encode(image)
+}
+
+//getImageInternal get an image.  Image can be nil if not found, or an error will be returned if
+func (server *Server) getImageInternal(namespace string, application string, revision string) (*Image, error) {
+
+	image, err := server.imageCreator.GetImageRevision(namespace, application, revision)
+
+	if err != nil {
+		return nil, err
 	}
 
-	json.NewEncoder(w).Encode(imageResponse)
+	if image == nil {
+		return nil, nil
+	}
+
+	imageResponse := &Image{
+		Created: time.Unix(image.Created, 0),
+		ImageID: image.ID,
+	}
+
+	return imageResponse, nil
 }
 
 //write a non 200 error response

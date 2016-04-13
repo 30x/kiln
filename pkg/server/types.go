@@ -6,12 +6,16 @@ import (
 	"time"
 )
 
+//Build represents a build response
+type Build struct {
+	Image *Image   `json:"image"`
+	Logs  []string `json:"logs"`
+}
+
 //Image represents an image struct
 type Image struct {
 	Created time.Time `json:"created"`
-	Size    int64     `json:"size"`
 	ImageID string    `json:"imageId"`
-	Links   []Link    `json:"_links"`
 }
 
 //Namespace represents an image struct
@@ -22,8 +26,7 @@ type Application NamedObject
 
 //NamedObject An object that just contains name and links
 type NamedObject struct {
-	Name  string `json:"name"`
-	Links []Link `json:"_links"`
+	Name string `json:"name"`
 }
 
 //Link a link that represents a struct

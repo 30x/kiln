@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -12,6 +13,7 @@ import (
 
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/30x/shipyard/pkg/server"
@@ -22,180 +24,239 @@ import (
 
 var _ = Describe("Server Test", func() {
 
-	var testServer *server.Server
-	var hostBase string
+	ServerTests := func(testServer *server.Server, hostBase string) {
 
-	//set up the server and client
-	var _ = BeforeSuite(func() {
-		port := 5280
-		testServer = server.NewServer()
+		It("Get Namespaces ", func() {
 
-		//start server in the background
-		go func() {
-			//start  the server and produce it to the start channel
-			err := testServer.Start(port)
-			Expect(err).Should(BeNil(), "Could not start server on port %d, error is %s", port, err)
-		}()
+			httpResponse, namespaces, err := getNamespaces(hostBase)
 
-		//wait for it to start
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
-		hostBase = fmt.Sprintf("http://localhost:%d/beeswax/images/api/v1", port)
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
-		started := false
+			//we explicity don't test since other images might be present in the docker registry
 
-		//wait for host to start for 10 seconds
-		for i := 0; i < 20; i++ {
+			//now create a new images
 
-			host := fmt.Sprintf("localhost:%d", port)
+			namespace := "test" + shipyard.UUIDString()
+			application := "application"
+			revision := "v1.0"
 
-			conn, err := net.Dial("tcp", host)
+			response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
 
-			//done waiting, continue
-			if err == nil {
-				conn.Close()
-				started = true
-				break
-			}
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
 
-			time.Sleep(500 * time.Millisecond)
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			buildOutput := server.Build{}
+
+			bytes, err := ioutil.ReadAll(response.Body)
+
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+
+			//check build response
+			json.Unmarshal(bytes, &buildOutput)
+
+			Expect(buildOutput.Image).ShouldNot(BeNil())
+
+			Expect(buildOutput.Image.Created).ShouldNot(BeNil())
+
+			Expect(buildOutput.Image.ImageID).ShouldNot(BeNil())
+
+			Expect(strings.Index(buildOutput.Image.ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
+			httpResponse, namespaces, err = getNamespaces(hostBase)
+
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			assertContainsNamespace(namespaces, namespace)
+
+		})
+
+		It("Create Duplicate Application ", func() {
+			//upload the first image
+			namespace := "test" + shipyard.UUIDString()
+			application := "application"
+			revision := "v1.0"
+
+			response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			//now ensure it is created
+			httpResponse, applications, err := getApplications(hostBase, namespace)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			assertContainsApplication(applications, application)
+
+			//now try to post again, should get a 409
+
+			response, err = newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(409), "409 should be returned")
+
+		})
+
+		It("Test Application Images", func() {
+			//upload the first image
+			namespace := "test" + shipyard.UUIDString()
+			application := "application"
+			revision := "v1.0"
+
+			response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			//now ensure it is created
+			httpResponse, images, err := getImages(hostBase, namespace, application)
+
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			Expect(len(images) >= 1).Should(BeTrue(), "Images should be >= than length 1")
+
+			Expect(images[0].Created).ShouldNot(BeNil())
+
+			Expect(images[0].ImageID).ShouldNot(BeNil())
+
+			Expect(strings.Index(images[0].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
+			//now try to post again, with a new revision
+
+			revision2 := "v1.1"
+
+			response, err = newFileUploadRequest(hostBase, namespace, application, revision2, "../../testresources/echo-test.zip")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			//now ensure it is created
+			httpResponse, images, err = getImages(hostBase, namespace, application)
+
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			Expect(len(images) >= 2).Should(BeTrue(), "Images should be of length >= 2")
+
+			Expect(images[0].Created).ShouldNot(BeNil())
+
+			Expect(images[0].ImageID).ShouldNot(BeNil())
+
+			Expect(strings.Index(images[0].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
+			Expect(images[1].Created).ShouldNot(BeNil())
+
+			Expect(images[1].ImageID).ShouldNot(BeNil())
+			Expect(strings.Index(images[1].ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
+		})
+
+	}
+
+	Context("Local Docker", func() {
+		//set up the provider
+		os.Setenv("DOCKER_PROVIDER", "docker")
+		os.Setenv("DOCKER_REGISTRY_URL", "localhost:5000")
+
+		server, hostBase, err := doSetup(5280)
+
+		if err != nil {
+			Fail(fmt.Sprintf("Could not start server %s", err))
 		}
 
-		Expect(started).Should(BeTrue(), "Server should have started")
-
+		ServerTests(server, hostBase)
 	})
 
-	It("Get Namespaces ", func() {
+	Context("ECR Docker", func() {
 
-		httpResponse, namespaces, err := getNamespaces(hostBase)
+		//set up the provider
+		os.Setenv("DOCKER_PROVIDER", "ecr")
+		os.Setenv("DOCKER_REGISTRY_URL", "977777657611.dkr.ecr.us-east-1.amazonaws.com")
+		os.Setenv("ECR_REGION", "us-east-1")
 
-		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+		server, hostBase, err := doSetup(5281)
 
-		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+		if err != nil {
+			Fail(fmt.Sprintf("Could not start server %s", err))
+		}
 
-		//we explicity don't test since other images might be present in the docker registry
-
-		//now create a new images
-
-		namespace := "test" + shipyard.UUIDString()
-		application := "application"
-		revision := "v1.0"
-
-		response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
-
-		//do basic assertion before continuing
-		Expect(err).Should(BeNil(), "Upload should be successfull")
-
-		//now check the resposne code
-		Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
-
-		httpResponse, namespaces, err = getNamespaces(hostBase)
-
-		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
-
-		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-		assertContainsNamespace(namespaces, namespace)
-
-	})
-
-	It("Create Duplicate Application ", func() {
-		//upload the first image
-		namespace := "test" + shipyard.UUIDString()
-		application := "application"
-		revision := "v1.0"
-
-		response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
-
-		//do basic assertion before continuing
-		Expect(err).Should(BeNil(), "Upload should be successfull")
-
-		//now check the resposne code
-		Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
-
-		//now ensure it is created
-		httpResponse, applications, err := getApplications(hostBase, namespace)
-
-		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-		assertContainsApplication(applications, application)
-
-		//now try to post again, should get a 409
-
-		response, err = newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
-
-		//do basic assertion before continuing
-		Expect(err).Should(BeNil(), "Upload should be successfull")
-
-		//now check the resposne code
-		Expect(response.StatusCode).Should(Equal(409), "409 should be returned")
-
-	})
-
-	It("Test Application Images", func() {
-		//upload the first image
-		namespace := "test" + shipyard.UUIDString()
-		application := "application"
-		revision := "v1.0"
-
-		response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
-
-		//do basic assertion before continuing
-		Expect(err).Should(BeNil(), "Upload should be successfull")
-
-		//now check the resposne code
-		Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
-
-		//now ensure it is created
-		httpResponse, images, err := getImages(hostBase, namespace, application)
-
-		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
-
-		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-		Expect(len(images) >= 1).Should(BeTrue(), "Images should be >= than length 1")
-
-		Expect(images[0].Created).ShouldNot(BeNil())
-
-		Expect(images[0].Size > 0).Should(BeTrue())
-
-		Expect(images[0].ImageID).ShouldNot(BeNil())
-
-		//now try to post again, with a new revision
-
-		revision2 := "v1.1"
-
-		response, err = newFileUploadRequest(hostBase, namespace, application, revision2, "../../testresources/echo-test.zip")
-
-		//do basic assertion before continuing
-		Expect(err).Should(BeNil(), "Upload should be successfull")
-
-		//now check the resposne code
-		Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
-
-		//now ensure it is created
-		httpResponse, images, err = getImages(hostBase, namespace, application)
-
-		Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
-
-		Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-		Expect(len(images) >= 2).Should(BeTrue(), "Images should be of length >= 2")
-
-		Expect(images[0].Created).ShouldNot(BeNil())
-
-		Expect(images[0].Size > 0).Should(BeTrue())
-
-		Expect(images[0].ImageID).ShouldNot(BeNil())
-
-		Expect(images[1].Created).ShouldNot(BeNil())
-
-		Expect(images[1].Size > 0).Should(BeTrue())
-
-		Expect(images[1].ImageID).ShouldNot(BeNil())
-
+		ServerTests(server, hostBase)
 	})
 
 })
+
+//create a new instance of the server based on the env vars and the image creator.  Return them to be tested
+func doSetup(port int) (*server.Server, string, error) {
+	imageCreator, err := shipyard.NewImageCreatorFromEnv()
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	testServer := server.NewServer(imageCreator)
+
+	//start server in the background
+	go func() {
+		//start  the server and produce it to the start channel
+		err := testServer.Start(port)
+
+		if err != nil {
+			shipyard.LogError.Printf("Could not start server %s", err)
+		}
+
+	}()
+
+	//wait for it to start
+
+	hostBase := fmt.Sprintf("http://localhost:%d/beeswax/images/api/v1", port)
+
+	started := false
+
+	//wait for host to start for 10 seconds
+	for i := 0; i < 20; i++ {
+
+		host := fmt.Sprintf("localhost:%d", port)
+
+		conn, err := net.Dial("tcp", host)
+
+		//done waiting, continue
+		if err == nil {
+			conn.Close()
+			started = true
+			break
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	if !started {
+		return nil, "", errors.New("Server did not start")
+	}
+
+	return testServer, hostBase, nil
+}
 
 //assertContainsNamespace check if namespace array has the expected namespace in it
 func assertContainsNamespace(namespaces []*server.Namespace, expectedNamespace string) {
@@ -275,7 +336,7 @@ func getImages(hostBase string, namespace string, application string) (*http.Res
 
 	url := getImagesURL(hostBase, namespace, application)
 
-	shipyard.LogInfo.Printf("Ivoking get at URL %s", url)
+	shipyard.LogInfo.Printf("Invoking get at URL %s", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/json")
@@ -289,6 +350,10 @@ func getImages(hostBase string, namespace string, application string) (*http.Res
 	if err != nil {
 		return nil, nil, err
 	}
+
+	body := string(bytes)
+
+	shipyard.LogInfo.Printf("Response is %s", body)
 
 	json.Unmarshal(bytes, &images)
 

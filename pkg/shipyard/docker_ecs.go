@@ -1,11 +1,8 @@
 package shipyard
 
 import (
-	"errors"
 	"io"
 	"strings"
-
-	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -51,8 +48,8 @@ func NewEcsImageCreator(repo string, region string) (ImageCreator, error) {
 	}, nil
 }
 
-//GetRepositories get all remote repositories
-func (imageCreator EcsImageCreator) GetRepositories() (*[]string, error) {
+//GetNamespaces get all remote repositories
+func (imageCreator EcsImageCreator) GetNamespaces() (*[]string, error) {
 
 	repositoryResult := newRepositoryResult()
 
@@ -93,17 +90,21 @@ func (imageCreator EcsImageCreator) GetImages(repository string, application str
 		}
 
 		for _, awsImage := range response.ImageIds {
+
+			// awsImage.
 			if awsImage.ImageDigest == nil || awsImage.ImageTag == nil {
 				LogWarn.Printf("Was unable to marshall response from aws image, skipping")
 				continue
 			}
 
-			repoTag := repository + ":" + *awsImage.ImageTag
+			repoTag := repositoryName + ":" + *awsImage.ImageTag
 
 			dockerImage := types.Image{
 				ID:       *awsImage.ImageDigest,
 				RepoTags: []string{repoTag},
 			}
+
+			LogInfo.Printf("Adding dockerimage %v to the resposne", dockerImage)
 
 			results = append(results, dockerImage)
 		}
@@ -138,14 +139,12 @@ func (imageCreator EcsImageCreator) GetImageRevision(repository string, applicat
 	response, err := imageCreator.awsClient.BatchGetImage(&imageRequest)
 
 	//call failed, bail
-	if err != nil {
+	if err != nil && !isNotFoundError(err) {
 		return nil, err
 	}
 
 	if len(response.Images) < 1 {
-		errorMsg := fmt.Sprintf("Could not find images with repository %s, application %s, and revision %s", repository, application, revision)
-
-		return nil, errors.New(errorMsg)
+		return nil, nil
 	}
 
 	awsImage := response.Images[0].ImageId
@@ -225,13 +224,14 @@ func newRepositoryResult() *repositoryResult {
 }
 
 func (repositoryResult *repositoryResult) add(repositoryName *string) {
-	name := GetImageName(repositoryName)
+	parts := strings.Split(*repositoryName, "/")
 
-	if name == nil {
+	//not the right length, drop it
+	if len(parts) != 2 {
 		return
 	}
 
-	repositoryResult.repoSet.Add(*name)
+	repositoryResult.repoSet.Add(parts[0])
 }
 
 //Get the results
