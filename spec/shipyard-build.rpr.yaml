@@ -46,13 +46,6 @@ entities:
       imageId:
         usage: read
         type: string
-      size:
-        usage: read
-        type: integer
-      file:
-        usage: create
-        type: string
-        format: file
       namespace:
         usage: create read
         type: string
