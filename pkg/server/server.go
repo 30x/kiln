@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
@@ -20,10 +21,11 @@ type Server struct {
 	router       *mux.Router
 	decoder      *schema.Decoder
 	imageCreator shipyard.ImageCreator
+	podSpecIo    shipyard.PodspecIo
 }
 
 //NewServer Create a new server
-func NewServer(imageCreator shipyard.ImageCreator) *Server {
+func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo) *Server {
 	r := mux.NewRouter()
 
 	routes := r.PathPrefix("/beeswax/images/api/v1").Subrouter()
@@ -39,11 +41,12 @@ func NewServer(imageCreator shipyard.ImageCreator) *Server {
 		router:       r,
 		decoder:      decoder,
 		imageCreator: imageCreator,
+		podSpecIo:    podSpecIo,
 	}
 
 	//a bit hacky, but need the pointer to the server
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/images/").HandlerFunc(server.postApplication)
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/images").HandlerFunc(server.postApplication)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/builds/").HandlerFunc(server.postApplication)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/builds").HandlerFunc(server.postApplication)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/").HandlerFunc(server.getNamespaces)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces").HandlerFunc(server.getNamespaces)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/").HandlerFunc(server.getApplications)
@@ -54,6 +57,12 @@ func NewServer(imageCreator shipyard.ImageCreator) *Server {
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images").HandlerFunc(server.getImages)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(server.getImage)
 	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(server.getImage)
+
+	//post a podspec for a specified revision
+	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}/").HandlerFunc(server.postPodSpec)
+	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.postPodSpec)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}/").HandlerFunc(server.getPodSpec)
+	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.getPodSpec)
 
 	return server
 
@@ -233,6 +242,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(buildResult)
 
 }
@@ -261,6 +271,7 @@ func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 		applications = append(applications, application)
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(applications)
 }
 
@@ -287,6 +298,7 @@ func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
 		namespaces = append(namespaces, namespaceObj)
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(namespaces)
 }
 
@@ -352,6 +364,7 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 		images[i] = resultImage
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(images)
 }
 
@@ -378,6 +391,7 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(image)
 }
 
@@ -402,6 +416,64 @@ func (server *Server) getImageInternal(namespace string, application string, rev
 	return imageResponse, nil
 }
 
+//postPodSpec get the image
+func (server *Server) postPodSpec(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	namespace := vars["namespace"]
+	application := vars["application"]
+	revision := vars["revision"]
+
+	jsonBytes, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not read body. Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	json := string(jsonBytes)
+
+	//TODO validate
+
+	//write an ok resposne
+	server.podSpecIo.WritePodSpec(namespace, application, revision, json)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+}
+
+//getPodSpec
+func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	namespace := vars["namespace"]
+	application := vars["application"]
+	revision := vars["revision"]
+
+	podSpec, err := server.podSpecIo.ReadPodSpec(namespace, application, revision)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not get podspec for namespace %s,  application %s, and revision %s.  Error is %s", namespace, application, revision, err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	//not found, return a 404
+	if podSpec == nil {
+		notFound(fmt.Sprintf("Could not get podspec for namespace %s,  application %s, and revision %s.", namespace, application, revision), w)
+		return
+	}
+
+	//write the response
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(*podSpec))
+
+}
+
 //write a non 200 error response
 func writeErrorResponse(statusCode int, message string, w http.ResponseWriter) {
 
@@ -411,6 +483,7 @@ func writeErrorResponse(statusCode int, message string, w http.ResponseWriter) {
 		Message: message,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(error)
 }
 

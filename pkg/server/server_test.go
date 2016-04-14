@@ -215,7 +215,13 @@ func doSetup(port int) (*server.Server, string, error) {
 		return nil, "", err
 	}
 
-	testServer := server.NewServer(imageCreator)
+	podSpecProvider, err := shipyard.NewEc2PodSpec("us-east-1", "testbeeswaxbucket")
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	testServer := server.NewServer(imageCreator, podSpecProvider)
 
 	//start server in the background
 	go func() {
@@ -395,7 +401,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 		return nil, err
 	}
 
-	uri := fmt.Sprintf("%s/images", hostBase)
+	uri := fmt.Sprintf("%s/builds", hostBase)
 
 	request, err := http.NewRequest("POST", uri, body)
 
