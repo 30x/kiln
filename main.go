@@ -51,6 +51,8 @@ func main() {
 		shipyard.LogError.Fatalf("Unable to create pod spec provider.  Error is %s", err)
 	}
 
+	shipyard.LogInfo.Printf("Successfully configured server and validated configuration. Starting server.")
+
 	server := server.NewServer(imageCreator, podSpec)
 
 	if err := server.Start(port); err != nil {

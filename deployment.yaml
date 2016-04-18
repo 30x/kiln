@@ -17,7 +17,7 @@ spec:
         publicPaths: "/beeswax/images"
     spec:
       containers:
-      - image: tnine/shipyard:v0
+      - image: tnine/shipyard:v1
         imagePullPolicy: Always
         name: shipyard
         ports:
@@ -25,7 +25,13 @@ spec:
         env:
         - name: PORT
           value: "5280"
+        - name: DOCKER_PROVIDER
+          value: docker  
         - name: DOCKER_REGISTRY_URL
           value: 172.17.4.99:5000
         - name: DOCKER_HOST
           value: tcp://172.17.4.99:2375
+        - name: EC2_REGION
+          value: us-east-1
+        - name: EC2_BUCKET
+          value: testbeeswaxbucket
