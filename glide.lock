@@ -1,5 +1,5 @@
-hash: 5dd3edc4c0aaf86ac83f8ea057e1ef5291dbd19df9e9fcf5eb835a39f45199f9
-updated: 2016-04-05T17:58:33.859024239-06:00
+hash: d472bee0dea1c83b855862a3ed4ba52497a445aa022e05a1148b96cc336dd60e
+updated: 2016-04-19T14:38:12.595231934-06:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 4151ef572710e04d25d9385114b33847ba6a923a
@@ -8,6 +8,7 @@ imports:
   - aws
   - aws/session
   - service/ecr
+  - service/s3
   - aws/awserr
   - aws/credentials
   - aws/client
@@ -19,11 +20,16 @@ imports:
   - aws/client/metadata
   - private/protocol/jsonrpc
   - private/signer/v4
+  - private/protocol
+  - private/protocol/restxml
+  - private/waiter
   - aws/credentials/ec2rolecreds
   - aws/ec2metadata
   - private/protocol/json/jsonutil
   - private/protocol/rest
-  - private/protocol
+  - private/protocol/query
+  - private/protocol/xml/xmlutil
+  - private/protocol/query/queryutil
 - name: github.com/docker/docker
   version: 20f81dde9bd97c86b2d0e33bbbf1388018611929
   vcs: git
@@ -70,4 +76,11 @@ imports:
   version: 3f4f4420fded8d19cf29a1b6a631b7e31f7f9c68
   subpackages:
   - libcontainer/user
+- name: github.com/tylerb/graceful
+  version: 9a3d4236b03bb5d26f7951134d248f9d5510d599
+  vcs: git
+- name: golang.org/x/net
+  version: fb93926129b8ec0056f2f458b1f519654814edf0
+  subpackages:
+  - netutil
 devImports: []
