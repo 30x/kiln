@@ -31,7 +31,7 @@ spec:
           value: 172.17.4.99:5000
         - name: DOCKER_HOST
           value: tcp://172.17.4.99:2375
-        - name: EC2_REGION
-          value: us-east-1
-        - name: EC2_BUCKET
-          value: testbeeswaxbucket
+        - name: POD_PROVIDER
+          value: local
+        - name: LOCAL_DIR
+          value: /tmp/storagedir
