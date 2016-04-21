@@ -179,6 +179,8 @@ var _ = Describe("Server Test", func() {
 		//set up the provider
 		os.Setenv("DOCKER_PROVIDER", "docker")
 		os.Setenv("DOCKER_REGISTRY_URL", "localhost:5000")
+		os.Setenv("POD_PROVIDER", "local")
+		os.Setenv("LOCAL_DIR", "/tmp/podspecs")
 
 		server, hostBase, err := doSetup(5280)
 
@@ -195,6 +197,9 @@ var _ = Describe("Server Test", func() {
 		os.Setenv("DOCKER_PROVIDER", "ecr")
 		os.Setenv("DOCKER_REGISTRY_URL", "977777657611.dkr.ecr.us-east-1.amazonaws.com")
 		os.Setenv("ECR_REGION", "us-east-1")
+		os.Setenv("POD_PROVIDER", "s3")
+		os.Setenv("S3_REGION", "us-east-1")
+		os.Setenv("S3_BUCKET", "podspectestbucket")
 
 		server, hostBase, err := doSetup(5281)
 
@@ -215,7 +220,7 @@ func doSetup(port int) (*server.Server, string, error) {
 		return nil, "", err
 	}
 
-	podSpecProvider, err := shipyard.NewEc2PodSpec("us-east-1", "testbeeswaxbucket")
+	podSpecProvider, err := shipyard.NewPodSpecIoFromEnv()
 
 	if err != nil {
 		return nil, "", err
