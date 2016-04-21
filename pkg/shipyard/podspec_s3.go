@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-//Ec2PodSpec the ec2 pod spec
-type Ec2PodSpec struct {
+//S3PodSpec the ec2 pod spec
+type S3PodSpec struct {
 	//pointer to the s3 instance
 	s3 *s3.S3
 
@@ -19,8 +19,8 @@ type Ec2PodSpec struct {
 	bucket string
 }
 
-//NewEc2PodSpec create a new EC2 pod spec to store pod specs in the given aws region and bucket
-func NewEc2PodSpec(awsRegion string, bucketName string) (*Ec2PodSpec, error) {
+//NewS3PodSpec create a new EC2 pod spec to store pod specs in the given aws region and bucket
+func NewS3PodSpec(awsRegion string, bucketName string) (*S3PodSpec, error) {
 	//instanciate the bucket
 
 	svc := s3.New(session.New(&aws.Config{Region: aws.String(awsRegion)}))
@@ -49,21 +49,21 @@ func NewEc2PodSpec(awsRegion string, bucketName string) (*Ec2PodSpec, error) {
 
 	//now return the client
 
-	return &Ec2PodSpec{
+	return &S3PodSpec{
 		s3:     svc,
 		bucket: bucketName,
 	}, nil
 }
 
 //WritePodSpec write the pod spec
-func (ec2PodSpec *Ec2PodSpec) WritePodSpec(namespace string, application string, revision string, podspec string) error {
+func (s3PodSpec *S3PodSpec) WritePodSpec(namespace string, application string, revision string, podspec string) error {
 
-	key := createPath(namespace, application, revision)
+	key := createS3Path(namespace, application, revision)
 
 	//upload the json
-	_, err := ec2PodSpec.s3.PutObject(&s3.PutObjectInput{
+	_, err := s3PodSpec.s3.PutObject(&s3.PutObjectInput{
 		Body:   strings.NewReader(podspec),
-		Bucket: &ec2PodSpec.bucket,
+		Bucket: &s3PodSpec.bucket,
 		Key:    &key,
 	})
 
@@ -76,13 +76,13 @@ func (ec2PodSpec *Ec2PodSpec) WritePodSpec(namespace string, application string,
 }
 
 //ReadPodSpec read the pod spec and return it as a string
-func (ec2PodSpec *Ec2PodSpec) ReadPodSpec(namespace string, application string, revision string) (*string, error) {
+func (s3PodSpec *S3PodSpec) ReadPodSpec(namespace string, application string, revision string) (*string, error) {
 
-	key := createPath(namespace, application, revision)
+	key := createS3Path(namespace, application, revision)
 
 	//upload the json
-	downloadResult, err := ec2PodSpec.s3.GetObject(&s3.GetObjectInput{
-		Bucket: &ec2PodSpec.bucket,
+	downloadResult, err := s3PodSpec.s3.GetObject(&s3.GetObjectInput{
+		Bucket: &s3PodSpec.bucket,
 		Key:    &key,
 	})
 
@@ -101,6 +101,6 @@ func (ec2PodSpec *Ec2PodSpec) ReadPodSpec(namespace string, application string, 
 }
 
 //createPath create the path of the json
-func createPath(namespace string, application string, revision string) string {
+func createS3Path(namespace string, application string, revision string) string {
 	return fmt.Sprintf("%s/%s/%s", namespace, application, revision)
 }

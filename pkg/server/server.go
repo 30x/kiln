@@ -438,10 +438,17 @@ func (server *Server) postPodSpec(w http.ResponseWriter, r *http.Request) {
 	//TODO validate
 
 	//write an ok resposne
-	server.podSpecIo.WritePodSpec(namespace, application, revision, json)
+	err = server.podSpecIo.WritePodSpec(namespace, application, revision, json)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not write file. Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 
 }
 

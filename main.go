@@ -32,20 +32,7 @@ func main() {
 		shipyard.LogError.Fatalf("Unable to create image creator %s", err)
 	}
 
-	//TODO refactor this into it's own factory
-	s3Region := os.Getenv("EC2_REGION")
-
-	if s3Region == "" {
-		shipyard.LogError.Fatalf("You must specify the EC2_REGION variable. An example value is 'us-east-1'")
-	}
-
-	s3BucketName := os.Getenv("EC2_BUCKET")
-
-	if s3BucketName == "" {
-		shipyard.LogError.Fatalf("You must specify the EC2_BUCKET variable. An example value is 'testbeeswaxbucket'")
-	}
-
-	podSpec, err := shipyard.NewEc2PodSpec(s3Region, s3BucketName)
+	podSpec, err := shipyard.NewPodSpecIoFromEnv()
 
 	if err != nil {
 		shipyard.LogError.Fatalf("Unable to create pod spec provider.  Error is %s", err)
