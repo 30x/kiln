@@ -1,3 +1,5 @@
+IMAGE_VERSION=latest
+
 test-build-and-package: test-source build-and-package
 
 build-and-package: compile-linux build-image
@@ -16,8 +18,8 @@ push-to-local:
 	docker push localhost:5000/tnine/shipyard
 
 push-to-hub:
-	docker tag -f tnine/shipyard tnine/shipyard:v1
-	docker push tnine/shipyard:v1
+	docker tag -f tnine/shipyard tnine/shipyard:$(IMAGE_VERSION)
+	docker push tnine/shipyard:$(IMAGE_VERSION)
 
 deploy-to-kube:
 	kubectl run shipyard --image=localhost:5000/tnine/shipyard:latest

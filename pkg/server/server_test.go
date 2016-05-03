@@ -231,12 +231,7 @@ func doSetup(port int) (*server.Server, string, error) {
 	//start server in the background
 	go func() {
 		//start  the server and produce it to the start channel
-		err := testServer.Start(port)
-
-		if err != nil {
-			shipyard.LogError.Printf("Could not start server %s", err)
-		}
-
+		testServer.Start(port, 10*time.Second)
 	}()
 
 	//wait for it to start

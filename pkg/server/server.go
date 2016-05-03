@@ -11,6 +11,7 @@ import (
 	"github.com/30x/shipyard/pkg/shipyard"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
+	"github.com/tylerb/graceful"
 )
 
 //TODO make an env variable.  100 Meg max
@@ -68,13 +69,13 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 
 }
 
-//Start start the http server
-func (server *Server) Start(port int) error {
+//Start start the http server with the port and the specified timeout
+func (server *Server) Start(port int, timeout time.Duration) {
 	address := fmt.Sprintf(":%d", port)
 
 	shipyard.LogInfo.Printf("Starting server at address %s", address)
 
-	return http.ListenAndServe(address, server.router)
+	graceful.Run(address, timeout, server.router)
 }
 
 //postApplication and render a response

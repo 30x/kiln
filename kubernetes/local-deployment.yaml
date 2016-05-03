@@ -13,11 +13,10 @@ spec:
         microservice: "true"
       annotations:
         trafficHosts: "deploy.k8s.local"
-        pathPort: "5280"
-        publicPaths: "/beeswax/images"
+        publicPaths: "5280:/beeswax/images"
     spec:
       containers:
-      - image: tnine/shipyard:v1
+      - image: tnine/shipyard:latest
         imagePullPolicy: Always
         name: shipyard
         ports:
@@ -26,12 +25,22 @@ spec:
         - name: PORT
           value: "5280"
         - name: DOCKER_PROVIDER
-          value: docker  
+          value: docker
         - name: DOCKER_REGISTRY_URL
           value: 172.17.4.99:5000
         - name: DOCKER_HOST
-          value: tcp://172.17.4.99:2375
+          value: unix:///var/run/docker.sock
         - name: POD_PROVIDER
           value: local
         - name: LOCAL_DIR
           value: /tmp/storagedir
+        - name: SHUTDOWN_TIMEOUT
+          value: "60"
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: dockersocket
+          readOnly: false
+      volumes:
+      - name: dockersocket
+        hostPath:
+          path: /var/run/docker.sock

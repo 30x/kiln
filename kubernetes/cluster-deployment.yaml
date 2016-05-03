@@ -1,0 +1,66 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: shipyard
+  labels:
+    name: shipyard
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: shipyard
+        microservice: "true"
+      annotations:
+        trafficHosts: "deploy.k8s.local"
+        publicPaths: "5280:/beeswax/images"
+    spec:
+      containers:
+      - image: tnine/shipyard:latest
+        imagePullPolicy: Always
+        name: shipyard
+        ports:
+        - containerPort: 5280
+        env:
+        - name: PORT
+          value: "5280"
+        - name: DOCKER_PROVIDER
+          value: ecr  
+        - name: DOCKER_REGISTRY_URL
+          value: 977777657611.dkr.ecr.us-west-2.amazonaws.com
+        - name: DOCKER_HOST
+          value: unix:///var/run/docker.sock
+        - name: POD_PROVIDER
+          value: s3
+        - name: S3_BUCKET
+          value: e2e-podtemplatespec
+        - name: S3_REGION
+          value: us-west-2
+        - name: ECR_REGION
+          value: us-west-2
+        - name: SHUTDOWN_TIMEOUT
+          value: "60"
+        - name: AWS_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-access
+              key: key
+        - name: AWS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-access
+              key: secret
+        volumeMounts:
+        - mountPath: /root/.docker/config.json
+          name: clientconfig
+          readOnly: true
+        - mountPath: /var/run/docker.sock
+          name: dockersocket
+          readOnly: false
+      volumes:
+      - name: clientconfig
+        secret:
+          secretName: docker-config
+      - name: dockersocket
+        hostPath:
+          path: /var/run/docker.sock

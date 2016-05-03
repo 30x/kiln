@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/30x/shipyard/pkg/server"
 	"github.com/30x/shipyard/pkg/shipyard"
@@ -25,6 +26,18 @@ func main() {
 		shipyard.LogError.Fatal("You must specify a valid integer for the PORT value")
 	}
 
+	timeoutString := os.Getenv("SHUTDOWN_TIMEOUT")
+
+	if timeoutString == "" {
+		shipyard.LogError.Fatal("You must specifiy the SHUTDOWN_TIMEOUT environment variable")
+	}
+
+	timeout, err := strconv.Atoi(timeoutString)
+
+	if err != nil {
+		shipyard.LogError.Fatal("You must specify a valid integer for the PORT value")
+	}
+
 	imageCreator, err := shipyard.NewImageCreatorFromEnv()
 
 	//we should die here if we're unable to start
@@ -42,7 +55,5 @@ func main() {
 
 	server := server.NewServer(imageCreator, podSpec)
 
-	if err := server.Start(port); err != nil {
-		shipyard.LogError.Fatalln(err)
-	}
+	server.Start(port, time.Duration(timeout)*time.Second)
 }
