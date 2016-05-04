@@ -12,7 +12,7 @@ spec:
         name: shipyard
         microservice: "true"
       annotations:
-        trafficHosts: "deploy.k8s.local"
+        trafficHosts: "e2e.k8s.local"
         publicPaths: "5280:/beeswax/images"
     spec:
       containers:
