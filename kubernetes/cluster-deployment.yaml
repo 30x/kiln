@@ -17,7 +17,7 @@ spec:
         projectcalico.org/policy: "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.129.0.0/16"
     spec:
       containers:
-      - image: tnine/shipyard:latest
+      - image: registry-1.docker.io/tnine/shipyard:latest
         imagePullPolicy: Always
         name: shipyard
         ports:
@@ -28,7 +28,10 @@ spec:
         - name: DOCKER_PROVIDER
           value: ecr  
         - name: DOCKER_REGISTRY_URL
-          value: 977777657611.dkr.ecr.us-west-2.amazonaws.com
+          valueFrom:
+            secretKeyRef:
+              name: docker-config
+              key: host
         - name: DOCKER_HOST
           value: unix:///var/run/docker.sock
         - name: POD_PROVIDER
@@ -39,6 +42,8 @@ spec:
           value: us-west-2
         - name: ECR_REGION
           value: us-west-2
+        - name: ECR_TIMEOUT
+          value: "5"
         - name: SHUTDOWN_TIMEOUT
           value: "60"
         - name: AWS_ACCESS_KEY

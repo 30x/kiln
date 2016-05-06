@@ -310,13 +310,6 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.
 	defer reader.Close()
 	_, err = io.Copy(logs, reader)
 
-	//now validate it pushed.  Since it can fail without an error message, we need to error here
-	image, err := imageCreator.GetImageRevision(dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
-
-	if image == nil {
-		return fmt.Errorf("Could not validate image %v was pushed", dockerInfo)
-	}
-
 	return err
 }
 
