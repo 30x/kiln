@@ -1,0 +1,40 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "s3BucketPermissions",
+            "Effect": "Allow",
+            "Action": [
+                "s3:CreateBucket",
+                "s3:DeleteObject",
+                "s3:DeleteObjectVersion",
+                "s3:GetObject",
+                "s3:ListBucket",
+                "s3:PutObject",
+                "s3:RestoreObject",
+                "s3:CreateObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::e2e-podtemplatespec/*"
+            ]
+        },
+        {
+            "Sid": "EcrPermissions",
+            "Effect": "Allow",
+            "Action": [
+              "ecr:GetAuthorizationToken",
+              "ecr:BatchCheckLayerAvailability",
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:GetRepositoryPolicy",
+              "ecr:DescribeRepositories",
+              "ecr:ListImages",
+              "ecr:BatchGetImage",
+              "ecr:InitiateLayerUpload",
+              "ecr:UploadLayerPart",
+              "ecr:CompleteLayerUpload",
+              "ecr:PutImage"
+            ],
+            "Resource": "*"
+          }
+    ]
+}
