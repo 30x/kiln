@@ -124,11 +124,11 @@ func (imageCreator EcsImageCreator) GetImages(repository string, application str
 }
 
 //GetImageRevision get the image revision
-func (imageCreator EcsImageCreator) GetImageRevision(repository string, application string, revision string) (*types.Image, error) {
-	repositoryName := repository + "/" + application
+func (imageCreator EcsImageCreator) GetImageRevision(dockerInfo *DockerInfo) (*types.Image, error) {
+	repositoryName := dockerInfo.RepoName + "/" + dockerInfo.ImageName
 
 	imageID := &ecr.ImageIdentifier{
-		ImageTag: &revision,
+		ImageTag: &dockerInfo.Revision,
 	}
 
 	imageRequest := ecr.BatchGetImageInput{
@@ -162,6 +162,18 @@ func (imageCreator EcsImageCreator) GetImageRevision(repository string, applicat
 	}
 
 	return &dockerImage, nil
+}
+
+//DeleteImageRevisionLocal Delete the image revision from the local repo
+func (imageCreator EcsImageCreator) deleteImageRevisionLocal(dockerInfo *DockerInfo) error {
+	//just delegate to the local docker impl
+
+	return imageCreator.dockerCreator.deleteImageRevisionLocal(dockerInfo)
+}
+
+//CleanImageRevision clean the image revision from the local docker
+func (imageCreator EcsImageCreator) CleanImageRevision(dockerInfo *DockerInfo) error {
+	return imageCreator.deleteImageRevisionLocal(dockerInfo)
 }
 
 //GetLocalImages return all local images

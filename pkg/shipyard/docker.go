@@ -18,7 +18,13 @@ type ImageCreator interface {
 	GetImages(repository string, application string) (*[]types.Image, error)
 
 	//GetImageRevision get the image for the specified repository, application, and revision.  Nil is returned if one does not exist
-	GetImageRevision(repository string, application string, revision string) (*types.Image, error)
+	GetImageRevision(dockerInfo *DockerInfo) (*types.Image, error)
+
+	//DeleteImageRevisionLocal Delete the image from the local machine repository.  Return an error if unable to do so.  Should not be called from outside the package
+	deleteImageRevisionLocal(dockerInfo *DockerInfo) error
+
+	//CleanImageRevision clean the image revision
+	CleanImageRevision(dockerInfo *DockerInfo) error
 
 	//GetLocalImages return all local images
 	GetLocalImages() (*[]types.Image, error)

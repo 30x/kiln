@@ -131,7 +131,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	//check if the image exists, if it does, return a 409
 
-	existingImage, err := server.imageCreator.GetImageRevision(dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	existingImage, err := server.imageCreator.GetImageRevision(dockerInfo)
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to check if image exists for %v", dockerInfo)
@@ -218,6 +218,9 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		internalError(message, w)
 		return
 	}
+
+	//defer cleaning up the image
+	defer server.imageCreator.CleanImageRevision(dockerInfo)
 
 	err = server.imageCreator.PushImage(dockerInfo, logWriter)
 
@@ -399,7 +402,13 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 //getImageInternal get an image.  Image can be nil if not found, or an error will be returned if
 func (server *Server) getImageInternal(namespace string, application string, revision string) (*Image, error) {
 
-	image, err := server.imageCreator.GetImageRevision(namespace, application, revision)
+	dockerInfo := &shipyard.DockerInfo{
+		RepoName:  namespace,
+		ImageName: application,
+		Revision:  revision,
+	}
+
+	image, err := server.imageCreator.GetImageRevision(dockerInfo)
 
 	if err != nil {
 		return nil, err

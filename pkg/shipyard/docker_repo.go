@@ -148,19 +148,19 @@ func (imageCreator LocalImageCreator) GetImages(repository string, application s
 }
 
 //GetImageRevision get the image revision
-func (imageCreator LocalImageCreator) GetImageRevision(repository string, application string, revision string) (*types.Image, error) {
+func (imageCreator LocalImageCreator) GetImageRevision(dockerInfo *DockerInfo) (*types.Image, error) {
 
 	filters := filters.NewArgs()
 
 	//append filters as required based on the input
 
-	repoFilter := TAG_REPO + "=" + repository
+	repoFilter := TAG_REPO + "=" + dockerInfo.RepoName
 	filters.Add("label", repoFilter)
 
-	applicationFilter := TAG_APPLICATION + "=" + application
+	applicationFilter := TAG_APPLICATION + "=" + dockerInfo.ImageName
 	filters.Add("label", applicationFilter)
 
-	revisionFilter := TAG_REVISION + "=" + revision
+	revisionFilter := TAG_REVISION + "=" + dockerInfo.Revision
 	filters.Add("label", revisionFilter)
 
 	opts := types.ImageListOptions{All: false, Filters: filters}
@@ -173,6 +173,45 @@ func (imageCreator LocalImageCreator) GetImageRevision(repository string, applic
 
 	return nil, err
 
+}
+
+//DeleteImageRevisionLocal Delete the image revision from the local repo
+func (imageCreator LocalImageCreator) deleteImageRevisionLocal(dockerInfo *DockerInfo) error {
+
+	image, err := imageCreator.GetImageRevision(dockerInfo)
+
+	if err != nil {
+		return err
+	}
+
+	if image == nil {
+		return fmt.Errorf("Could not find an image in repo %s, image name %s, and revision %s", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	}
+
+	imageRemoveOpts := types.ImageRemoveOptions{
+		Force: true,
+		//keep the children so we don't have to re-download intermediate containers
+		PruneChildren: true,
+		ImageID:       image.ID,
+	}
+
+	deletedImages, err := imageCreator.client.ImageRemove(imageRemoveOpts)
+
+	if err != nil {
+		return err
+	}
+
+	if deletedImages != nil {
+		LogInfo.Printf("Removed %d images for docker info %v", len(deletedImages), dockerInfo)
+	}
+
+	return nil
+}
+
+//CleanImageRevision clean the image revision
+func (imageCreator LocalImageCreator) CleanImageRevision(dockerInfo *DockerInfo) error {
+	//no op for local impl
+	return nil
 }
 
 //parse the tag out of the returned image
@@ -241,8 +280,10 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild, logs i
 	}
 
 	imageBuildOptions := types.ImageBuildOptions{
-		Context: inputReader,
-		Tags:    []string{name},
+		Context:     inputReader,
+		Tags:        []string{name},
+		ForceRemove: true,
+		Remove:      true,
 	}
 
 	response, err := imageCreator.client.ImageBuild(imageBuildOptions)

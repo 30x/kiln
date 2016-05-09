@@ -256,7 +256,7 @@ func assertApplicationVersionsExist(imageCreator ImageCreator, repoName string, 
 }
 
 func assertImageExists(imageCreator ImageCreator, expectedImage *DockerInfo) {
-	image, err := imageCreator.GetImageRevision(expectedImage.RepoName, expectedImage.ImageName, expectedImage.Revision)
+	image, err := imageCreator.GetImageRevision(expectedImage)
 
 	Expect(err).Should(BeNil(), "Could not retrieve image.  %s", err)
 	Expect(image).ShouldNot(BeNil(), "Image should be returned")
