@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"io"
@@ -50,22 +51,14 @@ var _ = Describe("Server Test", func() {
 			//now check the resposne code
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
-			buildOutput := server.Build{}
-
 			bytes, err := ioutil.ReadAll(response.Body)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
 			//check build response
-			json.Unmarshal(bytes, &buildOutput)
+			lastLine := getLastLogLine(string(bytes))
 
-			Expect(buildOutput.Image).ShouldNot(BeNil())
-
-			Expect(buildOutput.Image.Created).ShouldNot(BeNil())
-
-			Expect(buildOutput.Image.ImageID).ShouldNot(BeNil())
-
-			Expect(strings.Index(buildOutput.Image.ImageID, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+			Expect(strings.Index(lastLine, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
 			httpResponse, namespaces, err = getNamespaces(hostBase)
 
@@ -432,4 +425,21 @@ func getApplicationURL(hostBase string, namespace string, application string) st
 
 func getImagesURL(hostBase string, namespace string, application string) string {
 	return fmt.Sprintf("%s/images/", getApplicationURL(hostBase, namespace, application))
+}
+
+func getLastLogLine(buildResponseBody string) string {
+
+	scanner := bufio.NewScanner(strings.NewReader(buildResponseBody))
+
+	scanner.Split(bufio.ScanLines)
+
+	var line string
+
+	for scanner.Scan() {
+
+		line = scanner.Text()
+	}
+
+	return line
+
 }

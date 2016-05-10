@@ -6,12 +6,6 @@ import (
 	"time"
 )
 
-//Build represents a build response
-type Build struct {
-	Image *Image   `json:"image"`
-	Logs  []string `json:"logs"`
-}
-
 //Image represents an image struct
 type Image struct {
 	Created time.Time `json:"created"`

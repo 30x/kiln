@@ -29,12 +29,12 @@ type ImageCreator interface {
 	//GetLocalImages return all local images
 	GetLocalImages() (*[]types.Image, error)
 
-	//BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
-	BuildImage(dockerInfo *DockerBuild, logs io.Writer) error
+	//BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error ensure you close the stream
+	BuildImage(dockerInfo *DockerBuild) (chan (string), error)
 
 	//PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
-	PushImage(dockerInfo *DockerInfo, logs io.Writer) error
+	PushImage(dockerInfo *DockerInfo) (chan (string), error)
 
-	//PullImage pull the specified image to our the docker runtime
-	PullImage(dockerInfo *DockerInfo, logs io.Writer) error
+	//PullImage pull the specified image to our the docker runtime.  Deliberately left as a readcloser since it's not exposed via api
+	PullImage(dockerInfo *DockerInfo) (io.ReadCloser, error)
 }
