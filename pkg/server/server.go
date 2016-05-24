@@ -212,10 +212,12 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	//write headers BEFORE setting status created
 	w.Header().Set("Content-Type", "text/plain charset=utf-8")
 	//turn this off so browsers render the response as it comes in
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	w.WriteHeader(http.StatusCreated)
 
 	flusher, ok := w.(http.Flusher)
 
@@ -252,7 +254,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	//write the last portion
 
-	finalOutput := fmt.Sprintf("\nBuild Complete \nsha256:%s", image.ImageID)
+	finalOutput := fmt.Sprintf("\nBuild Complete \n%s", image.ImageID)
 
 	writeStringAndFlush(w, flusher, finalOutput)
 
