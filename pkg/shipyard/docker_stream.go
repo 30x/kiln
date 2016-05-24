@@ -45,23 +45,16 @@ func (parser *BuildStreamParser) Parse() {
 		line := scanner.Text()
 
 		//parse the json
-		var parsed map[string]string
+		var parsed streamStatusMessage
 
 		err := json.Unmarshal([]byte(line), &parsed)
 
 		//can't parse it, discard it. Not a line we care about
-		if err != nil {
+		if err != nil || parsed.Stream == "" {
 			continue
 		}
 
-		streamLine, exists := parsed["stream"]
-
-		//not a stream line, just ignore it
-		if !exists {
-			continue
-		}
-
-		parser.outputChannel <- streamLine
+		parser.outputChannel <- parsed.Stream
 	}
 
 	close(parser.outputChannel)
@@ -136,4 +129,8 @@ type pushStatusMessage struct {
 		Total   int64 `json:"total"`   // 1598
 	} `json:"progressDetail"`
 	Status string `json:"status"` // Pushing
+}
+
+type streamStatusMessage struct {
+	Stream string `json:"stream"`
 }

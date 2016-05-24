@@ -11,15 +11,15 @@ compile-linux:
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-w' -o build/shipyard .
 	
 build-image:
-	docker build -t tnine/shipyard .
+	docker build -t thirtyx/shipyard .
 
 push-to-local:
-	docker tag -f tnine/shipyard localhost:5000/tnine/shipyard
-	docker push localhost:5000/tnine/shipyard
+	docker tag -f thirtyx/shipyard localhost:5000/thirtyx/shipyard
+	docker push localhost:5000/thirtyx/shipyard
 
 push-to-hub:
-	docker tag -f tnine/shipyard tnine/shipyard:$(IMAGE_VERSION)
-	docker push tnine/shipyard:$(IMAGE_VERSION)
+	docker tag -f thirtyx/shipyard thirtyx/shipyard:$(IMAGE_VERSION)
+	docker push thirtyx/shipyard:$(IMAGE_VERSION)
 
 deploy-to-kube:
-	kubectl run shipyard --image=localhost:5000/tnine/shipyard:latest
+	kubectl run shipyard --image=localhost:5000/thirtyx/shipyard:latest

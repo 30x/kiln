@@ -16,7 +16,7 @@ spec:
         publicPaths: "5280:/beeswax/images"
     spec:
       containers:
-      - image: tnine/shipyard:latest
+      - image: thirtyx/shipyard:latest
         imagePullPolicy: Always
         name: shipyard
         ports:

@@ -68,19 +68,19 @@ var _ = Describe("Docker Stream", func() {
 
 		value := <-channel
 
-		Expect(value).Should(Equal("current uploaded:512, total size:1598"))
+		Expect(value).Should(Equal("current uploaded:512, total size:1598\n"))
 
 		value = <-channel
 
-		Expect(value).Should(Equal("current uploaded:751, total size:1598"))
+		Expect(value).Should(Equal("current uploaded:751, total size:1598\n"))
 
 		value = <-channel
 
-		Expect(value).Should(Equal("current uploaded:1536, total size:1598"))
+		Expect(value).Should(Equal("current uploaded:1536, total size:1598\n"))
 
 		value = <-channel
 
-		Expect(value).Should(Equal("current uploaded:2589, total size:1598"))
+		Expect(value).Should(Equal("current uploaded:2589, total size:1598\n"))
 
 		//should be closed
 		value, ok := <-channel
