@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"fmt"
-	"os"
 	"strings"
 	// "github.com/docker/engine-api/types"
 )
@@ -35,9 +34,11 @@ var _ = Describe("docker", func() {
 
 				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision)
 
-				err := imageCreator.PushImage(dockerInfo, os.Stdout)
+				stream, err := imageCreator.PushImage(dockerInfo)
 
 				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				channelToOutput(stream)
 
 				assertImageExists(imageCreator, dockerInfo)
 
@@ -52,26 +53,32 @@ var _ = Describe("docker", func() {
 
 				_, dockerInfo10 := createImage(imageCreator, repoName, imageName1, revision10)
 
-				err := imageCreator.PushImage(dockerInfo10, os.Stdout)
+				stream, err := imageCreator.PushImage(dockerInfo10)
 
 				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				channelToOutput(stream)
 
 				revision11 := "v1.1"
 
 				_, dockerInfo11 := createImage(imageCreator, repoName, imageName1, revision11)
 
-				err = imageCreator.PushImage(dockerInfo11, os.Stdout)
+				stream, err = imageCreator.PushImage(dockerInfo11)
 
 				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				channelToOutput(stream)
 
 				//push second image
 				imageName2 := "test2"
 
 				_, dockerInfo2 := createImage(imageCreator, repoName, imageName2, revision10)
 
-				err = imageCreator.PushImage(dockerInfo2, os.Stdout)
+				stream, err = imageCreator.PushImage(dockerInfo2)
 
 				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				channelToOutput(stream)
 
 				//applications
 				assertApplicationsExist(imageCreator, dockerInfo2.RepoName, dockerInfo10.ImageName, dockerInfo11.ImageName, dockerInfo2.ImageName)
@@ -130,9 +137,11 @@ func createImage(imageCreator ImageCreator, repoName string, appName string, rev
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
 
-	err := imageCreator.BuildImage(dockerImage, os.Stdout)
+	stream, err := imageCreator.BuildImage(dockerImage)
 
 	Expect(err).Should(BeNil(), "Unable to build image", err)
+
+	channelToOutput(stream)
 
 	//get the image from docker and ensure it exists
 
@@ -322,4 +331,17 @@ func stringExists(array *[]string, search string) bool {
 	}
 
 	return false
+}
+
+func channelToOutput(messages chan (string)) {
+
+	for {
+		message, ok := <-messages
+
+		if !ok {
+			break
+		}
+
+		fmt.Println(message)
+	}
 }

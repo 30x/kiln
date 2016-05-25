@@ -17,7 +17,7 @@ spec:
         projectcalico.org/policy: "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.129.0.0/16"
     spec:
       containers:
-      - image: registry-1.docker.io/tnine/shipyard:latest
+      - image: registry-1.docker.io/thirtyx/shipyard:latest
         imagePullPolicy: Always
         name: shipyard
         ports:

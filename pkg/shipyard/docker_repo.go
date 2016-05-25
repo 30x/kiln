@@ -266,7 +266,7 @@ func createFilter(search *DockerInfo) *filters.Args {
 }
 
 //BuildImage creates a docker tar from the specified dockerInfo to the specified repo, image, and version.  Returns the reader stream or an error
-func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild, logs io.Writer) error {
+func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild) (chan (string), error) {
 
 	name := dockerInfo.GetTagName()
 
@@ -276,7 +276,7 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild, logs i
 
 	if err != nil {
 		LogError.Printf("Unable to open tar file "+dockerInfo.TarFile+"for input", err)
-		return err
+		return nil, err
 	}
 
 	imageBuildOptions := types.ImageBuildOptions{
@@ -290,20 +290,24 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild, logs i
 
 	if err != nil {
 		LogInfo.Fatal(err)
-		return err
+		return nil, err
 	}
 
-	io.Copy(logs, response.Body)
-	response.Body.Close()
+	LogInfo.Printf("started uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
 
-	LogInfo.Printf("Completed uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
+	//conver it into a channel
 
-	return nil
+	streamParser := NewBuildStreamParser(response.Body)
+
+	//start consuming/emitting
+	go streamParser.Parse()
+
+	return streamParser.Channel(), nil
 
 }
 
 //PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
-func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.Writer) error {
+func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (string), error) {
 
 	localTag := dockerInfo.GetTagName()
 	remoteRepo := imageCreator.remoteRepo
@@ -322,7 +326,7 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.
 	err := imageCreator.client.ImageTag(imageTagOptions)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	imagePushOptions := types.ImagePushOptions{
@@ -344,18 +348,19 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo, logs io.
 	reader, err := imageCreator.client.ImagePush(imagePushOptions, privledgedFunction)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	//defer closing the reader in case we fail
-	defer reader.Close()
-	_, err = io.Copy(logs, reader)
+	streamParser := NewPushStreamParser(reader)
 
-	return err
+	//start consuming/emitting
+	go streamParser.Parse()
+
+	return streamParser.Channel(), nil
 }
 
 //PullImage pull the specified image to our the docker runtime
-func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo, logs io.Writer) error {
+func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo) (io.ReadCloser, error) {
 
 	remoteRepo := imageCreator.remoteRepo
 	remoteTag := dockerInfo.GetRemoteTagName(remoteRepo)
@@ -376,17 +381,13 @@ func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo, logs io.
 		return authConfig, nil
 	}
 
-	response, error := imageCreator.client.ImagePull(imagePullOpts, privledgedFunction)
+	response, err := imageCreator.client.ImagePull(imagePullOpts, privledgedFunction)
 
-	if error != nil {
-		return error
+	if err != nil {
+		return nil, err
 	}
 
-	io.Copy(logs, response)
-
-	response.Close()
-
-	return nil
+	return response, nil
 }
 
 //generateAuthConfiguration Create an auth configuration from the environment variables

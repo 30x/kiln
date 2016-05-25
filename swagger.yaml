@@ -125,10 +125,16 @@ definitions:
           imageId:
             description: The docker image id SHA
             type: string
+          logs:
+            type: array
+            items:
+              type: string
+            description: The logs from the build  
         required:
           - created
           - size
           - imageId
+          - logs
   Namespace:
     description: A namespace
     allOf:

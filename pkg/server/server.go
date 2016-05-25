@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/30x/shipyard/pkg/shipyard"
@@ -160,8 +159,6 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	//remove workspace after the request completes
 	defer workspace.Clean()
 
-	//
-
 	//copy the file data to a zip file
 
 	//TODO REMOVE this copy
@@ -206,11 +203,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		TarFile:    workspace.TargetTarName,
 	}
 
-	//TODO make this a real writes
-	// logWriter := &bytes.Buffer{}
-	logWriter := os.Stdout
-
-	err = server.imageCreator.BuildImage(dockerBuild, logWriter)
+	outputChannel, err := server.imageCreator.BuildImage(dockerBuild)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not build image from docker info %+v.  Error is %s", dockerInfo, err)
@@ -219,10 +212,27 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//write headers BEFORE setting status created
+	w.Header().Set("Content-Type", "text/plain charset=utf-8")
+	//turn this off so browsers render the response as it comes in
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	w.WriteHeader(http.StatusCreated)
+
+	flusher, ok := w.(http.Flusher)
+
+	//a serious problem, need to kill the server so we catch this during testing
+	if !ok {
+		panic("expected http.ResponseWriter to be an http.Flusher")
+	}
+
+	//stream the log data
+	chunkData(w, flusher, outputChannel)
+
 	//defer cleaning up the image
 	defer server.imageCreator.CleanImageRevision(dockerInfo)
 
-	err = server.imageCreator.PushImage(dockerInfo, logWriter)
+	pushChannel, err := server.imageCreator.PushImage(dockerInfo)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not push image from docker info %+v.  Error is %s", dockerInfo, err)
@@ -230,6 +240,8 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		internalError(message, w)
 		return
 	}
+
+	chunkData(w, flusher, pushChannel)
 
 	image, err := server.getImageInternal(createImage.Namespace, createImage.Application, createImage.Revision)
 
@@ -240,15 +252,48 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	buildResult := &Build{
-		Image: image,
-		Logs:  []string{},
+	//write the last portion
+
+	finalOutput := fmt.Sprintf("\nBuild Complete \n%s", image.ImageID)
+
+	writeStringAndFlush(w, flusher, finalOutput)
+
+}
+
+//dup the data over to the response writer
+func chunkData(w http.ResponseWriter, flusher http.Flusher, outputChannel chan (string)) error {
+
+	for {
+
+		data, ok := <-outputChannel
+
+		if !ok {
+			break
+		}
+
+		err := writeStringAndFlush(w, flusher, data)
+
+		if err != nil {
+			return err
+		}
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(buildResult)
+	return nil
 
+}
+
+//write a string and flush it to the http Flushwriter
+func writeStringAndFlush(w http.ResponseWriter, flusher http.Flusher, line string) error {
+
+	_, err := w.Write([]byte(line))
+
+	if err != nil {
+		return err
+	}
+
+	flusher.Flush()
+
+	return nil
 }
 
 //GetApplications returns an application

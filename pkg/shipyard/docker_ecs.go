@@ -279,17 +279,17 @@ func (applicationResult *applicationResult) getResults() *[]string {
 }
 
 //BuildImage build the image
-func (imageCreator EcsImageCreator) BuildImage(dockerInfo *DockerBuild, logs io.Writer) error {
-	return imageCreator.dockerCreator.BuildImage(dockerInfo, logs)
+func (imageCreator EcsImageCreator) BuildImage(dockerInfo *DockerBuild) (chan (string), error) {
+	return imageCreator.dockerCreator.BuildImage(dockerInfo)
 }
 
 //PullImage pull the specified image to our the docker runtime
-func (imageCreator EcsImageCreator) PullImage(dockerInfo *DockerInfo, logs io.Writer) error {
-	return imageCreator.dockerCreator.PullImage(dockerInfo, logs)
+func (imageCreator EcsImageCreator) PullImage(dockerInfo *DockerInfo) (io.ReadCloser, error) {
+	return imageCreator.dockerCreator.PullImage(dockerInfo)
 }
 
 //PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
-func (imageCreator EcsImageCreator) PushImage(dockerInfo *DockerInfo, logs io.Writer) error {
+func (imageCreator EcsImageCreator) PushImage(dockerInfo *DockerInfo) (chan (string), error) {
 
 	//check if it exists on ecs, if not create it first
 	imageName := dockerInfo.GetImageName()
@@ -297,18 +297,18 @@ func (imageCreator EcsImageCreator) PushImage(dockerInfo *DockerInfo, logs io.Wr
 	exists, err := imageCreator.imageExists(imageName)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !exists {
 		err := imageCreator.createImage(imageName)
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return imageCreator.dockerCreator.PushImage(dockerInfo, logs)
+	return imageCreator.dockerCreator.PushImage(dockerInfo)
 }
 
 //return true if the image exists
