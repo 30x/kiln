@@ -70,7 +70,7 @@ var _ = Describe("Server Test", func() {
 
 		})
 
-		It("Create Duplicate Application ", func() {
+		FIt("Create Duplicate Application ", func() {
 			//upload the first image
 			namespace := "test" + shipyard.UUIDString()
 			application := "application"

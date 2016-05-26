@@ -231,7 +231,14 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//stream the log data
-	chunkData(w, flusher, outputChannel)
+	err = chunkData(w, flusher, outputChannel)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 
 	//defer cleaning up the image
 	defer server.imageCreator.CleanImageRevision(dockerInfo)
@@ -245,7 +252,14 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chunkData(w, flusher, pushChannel)
+	err = chunkData(w, flusher, pushChannel)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 
 	image, err := server.getImageInternal(createImage.Namespace, createImage.Application, createImage.Revision)
 
@@ -260,16 +274,27 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	finalOutput := fmt.Sprintf("\nBuild Complete \n%s", image.ImageID)
 
-	writeStringAndFlush(w, flusher, finalOutput)
+	err = writeStringAndFlush(w, flusher, finalOutput)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 
 }
 
 //dup the data over to the response writer
 func chunkData(w http.ResponseWriter, flusher http.Flusher, outputChannel chan (string)) error {
 
+	shipyard.LogInfo.Println("Beginning flushing of log data")
+
 	for {
 
 		data, ok := <-outputChannel
+
+		shipyard.LogInfo.Printf("Received data %s and ok %t", data, ok)
 
 		if !ok {
 			break
@@ -281,6 +306,8 @@ func chunkData(w http.ResponseWriter, flusher http.Flusher, outputChannel chan (
 			return err
 		}
 	}
+
+	shipyard.LogInfo.Println("Completed flushing of log data")
 
 	return nil
 
