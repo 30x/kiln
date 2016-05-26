@@ -62,6 +62,32 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 							Name:  "PORT",
 							Value: port,
 						},
+
+						api.EnvVar{
+							Name: "PRIVATE_API_KEY",
+							ValueFrom: &api.EnvVarSource{
+								SecretKeyRef: &api.SecretKeySelector{
+									LocalObjectReference: api.LocalObjectReference{
+										Name: "routing-keys",
+									},
+
+									Key: "private-api-key",
+								},
+							},
+						},
+
+						api.EnvVar{
+							Name: "PUBLIC_API_KEY",
+							ValueFrom: &api.EnvVarSource{
+								SecretKeyRef: &api.SecretKeySelector{
+									LocalObjectReference: api.LocalObjectReference{
+										Name: "routing-keys",
+									},
+
+									Key: "public-api-key",
+								},
+							},
+						},
 					},
 					Ports: []api.ContainerPort{
 						api.ContainerPort{
@@ -72,6 +98,18 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 			},
 		},
 	}
+
+	//this pod template spec requires this volume in the RC/deployment to function correctly
+	//TODO this seems like an impedence mismatch. Should deployment be adding this to the spec?
+
+	// Volumes: []api.Volume{
+	// 		api.Volume{
+	// 			Name: "routing-keys",
+	// 			Secret: &api.SecretVolumeSource{
+	// 				SecretName: "routing",
+	// 			},
+	// 		},
+	// 	},
 
 	json, err := json.Marshal(podTemplate)
 
