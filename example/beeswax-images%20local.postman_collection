@@ -1,0 +1,119 @@
+{
+	"id": "965334ee-bb8b-375b-a89a-c7c8b763d55c",
+	"name": "beeswax-images local",
+	"description": "beeswax images for local cluster",
+	"order": [
+		"7c324c1f-dd58-92bd-748a-805b12538f4d",
+		"0572efb2-38c5-4b50-b356-72f1894504ff",
+		"8fcf266b-7d42-090c-0fd4-d68b8196554d",
+		"a3bb47e5-6f36-1a80-7e79-7d8825794529"
+	],
+	"folders": [],
+	"timestamp": 0,
+	"owner": "79796",
+	"remoteLink": "https://www.getpostman.com/collections/39daf7d23e057a13dbc4",
+	"public": false,
+	"requests": [
+		{
+			"id": "0572efb2-38c5-4b50-b356-72f1894504ff",
+			"headers": "Content-Type: application/json\n",
+			"url": " http://localhost:5280/beeswax/images/api/v1/namespaces/test1/applications/app1/podspec/r1",
+			"preRequestScript": null,
+			"pathVariables": {},
+			"method": "PUT",
+			"data": [],
+			"dataMode": "raw",
+			"version": 2,
+			"tests": "",
+			"currentHelper": "normal",
+			"helperAttributes": {},
+			"time": 1461273119868,
+			"name": "Put pod template spec",
+			"description": "PUT pod template spec",
+			"collectionId": "965334ee-bb8b-375b-a89a-c7c8b763d55c",
+			"responses": [],
+			"rawModeData": "{\n\"testpodspec\": true\n}"
+		},
+		{
+			"id": "7c324c1f-dd58-92bd-748a-805b12538f4d",
+			"headers": "",
+			"url": " http://localhost:5280/beeswax/images/api/v1/builds/",
+			"preRequestScript": null,
+			"pathVariables": {},
+			"method": "POST",
+			"data": [
+				{
+					"key": "file",
+					"value": "proxy-bundle.zip",
+					"type": "file",
+					"enabled": true
+				},
+				{
+					"key": "application",
+					"value": "app1",
+					"type": "text",
+					"enabled": true
+				},
+				{
+					"key": "revision",
+					"value": "1",
+					"type": "text",
+					"enabled": true
+				},
+				{
+					"key": "namespace",
+					"value": "test1",
+					"type": "text",
+					"enabled": true
+				}
+			],
+			"dataMode": "params",
+			"tests": "",
+			"currentHelper": "normal",
+			"helperAttributes": {},
+			"time": 1461274366347,
+			"name": "Post new repo",
+			"description": "",
+			"collectionId": "965334ee-bb8b-375b-a89a-c7c8b763d55c"
+		},
+		{
+			"id": "8fcf266b-7d42-090c-0fd4-d68b8196554d",
+			"headers": "Content-Type: application/json\n",
+			"url": " http://localhost:5280/beeswax/images/api/v1/namespaces/test1/applications/app1/podspec/r1",
+			"pathVariables": {},
+			"preRequestScript": null,
+			"method": "GET",
+			"collectionId": "965334ee-bb8b-375b-a89a-c7c8b763d55c",
+			"data": [],
+			"dataMode": "raw",
+			"name": "GET pod template spec",
+			"description": "GET pod template spec",
+			"descriptionFormat": "html",
+			"time": 1461273108651,
+			"version": 2,
+			"responses": [],
+			"tests": "",
+			"currentHelper": "normal",
+			"helperAttributes": {},
+			"rawModeData": "{\n\"testpodspec\": true\n}"
+		},
+		{
+			"id": "a3bb47e5-6f36-1a80-7e79-7d8825794529",
+			"headers": "",
+			"url": " http://localhost:5280/beeswax/images/api/v1/generatepodspec?imageURI=localhost:5000/thirtyx/shipyard:latest&publicPath=5280:/beeswax/images/",
+			"preRequestScript": null,
+			"pathVariables": {},
+			"method": "GET",
+			"data": null,
+			"dataMode": "params",
+			"tests": null,
+			"currentHelper": "normal",
+			"helperAttributes": {},
+			"time": 1464301734393,
+			"name": "Get shipyard deployment pod spec",
+			"description": "",
+			"collectionId": "965334ee-bb8b-375b-a89a-c7c8b763d55c",
+			"responses": []
+		}
+	]
+}

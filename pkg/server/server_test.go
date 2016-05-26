@@ -286,7 +286,7 @@ func getNamespaces(hostBase string) (*http.Response, []*server.Namespace, error)
 	url := fmt.Sprintf("%s/namespaces/", hostBase)
 
 	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
@@ -312,7 +312,7 @@ func getNamespaces(hostBase string) (*http.Response, []*server.Namespace, error)
 func getApplications(hostBase string, namespace string) (*http.Response, []*server.Application, error) {
 	url := getApplicationsURL(hostBase, namespace)
 	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
@@ -338,7 +338,7 @@ func getImages(hostBase string, namespace string, application string) (*http.Res
 	shipyard.LogInfo.Printf("Invoking get at URL %s", url)
 
 	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
 	client := &http.Client{}
 	response, err := client.Do(req)
 
