@@ -28,7 +28,7 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 
 	//for shipyard, we should only have 1 port and path
 	if len(parts) != 2 {
-		return "", errors.New("Only 1 public path is supported. It must be of the format {PORT}:/{PATH}")
+		return "", errors.New("Only 1 public path is supported. It must be of the format {PORT}:/{PATH?}")
 	}
 
 	port = parts[0]
