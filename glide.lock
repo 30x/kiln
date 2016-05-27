@@ -1,5 +1,5 @@
-hash: d472bee0dea1c83b855862a3ed4ba52497a445aa022e05a1148b96cc336dd60e
-updated: 2016-05-17T15:35:04.043034953-06:00
+hash: 4b1f4e4ac62a0a74580baa8db13213c9413a43ce194eee87f2288464f9ad73e7
+updated: 2016-05-25T16:51:11.451802372-06:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: 4151ef572710e04d25d9385114b33847ba6a923a
@@ -54,9 +54,9 @@ imports:
   subpackages:
   - nat
 - name: github.com/docker/go-units
-  version: 5d2041e26a699eaca682e2ea41c8f891e1060444
+  version: 0bbddae09c5a5419a8c6dcdd7ff90da3d450393b
 - name: github.com/go-ini/ini
-  version: 12f418cc7edc5a618a51407b7ac1f1f512139df3
+  version: 2e44421e256d82ebbf3d4d4fcabe8930b905eff3
 - name: github.com/gorilla/context
   version: 1ea25387ff6f684839d82767c1733ff4d4d15d0a
 - name: github.com/gorilla/handlers
@@ -68,13 +68,14 @@ imports:
 - name: github.com/gorilla/schema
   version: ddf016c1034e9cfd3eb5b276f626c8f04d765f6f
 - name: github.com/jmespath/go-jmespath
-  version: 0b12d6b521d83fc7f755e7cfc1b1fbdd35a01a74
+  version: 3433f3ea46d9f8019119e7dd41274e112a2359a9
 - name: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
   vcs: git
 - name: github.com/opencontainers/runc
-  version: 3f4f4420fded8d19cf29a1b6a631b7e31f7f9c68
+  version: 7ca2aa4873aea7cb4265b1726acb24b90d8726c6
   subpackages:
+  - libcontainer
   - libcontainer/user
 - name: github.com/tylerb/graceful
   version: 9a3d4236b03bb5d26f7951134d248f9d5510d599
@@ -83,4 +84,9 @@ imports:
   version: fb93926129b8ec0056f2f458b1f519654814edf0
   subpackages:
   - netutil
+- name: k8s.io/kubernetes
+  version: 5cb86ee022267586db386f62781338b0483733b3
+  subpackages:
+  - pkg/client/unversioned
+  - pkg/client/api
 devImports: []

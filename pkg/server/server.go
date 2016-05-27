@@ -47,22 +47,26 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 	//a bit hacky, but need the pointer to the server
 	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/builds/").HandlerFunc(server.postApplication)
 	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/builds").HandlerFunc(server.postApplication)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/").HandlerFunc(server.getNamespaces)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces").HandlerFunc(server.getNamespaces)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/").HandlerFunc(server.getApplications)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications").HandlerFunc(server.getApplications)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/").HandlerFunc(server.getApplication)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}").HandlerFunc(server.getApplication)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/").HandlerFunc(server.getImages)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images").HandlerFunc(server.getImages)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(server.getImage)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(server.getImage)
+	routes.Methods("GET").Path("/namespaces/").HandlerFunc(server.getNamespaces)
+	routes.Methods("GET").Path("/namespaces").HandlerFunc(server.getNamespaces)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/").HandlerFunc(server.getApplications)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications").HandlerFunc(server.getApplications)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/").HandlerFunc(server.getApplication)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}").HandlerFunc(server.getApplication)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images/").HandlerFunc(server.getImages)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images").HandlerFunc(server.getImages)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(server.getImage)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(server.getImage)
 
 	//post a podspec for a specified revision
 	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}/").HandlerFunc(server.postPodSpec)
 	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.postPodSpec)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}/").HandlerFunc(server.getPodSpec)
-	routes.Methods("GET").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.getPodSpec)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}/").HandlerFunc(server.getPodSpec)
+	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.getPodSpec)
+
+	//podtemplate generation
+	routes.Methods("GET").Path("/generatepodspec/").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
+	routes.Methods("GET").Path("/generatepodspec").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
 
 	return server
 
@@ -227,7 +231,14 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//stream the log data
-	chunkData(w, flusher, outputChannel)
+	err = chunkData(w, flusher, outputChannel)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 
 	//defer cleaning up the image
 	defer server.imageCreator.CleanImageRevision(dockerInfo)
@@ -241,7 +252,14 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chunkData(w, flusher, pushChannel)
+	err = chunkData(w, flusher, pushChannel)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 
 	image, err := server.getImageInternal(createImage.Namespace, createImage.Application, createImage.Revision)
 
@@ -256,16 +274,27 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	finalOutput := fmt.Sprintf("\nBuild Complete \n%s", image.ImageID)
 
-	writeStringAndFlush(w, flusher, finalOutput)
+	err = writeStringAndFlush(w, flusher, finalOutput)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 
 }
 
 //dup the data over to the response writer
 func chunkData(w http.ResponseWriter, flusher http.Flusher, outputChannel chan (string)) error {
 
+	shipyard.LogInfo.Println("Beginning flushing of log data")
+
 	for {
 
 		data, ok := <-outputChannel
+
+		shipyard.LogInfo.Printf("Received data %s and ok %t", data, ok)
 
 		if !ok {
 			break
@@ -277,6 +306,8 @@ func chunkData(w http.ResponseWriter, flusher http.Flusher, outputChannel chan (
 			return err
 		}
 	}
+
+	shipyard.LogInfo.Println("Completed flushing of log data")
 
 	return nil
 
@@ -401,7 +432,7 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 	//pre-allocate slice for efficiency
 	images := make([]*Image, length)
 
-	shipyard.LogInfo.Printf("Processing %d images from the server", images)
+	shipyard.LogInfo.Printf("Processing %d images from the server", len(images))
 
 	for i, image := range *dockerImages {
 
@@ -534,6 +565,39 @@ func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(*podSpec))
 
+}
+
+//GetImage get the image
+func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
+
+	queryParam := r.URL.Query()
+
+	imageURI := queryParam.Get("imageURI")
+
+	//validate the image uri is correct
+	if imageURI == "" {
+		internalError("You must specify a valid docker imageURI", w)
+		return
+	}
+
+	//we purposefully don't validate these, since they're not required
+	publicPath := queryParam.Get("publicPath")
+
+	payload, err := shipyard.GenerateShipyardTemplateSpec(imageURI, publicPath)
+
+	if err != nil {
+		internalError(err.Error(), w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	_, err = w.Write([]byte(payload))
+
+	if err != nil {
+		internalError(err.Error(), w)
+		return
+	}
 }
 
 //write a non 200 error response

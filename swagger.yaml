@@ -15,7 +15,7 @@ paths:
       consumes:
         - multipart/form-data
       produces:
-        - application/json
+        - text/plain encoding=utf-8
       responses:
         '201':
           description: The request was for a valid repo, application, and image.  The image was created

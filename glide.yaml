@@ -21,6 +21,11 @@ import:
 - package: github.com/tylerb/graceful
   vcs: git
   version: v1.2.5
+- package: k8s.io/kubernetes
+  version: 1.2.0
+  subpackages:
+  - pkg/client/unversioned
+  - pkg/client/api
 # - package: github.com/golang/glog
 #   vcs: git
 #   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
