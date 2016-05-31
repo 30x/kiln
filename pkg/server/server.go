@@ -306,6 +306,7 @@ func chunkData(w http.ResponseWriter, flusher http.Flusher, outputChannel chan (
 		shipyard.LogInfo.Printf("Received data %s and ok %t", data, ok)
 
 		if !ok {
+			shipyard.LogInfo.Printf("Received end of channel, breaking")
 			break
 		}
 

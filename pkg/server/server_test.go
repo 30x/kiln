@@ -25,9 +25,6 @@ import (
 
 var _ = Describe("Server Test", func() {
 
-	//Use our test provider for jwt tokens
-	os.Setenv("JWTTOKENIMPL", "test")
-
 	ServerTests := func(testServer *server.Server, hostBase string) {
 
 		It("Get Namespaces ", func() {
@@ -73,7 +70,7 @@ var _ = Describe("Server Test", func() {
 
 		})
 
-		FIt("Create Duplicate Application ", func() {
+		It("Create Duplicate Application ", func() {
 			//upload the first image
 			namespace := "test" + shipyard.UUIDString()
 			application := "application"
@@ -178,6 +175,9 @@ var _ = Describe("Server Test", func() {
 		os.Setenv("POD_PROVIDER", "local")
 		os.Setenv("LOCAL_DIR", "/tmp/podspecs")
 
+		//Use our test provider for jwt tokens
+		os.Setenv("JWTTOKENIMPL", "test")
+
 		server, hostBase, err := doSetup(5280)
 
 		if err != nil {
@@ -196,6 +196,9 @@ var _ = Describe("Server Test", func() {
 		os.Setenv("POD_PROVIDER", "s3")
 		os.Setenv("S3_REGION", "us-east-1")
 		os.Setenv("S3_BUCKET", "podspectestbucket")
+
+		//Use our test provider for jwt tokens
+		os.Setenv("JWTTOKENIMPL", "test")
 
 		server, hostBase, err := doSetup(5281)
 
@@ -290,6 +293,7 @@ func getNamespaces(hostBase string) (*http.Response, []*server.Namespace, error)
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
 	client := &http.Client{}
 	response, err := client.Do(req)
 
@@ -316,6 +320,7 @@ func getApplications(hostBase string, namespace string) (*http.Response, []*serv
 	url := getApplicationsURL(hostBase, namespace)
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
 	client := &http.Client{}
 	response, err := client.Do(req)
 
@@ -342,6 +347,7 @@ func getImages(hostBase string, namespace string, application string) (*http.Res
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
 	client := &http.Client{}
 	response, err := client.Do(req)
 
@@ -406,6 +412,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 	}
 
 	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
 
 	client := &http.Client{
 		Timeout: 120 * time.Second,
