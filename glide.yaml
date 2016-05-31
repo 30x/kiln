@@ -26,6 +26,9 @@ import:
   subpackages:
   - pkg/client/unversioned
   - pkg/client/api
+- package: github.com/30x/authsdk
+  vcs: git
+  version: 6b14ddd8c44287bebe38af3b7902d33046ac7118
 # - package: github.com/golang/glog
 #   vcs: git
 #   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998

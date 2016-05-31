@@ -25,6 +25,9 @@ import (
 
 var _ = Describe("Server Test", func() {
 
+	//Use our test provider for jwt tokens
+	os.Setenv("JWTTOKENIMPL", "test")
+
 	ServerTests := func(testServer *server.Server, hostBase string) {
 
 		It("Get Namespaces ", func() {
@@ -404,7 +407,9 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 
 	request.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 120 * time.Second,
+	}
 
 	return client.Do(request)
 }
