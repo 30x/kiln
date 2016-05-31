@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/30x/authsdk"
 	"github.com/30x/shipyard/pkg/shipyard"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -123,6 +124,11 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if validation.HasErrors() {
 		validation.WriteResponse(w)
+		return
+	}
+
+	//not an admin, exit
+	if !validateAdmin(createImage.Namespace, w, r) {
 		return
 	}
 
@@ -336,6 +342,11 @@ func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	namespace := vars["namespace"]
 
+	//not an admin, exit
+	if !validateAdmin(namespace, w, r) {
+		return
+	}
+
 	appNames, err := server.imageCreator.GetApplications(namespace)
 
 	if err != nil {
@@ -361,6 +372,7 @@ func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 //getNamespaces get the namespaces
 func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
 
+	//TODO, what's the security on this?  Open?  How can I validate they're an admin if I dont' see them, or do I filter?
 	namespaces := []*Namespace{}
 
 	namespaceNames, err := server.imageCreator.GetNamespaces()
@@ -389,8 +401,14 @@ func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
 func (server *Server) getApplication(w http.ResponseWriter, r *http.Request) {
 
 	//TODO finish this
-	// vars := mux.Vars(r)
-	// namespace := vars["namespace"]
+	vars := mux.Vars(r)
+	namespace := vars["namespace"]
+
+	//not an admin, exit
+	if !validateAdmin(namespace, w, r) {
+		return
+	}
+
 	// application := vars["application"]
 
 	// appNames, err := imageCreator.GetApplications(namespace)
@@ -420,6 +438,11 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	namespace := vars["namespace"]
 	application := vars["application"]
+
+	//not an admin, exit
+	if !validateAdmin(namespace, w, r) {
+		return
+	}
 
 	dockerImages, err := server.imageCreator.GetImages(namespace, application)
 
@@ -458,6 +481,11 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 	namespace := vars["namespace"]
 	application := vars["application"]
 	revision := vars["revision"]
+
+	//not an admin, exit
+	if !validateAdmin(namespace, w, r) {
+		return
+	}
 
 	image, err := server.getImageInternal(namespace, application, revision)
 
@@ -513,6 +541,11 @@ func (server *Server) postPodSpec(w http.ResponseWriter, r *http.Request) {
 	application := vars["application"]
 	revision := vars["revision"]
 
+	//not an admin, exit
+	if !validateAdmin(namespace, w, r) {
+		return
+	}
+
 	jsonBytes, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
@@ -549,6 +582,11 @@ func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
 	application := vars["application"]
 	revision := vars["revision"]
 
+	//not an admin, exit
+	if !validateAdmin(namespace, w, r) {
+		return
+	}
+
 	podSpec, err := server.podSpecIo.ReadPodSpec(namespace, application, revision)
 
 	if err != nil {
@@ -573,6 +611,7 @@ func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
 //GetImage get the image
 func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 
+	//intentionally left open.
 	queryParam := r.URL.Query()
 
 	imageURI := queryParam.Get("imageURI")
@@ -632,4 +671,35 @@ func validationFailure(message string, w http.ResponseWriter) {
 func notFound(message string, w http.ResponseWriter) {
 	//log the error before we return it for debugging purposes
 	writeErrorResponse(http.StatusNotFound, message, w)
+}
+
+//validateAdmin Validate the requestor is an admin in the namepace.  If returns false, the caller should halt and return.  True if the request should continue.  TODO make this cleaner
+func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) bool {
+
+	//validate this user has a token and is org admin
+	token, err := authsdk.NewJWTTokenFromRequest(r)
+
+	if err != nil {
+		message := fmt.Sprintf("Unable to find oAuth token %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return false
+	}
+
+	isAdmin, err := token.IsOrgAdmin(namespace)
+
+	if err != nil {
+		message := fmt.Sprintf("Unable to get permission token %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return false
+	}
+
+	//if not an admin, give access denied
+	if !isAdmin {
+		writeErrorResponse(http.StatusForbidden, fmt.Sprintf("You do not have admin permisison for namespace %s", namespace), w)
+		return false
+	}
+
+	return true
 }
