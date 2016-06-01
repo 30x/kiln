@@ -279,6 +279,12 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if image == nil {
+		message := fmt.Sprintf("Unable to verify the image was pushed to the repository")
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 	//write the last portion
 
 	finalOutput := fmt.Sprintf("\nBuild Complete \n%s", image.ImageID)

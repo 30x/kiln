@@ -301,6 +301,9 @@ func (imageCreator EcsImageCreator) PushImage(dockerInfo *DockerInfo) (chan (str
 	}
 
 	if !exists {
+
+		LogInfo.Printf("Image %s does not exist in ECR, creating", imageName)
+
 		err := imageCreator.createImage(imageName)
 
 		if err != nil {

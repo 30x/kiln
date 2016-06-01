@@ -1,4 +1,4 @@
-IMAGE_VERSION=0.0.2-dev
+IMAGE_VERSION=0.0.2-dev-2
 
 test-build-and-package: test-source build-and-package
 

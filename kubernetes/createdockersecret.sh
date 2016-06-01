@@ -91,8 +91,8 @@ fi
 #Set the trap to copy back if we fail somewhere
 trap finish EXIT
 
-export AWS_ACCESS_KEY=${ACCESS_KEY}
-export AWS_SECRET_KEY=${SECRET_KEY}
+export AWS_ACCESS_KEY_ID=${ACCESS_KEY}
+export AWS_SECRET_ACCESS_KEY=${SECRET_KEY}
 #Now call kubectl and set the secrets
 
 #Copy the file into the temp
