@@ -686,14 +686,14 @@ func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) boo
 	//validate this user has a token and is org admin
 	token, err := authsdk.NewJWTTokenFromRequest(r)
 
-	shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), namespace)
-
 	if err != nil {
 		message := fmt.Sprintf("Unable to find oAuth token %s", err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return false
 	}
+
+	shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), namespace)
 
 	isAdmin, err := token.IsOrgAdmin(namespace)
 
