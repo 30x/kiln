@@ -648,12 +648,12 @@ func writeErrorResponse(statusCode int, message string, w http.ResponseWriter) {
 
 	w.WriteHeader(statusCode)
 
-	error := Error{
+	errorObject := Error{
 		Message: message,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(error)
+	json.NewEncoder(w).Encode(errorObject)
 }
 
 // internalError the error response when an internal error occurs
@@ -680,6 +680,8 @@ func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) boo
 	//validate this user has a token and is org admin
 	token, err := authsdk.NewJWTTokenFromRequest(r)
 
+	shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), namespace)
+
 	if err != nil {
 		message := fmt.Sprintf("Unable to find oAuth token %s", err)
 		shipyard.LogError.Printf(message)
@@ -698,9 +700,12 @@ func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) boo
 
 	//if not an admin, give access denied
 	if !isAdmin {
+		shipyard.LogInfo.Printf("User %s is not an admin for namespace %s", token.GetUsername(), namespace)
 		writeErrorResponse(http.StatusForbidden, fmt.Sprintf("You do not have admin permisison for namespace %s", namespace), w)
 		return false
 	}
+
+	shipyard.LogInfo.Printf("User %s is an admin for namespace %s", token.GetUsername(), namespace)
 
 	return true
 }
