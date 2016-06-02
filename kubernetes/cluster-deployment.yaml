@@ -5,19 +5,21 @@ metadata:
   labels:
     name: shipyard
 spec:
-  replicas: 1
+  replicas: 3
   template:
     metadata:
       labels:
         name: shipyard
-        microservice: "true"
+        routable: "true"
       annotations:
-        trafficHosts: "e2e.k8s.local"
+        privateHosts: "shipyard.e2e.local"
+        privatePaths: "5280:/beeswax/images"
+        # Remove for deployment because we DO NOT want direct access to these services
+        publicHosts: "ingress.e2e.local"
         publicPaths: "5280:/beeswax/images"
-        projectcalico.org/policy: "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.129.0.0/16"
     spec:
       containers:
-      - image: registry-1.docker.io/thirtyx/shipyard:latest
+      - image: registry-1.docker.io/thirtyx/shipyard:0.0.2.build.8
         imagePullPolicy: Always
         name: shipyard
         ports:
@@ -26,7 +28,7 @@ spec:
         - name: PORT
           value: "5280"
         - name: DOCKER_PROVIDER
-          value: ecr  
+          value: ecr
         - name: DOCKER_REGISTRY_URL
           valueFrom:
             secretKeyRef:
