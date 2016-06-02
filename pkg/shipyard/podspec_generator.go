@@ -58,7 +58,8 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 				api.Container{
 					Name: repoImage.GeneratePodName(),
 					//TODO: How would we get default images?
-					Image: dockerURI,
+					Image:           dockerURI,
+					ImagePullPolicy: api.PullAlways,
 					Env: []api.EnvVar{
 						api.EnvVar{
 							Name:  "PORT",

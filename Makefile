@@ -1,4 +1,4 @@
-IMAGE_VERSION=0.0.2.build.7
+IMAGE_VERSION=0.0.2.build.8
 
 test-build-and-package: test-source build-and-package
 
