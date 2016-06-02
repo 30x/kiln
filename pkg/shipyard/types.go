@@ -74,5 +74,5 @@ func (repoImage *RepoImage) GenerateName() string {
 
 //GeneratePodName Get the pod name of the format {RepoName}_{ImageName}_{Revision}
 func (repoImage *RepoImage) GeneratePodName() string {
-	return fmt.Sprintf("%s_%s_%s", repoImage.RepoName, repoImage.ImageName, repoImage.Revision)
+	return fmt.Sprintf("%s-%s-%s", repoImage.RepoName, repoImage.ImageName, repoImage.Revision)
 }

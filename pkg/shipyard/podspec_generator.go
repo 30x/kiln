@@ -49,6 +49,8 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 			Annotations: map[string]string{
 				// "publicPaths":  "80:/"
 				"publicPaths": publicPath,
+				//TODO, only allow from same namespace and ingress
+				"projectcalico.org/policy": "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.1.0.0/16",
 			},
 		},
 		Spec: api.PodSpec{
@@ -68,7 +70,7 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 							ValueFrom: &api.EnvVarSource{
 								SecretKeyRef: &api.SecretKeySelector{
 									LocalObjectReference: api.LocalObjectReference{
-										Name: "routing-keys",
+										Name: "routing",
 									},
 
 									Key: "private-api-key",
@@ -81,7 +83,7 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 							ValueFrom: &api.EnvVarSource{
 								SecretKeyRef: &api.SecretKeySelector{
 									LocalObjectReference: api.LocalObjectReference{
-										Name: "routing-keys",
+										Name: "routing",
 									},
 
 									Key: "public-api-key",
@@ -94,6 +96,11 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 							ContainerPort: intPort,
 						},
 					},
+				},
+			},
+			ImagePullSecrets: []api.LocalObjectReference{
+				api.LocalObjectReference{
+					Name: "shipyard-pull-secret",
 				},
 			},
 		},
