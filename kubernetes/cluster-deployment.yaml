@@ -19,7 +19,7 @@ spec:
         publicPaths: "5280:/beeswax/images"
     spec:
       containers:
-      - image: registry-1.docker.io/thirtyx/shipyard:0.0.2.build.8
+      - image: registry-1.docker.io/thirtyx/shipyard:0.0.2.build.9
         imagePullPolicy: Always
         name: shipyard
         ports:
@@ -48,6 +48,9 @@ spec:
           value: "5"
         - name: SHUTDOWN_TIMEOUT
           value: "60"
+        #Every 4 hours 4 * 60 * 60
+        - name: SHUTDOWN_TIMER
+          value: "14400"  
         - name: AWS_ACCESS_KEY
           valueFrom:
             secretKeyRef:

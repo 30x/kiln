@@ -230,7 +230,7 @@ func doSetup(port int) (*server.Server, string, error) {
 	//start server in the background
 	go func() {
 		//start  the server and produce it to the start channel
-		testServer.Start(port, 10*time.Second)
+		testServer.Start(port, 10*time.Second, time.Duration(0))
 	}()
 
 	//wait for it to start

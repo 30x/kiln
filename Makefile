@@ -1,5 +1,4 @@
-IMAGE_VERSION=0.0.2.build.8
-
+IMAGE_VERSION=0.0.2.build.9
 test-build-and-package: test-source build-and-package
 
 build-and-push-to-hub: build-and-package push-to-hub

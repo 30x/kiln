@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
+	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/30x/authsdk"
@@ -73,13 +76,57 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 
 }
 
-//Start start the http server with the port and the specified timeout
-func (server *Server) Start(port int, timeout time.Duration) {
+//Start start the http server with the port and the specified timeout, as well as the shutdown timer
+func (server *Server) Start(port int, timeout time.Duration, shutdownTimer time.Duration) {
 	address := fmt.Sprintf(":%d", port)
 
 	shipyard.LogInfo.Printf("Starting server at address %s", address)
 
-	graceful.Run(address, timeout, server.router)
+	srv := &graceful.Server{
+		Timeout: timeout,
+		Server:  &http.Server{Addr: address, Handler: server.router},
+		Logger:  graceful.DefaultLogger(),
+	}
+
+	//set up our timer in a gofunc in order to shut down after a duration
+
+	go func() {
+
+		//do nothing, we dont' want to shut down
+		if time.Duration(0) == shutdownTimer {
+			return
+		}
+
+		seed := time.Now().Unix()
+		rand.Seed(seed)
+
+		//add a 10 minute variance to our shutdown timer
+		additionalSeconds := rand.Intn(60)
+
+		shipyard.LogInfo.Printf("additionalSeconds %d", additionalSeconds)
+
+		additionalSecondsDuration := time.Duration(additionalSeconds) * time.Second
+
+		shipyard.LogInfo.Printf("additionalSecondsDuration %f", additionalSecondsDuration.Seconds())
+
+		total := shutdownTimer + additionalSecondsDuration
+
+		shipyard.LogInfo.Printf("The system will shut down in %f seconds", total.Seconds())
+
+		timer := time.NewTimer(total)
+		<-timer.C
+
+		//shut down, we've hit our timer
+		os.Exit(0)
+	}()
+
+	//start listening
+	if err := srv.ListenAndServe(); err != nil {
+		if opErr, ok := err.(*net.OpError); !ok || (ok && opErr.Op != "accept") {
+			srv.Logger.Fatal(err)
+		}
+	}
+
 }
 
 //postApplication and render a response
@@ -689,7 +736,7 @@ func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) boo
 	if err != nil {
 		message := fmt.Sprintf("Unable to find oAuth token %s", err)
 		shipyard.LogError.Printf(message)
-		internalError(message, w)
+		writeErrorResponse(http.StatusUnauthorized, message, w)
 		return false
 	}
 
@@ -700,7 +747,7 @@ func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) boo
 	if err != nil {
 		message := fmt.Sprintf("Unable to get permission token %s", err)
 		shipyard.LogError.Printf(message)
-		internalError(message, w)
+		writeErrorResponse(http.StatusUnauthorized, message, w)
 		return false
 	}
 

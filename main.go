@@ -35,7 +35,19 @@ func main() {
 	timeout, err := strconv.Atoi(timeoutString)
 
 	if err != nil {
-		shipyard.LogError.Fatal("You must specify a valid integer for the PORT value")
+		shipyard.LogError.Fatal("You must specify a valid integer for the SHUTDOWN_TIMEOUT value")
+	}
+
+	shutdownTimerString := os.Getenv("SHUTDOWN_TIMER")
+
+	if shutdownTimerString == "" {
+		shipyard.LogError.Fatal("You must specifiy the SHUTDOWN_TIMER environment variable")
+	}
+
+	shutdownTimer, err := strconv.Atoi(shutdownTimerString)
+
+	if err != nil {
+		shipyard.LogError.Fatal("You must specify a valid integer for the SHUTDOWN_TIMER value")
 	}
 
 	imageCreator, err := shipyard.NewImageCreatorFromEnv()
@@ -55,5 +67,5 @@ func main() {
 
 	server := server.NewServer(imageCreator, podSpec)
 
-	server.Start(port, time.Duration(timeout)*time.Second)
+	server.Start(port, time.Duration(timeout)*time.Second, time.Duration(shutdownTimer)*time.Second)
 }
