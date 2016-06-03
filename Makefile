@@ -1,4 +1,8 @@
-IMAGE_VERSION=0.0.2.build.9
+#Format is MAJOR . MINOR . PATCH
+
+IMAGE_VERSION=0.1.1
+
+
 test-build-and-package: test-source build-and-package
 
 build-and-push-to-hub: build-and-package push-to-hub

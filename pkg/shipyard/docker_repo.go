@@ -422,6 +422,8 @@ func encodeAuthToBase64(authConfig *types.AuthConfig) (string, error) {
 func getAuthConfig(remoteRepo string) (*types.AuthConfig, bool) {
 
 	configFile, e := cliconfig.Load(cliconfig.ConfigDir())
+	
+	//ou
 	if e != nil {
 		LogWarn.Printf("Error loading config file:%v\n", e)
 

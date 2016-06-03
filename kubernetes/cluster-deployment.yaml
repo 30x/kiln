@@ -19,7 +19,7 @@ spec:
         publicPaths: "5280:/beeswax/images"
     spec:
       containers:
-      - image: registry-1.docker.io/thirtyx/shipyard:0.0.2.build.9
+      - image: registry-1.docker.io/thirtyx/shipyard:0.1.1
         imagePullPolicy: Always
         name: shipyard
         ports:
@@ -62,7 +62,7 @@ spec:
               name: aws-access
               key: secret
         volumeMounts:
-        - mountPath: /root/.docker
+        - mountPath: /root/k8s-secret
           name: clientconfig
           readOnly: true
         - mountPath: /var/run/docker.sock
@@ -71,7 +71,7 @@ spec:
       volumes:
       - name: clientconfig
         secret:
-          secretName: docker-config
+          secretName: ecr-key
       - name: dockersocket
         hostPath:
           path: /var/run/docker.sock
