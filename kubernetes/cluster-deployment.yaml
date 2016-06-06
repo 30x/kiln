@@ -63,13 +63,13 @@ spec:
               key: secret
         volumeMounts:
         - mountPath: /root/k8s-secret
-          name: clientconfig
+          name: ecr-key
           readOnly: true
         - mountPath: /var/run/docker.sock
           name: dockersocket
           readOnly: false
       volumes:
-      - name: clientconfig
+      - name: ecr-key
         secret:
           secretName: ecr-key
       - name: dockersocket

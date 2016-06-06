@@ -29,8 +29,12 @@ func NewS3PodSpec(awsRegion string, bucketName string) (*S3PodSpec, error) {
 		Bucket: &bucketName,
 	})
 
+	if err != nil {
+		return nil, err
+	}
+
 	//check for no such bucket
-	if head == nil || err != nil {
+	if head == nil {
 
 		result, err := svc.CreateBucket(&s3.CreateBucketInput{
 			Bucket: &bucketName,
