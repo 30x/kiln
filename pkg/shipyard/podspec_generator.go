@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"os"
+
 	"k8s.io/kubernetes/pkg/api"
 )
 
@@ -37,6 +39,12 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 
 	if err != nil {
 		return "", errors.New("Port must be parsable to an int")
+	}
+
+	pullSecretName := os.Getenv("PULL_SECRET_NAME")
+
+	if pullSecretName == "" {
+		pullSecretName = "ecr-key"
 	}
 
 	podTemplate := api.PodTemplateSpec{
@@ -101,7 +109,7 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 			},
 			ImagePullSecrets: []api.LocalObjectReference{
 				api.LocalObjectReference{
-					Name: "shipyard-pull-secret",
+					Name: pullSecretName,
 				},
 			},
 		},

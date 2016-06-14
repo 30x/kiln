@@ -12,6 +12,7 @@ import (
 
 	"github.com/30x/authsdk"
 	"github.com/30x/shipyard/pkg/shipyard"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/tylerb/graceful"
@@ -22,7 +23,7 @@ const maxFileSize = 1024 * 1024 * 100
 
 //Server struct to create an instance of hte server
 type Server struct {
-	router       *mux.Router
+	router       http.Handler
 	decoder      *schema.Decoder
 	imageCreator shipyard.ImageCreator
 	podSpecIo    shipyard.PodspecIo
@@ -42,7 +43,6 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 	decoder := schema.NewDecoder()
 
 	server := &Server{
-		router:       r,
 		decoder:      decoder,
 		imageCreator: imageCreator,
 		podSpecIo:    podSpecIo,
@@ -71,6 +71,12 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 	//podtemplate generation
 	routes.Methods("GET").Path("/generatepodspec/").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
 	routes.Methods("GET").Path("/generatepodspec").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
+
+	//now wrap everything with logging
+
+	loggedRouter := handlers.CombinedLoggingHandler(os.Stdout, r)
+
+	server.router = loggedRouter
 
 	return server
 

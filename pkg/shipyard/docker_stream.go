@@ -42,6 +42,8 @@ func (parser *BuildStreamParser) Parse() {
 
 	scanner.Split(bufio.ScanLines)
 
+	LogInfo.Printf("Starting to parse build stream")
+
 	for scanner.Scan() {
 
 		line := scanner.Text()
@@ -58,6 +60,8 @@ func (parser *BuildStreamParser) Parse() {
 
 		parser.outputChannel <- parsed.Stream
 	}
+
+	LogInfo.Printf("Completed parsing build stream")
 
 	close(parser.outputChannel)
 }
@@ -92,6 +96,8 @@ func (parser *PushStreamParser) Parse() {
 
 	scanner.Split(bufio.ScanLines)
 
+	LogInfo.Printf("Starting to parse push stream")
+
 	for scanner.Scan() {
 
 		line := scanner.Text()
@@ -110,6 +116,8 @@ func (parser *PushStreamParser) Parse() {
 
 		parser.outputChannel <- text
 	}
+
+	LogInfo.Printf("Completed parsing push stream")
 
 	close(parser.outputChannel)
 }

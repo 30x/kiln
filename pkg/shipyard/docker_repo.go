@@ -293,7 +293,7 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild) (chan 
 		return nil, err
 	}
 
-	LogInfo.Printf("started uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
+	LogInfo.Printf("Parsing response from uploading image with name %s and tar file %s", name, dockerInfo.TarFile)
 
 	//conver it into a channel
 
@@ -422,7 +422,7 @@ func encodeAuthToBase64(authConfig *types.AuthConfig) (string, error) {
 func getAuthConfig(remoteRepo string) (*types.AuthConfig, bool) {
 
 	configFile, e := cliconfig.Load(cliconfig.ConfigDir())
-	
+
 	//ou
 	if e != nil {
 		LogWarn.Printf("Error loading config file:%v\n", e)

@@ -43,7 +43,7 @@ var _ = Describe("Server Test", func() {
 			application := "application"
 			revision := "v1.0"
 
-			response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+			response, body, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -51,12 +51,8 @@ var _ = Describe("Server Test", func() {
 			//now check the resposne code
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
-			bytes, err := ioutil.ReadAll(response.Body)
-
-			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
-
 			//check build response
-			lastLine := getLastLogLine(string(bytes))
+			lastLine := getLastLogLine(body)
 
 			Expect(strings.Index(lastLine, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
@@ -76,7 +72,7 @@ var _ = Describe("Server Test", func() {
 			application := "application"
 			revision := "v1.0"
 
-			response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+			response, _, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -93,7 +89,7 @@ var _ = Describe("Server Test", func() {
 
 			//now try to post again, should get a 409
 
-			response, err = newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+			response, _, err = newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -109,7 +105,7 @@ var _ = Describe("Server Test", func() {
 			application := "application"
 			revision := "v1.0"
 
-			response, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+			response, _, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -136,7 +132,7 @@ var _ = Describe("Server Test", func() {
 
 			revision2 := "v1.1"
 
-			response, err = newFileUploadRequest(hostBase, namespace, application, revision2, "../../testresources/echo-test.zip")
+			response, _, err = newFileUploadRequest(hostBase, namespace, application, revision2, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -369,11 +365,11 @@ func getImages(hostBase string, namespace string, application string) (*http.Res
 
 }
 
-//newfileUploadRequest upload a file form request
-func newFileUploadRequest(hostBase string, namespace string, application string, revision string, path string) (*http.Response, error) {
+//newfileUploadRequest upload a file form request. Returns the response, the fully read body as a string, and an error
+func newFileUploadRequest(hostBase string, namespace string, application string, revision string, path string) (*http.Response, *string, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer file.Close()
 
@@ -382,12 +378,12 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 	part, err := writer.CreateFormFile("file", filepath.Base(path))
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	_, err = io.Copy(part, file)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	writer.WriteField("namespace", namespace)
@@ -400,7 +396,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 	err = writer.Close()
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	uri := fmt.Sprintf("%s/builds", hostBase)
@@ -408,7 +404,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 	request, err := http.NewRequest("POST", uri, body)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	request.Header.Set("Content-Type", writer.FormDataContentType())
@@ -418,7 +414,21 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 		Timeout: 120 * time.Second,
 	}
 
-	return client.Do(request)
+	response, err := client.Do(request)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bodyResponse := string(bodyBytes)
+
+	return response, &bodyResponse, nil
 }
 
 //getApplicationsURL get the appplicationsUrl
@@ -439,9 +449,9 @@ func getImagesURL(hostBase string, namespace string, application string) string 
 	return fmt.Sprintf("%s/images/", getApplicationURL(hostBase, namespace, application))
 }
 
-func getLastLogLine(buildResponseBody string) string {
+func getLastLogLine(buildResponseBody *string) string {
 
-	scanner := bufio.NewScanner(strings.NewReader(buildResponseBody))
+	scanner := bufio.NewScanner(strings.NewReader(*buildResponseBody))
 
 	scanner.Split(bufio.ScanLines)
 
