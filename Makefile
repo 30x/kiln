@@ -1,6 +1,6 @@
 #Format is MAJOR . MINOR . PATCH
 
-IMAGE_VERSION=0.1.3
+IMAGE_VERSION=0.1.4
 
 
 test-build-and-package: test-source build-and-package
