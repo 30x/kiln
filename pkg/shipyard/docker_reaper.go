@@ -11,6 +11,8 @@ func Reap(minAge time.Duration, imageCreator ImageCreator) error {
 		return err
 	}
 
+	minAgeTime := time.Now().Add(minAge)
+
 	for _, image := range *images {
 		_, exists := image.Labels[TAG_REPO]
 
@@ -19,7 +21,15 @@ func Reap(minAge time.Duration, imageCreator ImageCreator) error {
 			continue
 		}
 
-		LogInfo.Printf("Removing image with names %v", image.RepoTags)
+		createdTime := time.Unix(image.Created, 0)
+
+		//not old enough, skip it
+		if createdTime.After(minAgeTime) {
+			LogInfo.Printf("Skipping image %s, it was created before min time of %v. Created time is %v", image.ID, minAgeTime, createdTime)
+			continue
+		}
+
+		LogInfo.Printf("Removing image with id %s and created time of %v", image.ID, createdTime)
 
 		err := imageCreator.DeleteImageRevisionLocal(image.ID)
 

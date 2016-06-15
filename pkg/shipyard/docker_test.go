@@ -104,7 +104,7 @@ var _ = Describe("docker", func() {
 
 				//now reap it
 
-				err := Reap(time.Duration(0), imageCreator)
+				err := Reap(time.Duration(0)*time.Second, imageCreator)
 
 				Expect(err).Should(BeNil(), "Unable to reap images.  Error is %s", err)
 
