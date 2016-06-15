@@ -176,41 +176,24 @@ func (imageCreator LocalImageCreator) GetImageRevision(dockerInfo *DockerInfo) (
 }
 
 //DeleteImageRevisionLocal Delete the image revision from the local repo
-func (imageCreator LocalImageCreator) deleteImageRevisionLocal(dockerInfo *DockerInfo) error {
+func (imageCreator LocalImageCreator) DeleteImageRevisionLocal(sha string) error {
 
-	image, err := imageCreator.GetImageRevision(dockerInfo)
+	imageRemoveOptions := types.ImageRemoveOptions{
+		Force:         true,
+		ImageID:       sha,
+		PruneChildren: false,
+	}
+	deleted, err := imageCreator.client.ImageRemove(imageRemoveOptions)
 
 	if err != nil {
 		return err
 	}
 
-	if image == nil {
-		return fmt.Errorf("Could not find an image in repo %s, image name %s, and revision %s", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	if deleted == nil || len(deleted) == 0 {
+		return fmt.Errorf("Could not find an image with sha %s to delete", sha)
 	}
 
-	imageRemoveOpts := types.ImageRemoveOptions{
-		Force: true,
-		//keep the children so we don't have to re-download intermediate containers
-		PruneChildren: true,
-		ImageID:       image.ID,
-	}
-
-	deletedImages, err := imageCreator.client.ImageRemove(imageRemoveOpts)
-
-	if err != nil {
-		return err
-	}
-
-	if deletedImages != nil {
-		LogInfo.Printf("Removed %d images for docker info %v", len(deletedImages), dockerInfo)
-	}
-
-	return nil
-}
-
-//CleanImageRevision clean the image revision
-func (imageCreator LocalImageCreator) CleanImageRevision(dockerInfo *DockerInfo) error {
-	//no op for local impl
+	//otherwise we were successful
 	return nil
 }
 

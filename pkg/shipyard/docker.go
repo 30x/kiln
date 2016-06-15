@@ -21,10 +21,7 @@ type ImageCreator interface {
 	GetImageRevision(dockerInfo *DockerInfo) (*types.Image, error)
 
 	//DeleteImageRevisionLocal Delete the image from the local machine repository.  Return an error if unable to do so.  Should not be called from outside the package
-	deleteImageRevisionLocal(dockerInfo *DockerInfo) error
-
-	//CleanImageRevision clean the image revision
-	CleanImageRevision(dockerInfo *DockerInfo) error
+	DeleteImageRevisionLocal(sha string) error
 
 	//GetLocalImages return all local images
 	GetLocalImages() (*[]types.Image, error)

@@ -1,6 +1,8 @@
 package shipyard_test
 
 import (
+	"time"
+
 	. "github.com/30x/shipyard/pkg/shipyard"
 	"github.com/docker/engine-api/types"
 	. "github.com/onsi/ginkgo"
@@ -87,6 +89,30 @@ var _ = Describe("docker", func() {
 				assertImageExists(imageCreator, dockerInfo10)
 				assertImageExists(imageCreator, dockerInfo11)
 				assertImageExists(imageCreator, dockerInfo2)
+			})
+
+			It("Reap", func() {
+				repoName := "test" + UUIDString()
+				imageName := "test"
+				revision := "v1.0"
+
+				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision)
+
+				exists := searchLocalImages(imageCreator, dockerInfo, dockerInfo)
+
+				Expect(exists).Should(BeTrue(), "Image should exist locally")
+
+				//now reap it
+
+				err := Reap(time.Duration(0), imageCreator)
+
+				Expect(err).Should(BeNil(), "Unable to reap images.  Error is %s", err)
+
+				//now it should be deleted, see if it exists
+				exists = searchLocalImages(imageCreator, dockerInfo, dockerInfo)
+
+				Expect(exists).Should(BeFalse(), "Image should not exist locally")
+
 			})
 
 		}

@@ -303,7 +303,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//defer cleaning up the image
-	defer server.imageCreator.CleanImageRevision(dockerInfo)
+	// defer server.imageCreator.CleanImageRevision(dockerInfo)
 
 	pushChannel, err := server.imageCreator.PushImage(dockerInfo)
 

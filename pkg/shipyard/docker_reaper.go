@@ -1,0 +1,52 @@
+package shipyard
+
+import "time"
+
+//Reap Performs a reap pass.  Any image older than minAge in the local images of the imageCreator will be deleted.  Returns an error if one occurs
+func Reap(minAge time.Duration, imageCreator ImageCreator) error {
+
+	images, err := imageCreator.GetLocalImages()
+
+	if err != nil {
+		return err
+	}
+
+	for _, image := range *images {
+		_, exists := image.Labels[TAG_REPO]
+
+		//doesn't have a label from our system don't remove it
+		if !exists {
+			continue
+		}
+
+		LogInfo.Printf("Removing image with names %v", image.RepoTags)
+
+		err := imageCreator.DeleteImageRevisionLocal(image.ID)
+
+		if err != nil {
+			LogError.Printf("Unable to remove image, error is %s.  Continuing", err)
+		}
+	}
+
+	return nil
+
+}
+
+//ReapForever The same as Reap, just wrapped in a loop that runs forever.  This is a convenience method only
+func ReapForever(minAge time.Duration, imageCreator ImageCreator, interval time.Duration) {
+
+	for {
+
+		//allocate and wait for the wake message
+		wakeTimer := time.NewTimer(interval)
+
+		<-wakeTimer.C
+
+		err := Reap(minAge, imageCreator)
+
+		if err != nil {
+			LogError.Printf("Unable to reap images, error is %s", err)
+		}
+
+	}
+}

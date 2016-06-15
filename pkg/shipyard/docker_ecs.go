@@ -165,15 +165,10 @@ func (imageCreator EcsImageCreator) GetImageRevision(dockerInfo *DockerInfo) (*t
 }
 
 //DeleteImageRevisionLocal Delete the image revision from the local repo
-func (imageCreator EcsImageCreator) deleteImageRevisionLocal(dockerInfo *DockerInfo) error {
+func (imageCreator EcsImageCreator) DeleteImageRevisionLocal(sha string) error {
 	//just delegate to the local docker impl
 
-	return imageCreator.dockerCreator.deleteImageRevisionLocal(dockerInfo)
-}
-
-//CleanImageRevision clean the image revision from the local docker
-func (imageCreator EcsImageCreator) CleanImageRevision(dockerInfo *DockerInfo) error {
-	return imageCreator.deleteImageRevisionLocal(dockerInfo)
+	return imageCreator.dockerCreator.DeleteImageRevisionLocal(sha)
 }
 
 //GetLocalImages return all local images

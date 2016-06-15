@@ -63,6 +63,36 @@ func main() {
 		shipyard.LogError.Fatalf("Unable to create pod spec provider.  Error is %s", err)
 	}
 
+	reaperIntervalString := os.Getenv("REAP_INTERVAL")
+
+	if reaperIntervalString == "" {
+		shipyard.LogError.Fatal("You must specifiy the REAP_INTERVAL environment variable")
+	}
+
+	reaperInterval, err := strconv.Atoi(reaperIntervalString)
+
+	reaperMinAgeString := os.Getenv("REAP_MIN_AGE")
+
+	if reaperMinAgeString == "" {
+		shipyard.LogError.Fatal("You must specifiy the REAP_MIN_AGE environment variable")
+	}
+
+	reaperMinAge, err := strconv.Atoi(reaperMinAgeString)
+
+	//start the reaper process in the background
+
+	minTime := time.Duration(reaperMinAge) * time.Second
+	reapInterval := time.Duration(reaperInterval) * time.Second
+
+	shipyard.LogInfo.Printf("Starting background reaper process. Reper will remove images older than %f second, and will run every %f seconds ", minTime.Seconds(), reapInterval.Seconds())
+
+	//start the reap interval
+	go shipyard.ReapForever(minTime, imageCreator, reapInterval)
+
+	if err != nil {
+		shipyard.LogError.Fatal("You must specify a valid integer for the SHUTDOWN_TIMER value")
+	}
+
 	shipyard.LogInfo.Printf("Successfully configured server and validated configuration. Starting server.")
 
 	server := server.NewServer(imageCreator, podSpec)
