@@ -3,8 +3,8 @@ package shipyard
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
-	"strings"
 
 	"os"
 
@@ -12,7 +12,7 @@ import (
 )
 
 //GenerateShipyardTemplateSpec generate a valid pod template spec given the docker image uri, and return it as a json encoded string
-func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, error) {
+func GenerateShipyardTemplateSpec(dockerURI string) (string, error) {
 
 	//TODO validate we only ever have 1 port in the public paths.  Parse out the port and then set it below.
 
@@ -22,18 +22,11 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 		return "", err
 	}
 
-	//validate the public path
+	port := os.Getenv("POD_PORT")
 
-	parts := strings.Split(publicPath, ":")
-
-	port := ""
-
-	//for shipyard, we should only have 1 port and path
-	if len(parts) != 2 {
-		return "", errors.New("Only 1 public path is supported. It must be of the format {PORT}:/{PATH?}")
+	if port == "" {
+		port = "9000"
 	}
-
-	port = parts[0]
 
 	intPort, err := strconv.Atoi(port)
 
@@ -47,6 +40,13 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 		pullSecretName = "ecr-key"
 	}
 
+	//the cdir to allow traffic from.  TODO make this space or comma delimited
+	cdir := os.Getenv("POD_CDIR")
+
+	if cdir == "" {
+		cdir = "10.1.0.0/16"
+	}
+
 	podTemplate := api.PodTemplateSpec{
 		ObjectMeta: api.ObjectMeta{
 			Labels: map[string]string{
@@ -55,10 +55,8 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 				"routable": "true",
 			},
 			Annotations: map[string]string{
-				// "publicPaths":  "80:/"
-				"publicPaths": publicPath,
 				//TODO, only allow from same namespace and ingress
-				"projectcalico.org/policy": "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.1.0.0/16",
+				"projectcalico.org/policy": fmt.Sprintf("allow tcp from cidr 192.168.0.0/16; allow tcp from cidr %s", cdir),
 			},
 		},
 		Spec: api.PodSpec{

@@ -27,7 +27,7 @@ var _ = Describe("Server Test", func() {
 
 	ServerTests := func(testServer *server.Server, hostBase string) {
 
-		It("Get Namespaces ", func() {
+		FIt("Get Namespaces ", func() {
 
 			httpResponse, namespaces, err := getNamespaces(hostBase)
 
@@ -52,9 +52,23 @@ var _ = Describe("Server Test", func() {
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
 			//check build response
-			lastLine := getLastLogLine(body)
+			sha, podspecURL := getBuildData(body)
 
-			Expect(strings.Index(lastLine, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
+			dockerURI := fmt.Sprintf("%s/%s/%s:%s", os.Getenv("DOCKER_REGISTRY_URL"), namespace, application, revision)
+
+			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s", dockerURI)
+
+			Expect(podspecURL).Should(Equal(expectedURL), "Pod spec url should equal %s", expectedURL)
+
+			fmt.Printf("Received PODSPEC URL of %s ", podspecURL)
+
+			response, podSpec := getPodSpec(podspecURL)
+
+			Expect(response.StatusCode).Should(Equal(200), "Get podspec at %s should equal 200", podspecURL)
+
+			Expect(podSpec).ShouldNot(BeEmpty(), "Pod spec should have content")
 
 			httpResponse, namespaces, err = getNamespaces(hostBase)
 
@@ -221,7 +235,9 @@ func doSetup(port int) (*server.Server, string, error) {
 		return nil, "", err
 	}
 
-	testServer := server.NewServer(imageCreator, podSpecProvider)
+	baseHost := fmt.Sprintf("http://localhost:%d", port)
+
+	testServer := server.NewServer(imageCreator, podSpecProvider, baseHost)
 
 	//start server in the background
 	go func() {
@@ -231,7 +247,7 @@ func doSetup(port int) (*server.Server, string, error) {
 
 	//wait for it to start
 
-	hostBase := fmt.Sprintf("http://localhost:%d/beeswax/images/api/v1", port)
+	hostBase := fmt.Sprintf("%s/beeswax/images/api/v1", baseHost)
 
 	started := false
 
@@ -365,6 +381,18 @@ func getImages(hostBase string, namespace string, application string) (*http.Res
 
 }
 
+func getPodSpec(url string) (*http.Response, string) {
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Add("Accept", "application/json")
+	client := &http.Client{}
+	response, _ := client.Do(req)
+
+	bytes, _ := ioutil.ReadAll(response.Body)
+
+	return response, string(bytes)
+
+}
+
 //newfileUploadRequest upload a file form request. Returns the response, the fully read body as a string, and an error
 func newFileUploadRequest(hostBase string, namespace string, application string, revision string, path string) (*http.Response, *string, error) {
 	file, err := os.Open(path)
@@ -449,7 +477,7 @@ func getImagesURL(hostBase string, namespace string, application string) string 
 	return fmt.Sprintf("%s/images/", getApplicationURL(hostBase, namespace, application))
 }
 
-func getLastLogLine(buildResponseBody *string) string {
+func getBuildData(buildResponseBody *string) (imageSha string, podTemplateSpecURI string) {
 
 	scanner := bufio.NewScanner(strings.NewReader(*buildResponseBody))
 
@@ -460,8 +488,21 @@ func getLastLogLine(buildResponseBody *string) string {
 	for scanner.Scan() {
 
 		line = scanner.Text()
+
+		fmt.Print(line)
+
+		if strings.HasPrefix(line, "ID:") {
+			imageSha = strings.Replace(line, "ID:", "", -1)
+			imageSha = strings.TrimSpace(imageSha)
+		}
+
+		if strings.HasPrefix(line, "PodTemplateSpec:") {
+			podTemplateSpecURI = strings.Replace(line, "PodTemplateSpec:", "", -1)
+			podTemplateSpecURI = strings.TrimSpace(podTemplateSpecURI)
+		}
+
 	}
 
-	return line
+	return imageSha, podTemplateSpecURI
 
 }

@@ -294,7 +294,7 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (s
 
 	localTag := dockerInfo.GetTagName()
 	remoteRepo := imageCreator.remoteRepo
-	remoteTag := dockerInfo.GetRemoteTagName(remoteRepo)
+	remoteTag := dockerInfo.GetRemoteTagPath(remoteRepo)
 	revision := dockerInfo.Revision
 
 	imageTagOptions := types.ImageTagOptions{
@@ -346,7 +346,7 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (s
 func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo) (io.ReadCloser, error) {
 
 	remoteRepo := imageCreator.remoteRepo
-	remoteTag := dockerInfo.GetRemoteTagName(remoteRepo)
+	remoteTag := dockerInfo.GetRemoteTagPath(remoteRepo)
 	revision := dockerInfo.Revision
 
 	imagePullOpts := types.ImagePullOptions{
@@ -371,6 +371,11 @@ func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo) (io.Read
 	}
 
 	return response, nil
+}
+
+//GenerateRepoURI generate the repo uri
+func (imageCreator LocalImageCreator) GenerateRepoURI(dockerInfo *DockerInfo) string {
+	return dockerInfo.GetRemoteTagName(imageCreator.remoteRepo)
 }
 
 //generateAuthConfiguration Create an auth configuration from the environment variables

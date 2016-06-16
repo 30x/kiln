@@ -23,9 +23,14 @@ func (dockerInfo *DockerInfo) GetTagName() string {
 	return dockerInfo.GetImageName() + ":" + dockerInfo.Revision
 }
 
+//GetRemoteTagPath Get the remote tag name of the docker repo of the format {RemoteRepo}/{RepoName}/{ImageName}
+func (dockerInfo *DockerInfo) GetRemoteTagPath(remoteRepo string) string {
+	return remoteRepo + "/" + dockerInfo.GetImageName()
+}
+
 //GetRemoteTagName Get the remote tag name of the docker repo of the format {RemoteRepo}/{RepoName}/{ImageName}:{Revision}
 func (dockerInfo *DockerInfo) GetRemoteTagName(remoteRepo string) string {
-	return remoteRepo + "/" + dockerInfo.GetImageName()
+	return remoteRepo + "/" + dockerInfo.GetTagName()
 }
 
 //DockerBuild a type for building a docker image docker

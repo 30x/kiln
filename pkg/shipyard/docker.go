@@ -34,4 +34,7 @@ type ImageCreator interface {
 
 	//PullImage pull the specified image to our the docker runtime.  Deliberately left as a readcloser since it's not exposed via api
 	PullImage(dockerInfo *DockerInfo) (io.ReadCloser, error)
+
+	//GenerateRepoURI Generate the absolute repo uri from the docker info
+	GenerateRepoURI(dockerInfo *DockerInfo) string
 }

@@ -71,6 +71,10 @@ func main() {
 
 	reaperInterval, err := strconv.Atoi(reaperIntervalString)
 
+	if err != nil {
+		shipyard.LogError.Fatal("You must specify a valid integer for the REAP_INTERVAL value")
+	}
+
 	reaperMinAgeString := os.Getenv("REAP_MIN_AGE")
 
 	if reaperMinAgeString == "" {
@@ -78,6 +82,16 @@ func main() {
 	}
 
 	reaperMinAge, err := strconv.Atoi(reaperMinAgeString)
+
+	if err != nil {
+		shipyard.LogError.Fatal("You must specify a valid integer for the REAP_MIN_AGE value")
+	}
+
+	selfBaseURL := os.Getenv("SELF_BASE_URL")
+
+	if selfBaseURL == "" {
+		shipyard.LogError.Fatal("You must specifiy the SELF_BASE_URL environment variable")
+	}
 
 	//start the reaper process in the background
 
@@ -89,13 +103,9 @@ func main() {
 	//start the reap interval
 	go shipyard.ReapForever(minTime, imageCreator, reapInterval)
 
-	if err != nil {
-		shipyard.LogError.Fatal("You must specify a valid integer for the SHUTDOWN_TIMER value")
-	}
-
 	shipyard.LogInfo.Printf("Successfully configured server and validated configuration. Starting server.")
 
-	server := server.NewServer(imageCreator, podSpec)
+	server := server.NewServer(imageCreator, podSpec, selfBaseURL)
 
 	server.Start(port, time.Duration(timeout)*time.Second, time.Duration(shutdownTimer)*time.Second)
 }

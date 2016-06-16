@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -21,19 +22,28 @@ import (
 //TODO make an env variable.  100 Meg max
 const maxFileSize = 1024 * 1024 * 100
 
+const basePath = "/beeswax/images/api/v1"
+
+const templateString = `BuildComplete
+ID: {{.ID}}
+PodTemplateSpec: {{.PodTemplateSpec}}
+`
+
 //Server struct to create an instance of hte server
 type Server struct {
 	router       http.Handler
 	decoder      *schema.Decoder
 	imageCreator shipyard.ImageCreator
 	podSpecIo    shipyard.PodspecIo
+	template     *template.Template
+	hostURL      string
 }
 
-//NewServer Create a new server
-func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo) *Server {
+//NewServer Create a new server using the provided podspecIo and Image creator.  The hostURL is a public host name to allow the server to generate self links.  Should be of the form
+func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo, hostURL string) *Server {
 	r := mux.NewRouter()
 
-	routes := r.PathPrefix("/beeswax/images/api/v1").Subrouter()
+	routes := r.PathPrefix(basePath).Subrouter()
 
 	//allow the trailing slash
 	//Note that when setting this to true, all URLS must end with a slash so we match paths both with and without the trailing slash
@@ -42,10 +52,14 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 	//now set up the decoder and return the server
 	decoder := schema.NewDecoder()
 
+	template := template.Must(template.New("outputTemplate").Parse(templateString))
+
 	server := &Server{
 		decoder:      decoder,
 		imageCreator: imageCreator,
 		podSpecIo:    podSpecIo,
+		template:     template,
+		hostURL:      hostURL,
 	}
 
 	//a bit hacky, but need the pointer to the server
@@ -69,8 +83,8 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.getPodSpec)
 
 	//podtemplate generation
-	routes.Methods("GET").Path("/generatepodspec/").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
-	routes.Methods("GET").Path("/generatepodspec").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
+	routes.Methods("GET").Path("/generatepodspec/").Queries("imageURI", "").HandlerFunc(server.generatePodSpec)
+	routes.Methods("GET").Path("/generatepodspec").Queries("imageURI", "").HandlerFunc(server.generatePodSpec)
 
 	//now wrap everything with logging
 
@@ -340,9 +354,15 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 	//write the last portion
 
-	finalOutput := fmt.Sprintf("\nBuild Complete \n%s", image.ImageID)
+	data := struct {
+		ID              string
+		PodTemplateSpec string
+	}{
+		image.ImageID,
+		server.generatePodSpecURL(r, dockerInfo),
+	}
 
-	err = writeStringAndFlush(w, flusher, finalOutput)
+	err = server.template.Execute(w, data)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
@@ -668,7 +688,7 @@ func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//GetImage get the image
+//generatePodSpec get the image
 func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 
 	//intentionally left open.
@@ -682,10 +702,7 @@ func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//we purposefully don't validate these, since they're not required
-	publicPath := queryParam.Get("publicPath")
-
-	payload, err := shipyard.GenerateShipyardTemplateSpec(imageURI, publicPath)
+	payload, err := shipyard.GenerateShipyardTemplateSpec(imageURI)
 
 	if err != nil {
 		internalError(err.Error(), w)
@@ -700,6 +717,20 @@ func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 		internalError(err.Error(), w)
 		return
 	}
+}
+
+//generatePodSpec get the image
+func (server *Server) generatePodSpecURL(r *http.Request, dockerInfo *shipyard.DockerInfo) string {
+	imageURI := server.imageCreator.GenerateRepoURI(dockerInfo)
+
+	endpoint := server.hostURL + basePath + "/generatepodspec?imageURI=" + imageURI
+
+	return endpoint
+}
+
+//returns a 200 with "OK" body for health check
+func (server *Server) health(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
 }
 
 //write a non 200 error response
