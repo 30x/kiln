@@ -86,9 +86,13 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo,
 	routes.Methods("GET").Path("/generatepodspec/").Queries("imageURI", "").HandlerFunc(server.generatePodSpec)
 	routes.Methods("GET").Path("/generatepodspec").Queries("imageURI", "").HandlerFunc(server.generatePodSpec)
 
+	//health check
+	routes.Methods("GET").Path("/status/").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/status").HandlerFunc(server.status)
+
 	//now wrap everything with logging
 
-	loggedRouter := handlers.CombinedLoggingHandler(os.Stdout, r)
+	loggedRouter := handlers.CombinedLoggingHandler(os.Stdout, routes)
 
 	server.router = loggedRouter
 
@@ -729,7 +733,8 @@ func (server *Server) generatePodSpecURL(r *http.Request, dockerInfo *shipyard.D
 }
 
 //returns a 200 with "OK" body for health check
-func (server *Server) health(w http.ResponseWriter, r *http.Request) {
+func (server *Server) status(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte("OK"))
 }
 

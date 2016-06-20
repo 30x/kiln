@@ -25,9 +25,9 @@ import (
 
 var _ = Describe("Server Test", func() {
 
-	ServerTests := func(testServer *server.Server, hostBase string) {
+	ServerTests := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
 
-		FIt("Get Namespaces ", func() {
+		It("Get Namespaces ", func() {
 
 			httpResponse, namespaces, err := getNamespaces(hostBase)
 
@@ -56,7 +56,7 @@ var _ = Describe("Server Test", func() {
 
 			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
-			dockerURI := fmt.Sprintf("%s/%s/%s:%s", os.Getenv("DOCKER_REGISTRY_URL"), namespace, application, revision)
+			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, namespace, application, revision)
 
 			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s", dockerURI)
 
@@ -180,8 +180,11 @@ var _ = Describe("Server Test", func() {
 
 	Context("Local Docker", func() {
 		//set up the provider
+
+		dockerRegistryURL := "localhost:5000"
+
 		os.Setenv("DOCKER_PROVIDER", "docker")
-		os.Setenv("DOCKER_REGISTRY_URL", "localhost:5000")
+		os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
 		os.Setenv("POD_PROVIDER", "local")
 		os.Setenv("LOCAL_DIR", "/tmp/podspecs")
 
@@ -194,14 +197,16 @@ var _ = Describe("Server Test", func() {
 			Fail(fmt.Sprintf("Could not start server %s", err))
 		}
 
-		ServerTests(server, hostBase)
+		ServerTests(server, hostBase, dockerRegistryURL)
 	})
 
 	Context("ECR Docker", func() {
 
+		dockerRegistryURL := "977777657611.dkr.ecr.us-east-1.amazonaws.com"
+
 		//set up the provider
 		os.Setenv("DOCKER_PROVIDER", "ecr")
-		os.Setenv("DOCKER_REGISTRY_URL", "977777657611.dkr.ecr.us-east-1.amazonaws.com")
+		os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
 		os.Setenv("ECR_REGION", "us-east-1")
 		os.Setenv("POD_PROVIDER", "s3")
 		os.Setenv("S3_REGION", "us-east-1")
@@ -216,7 +221,7 @@ var _ = Describe("Server Test", func() {
 			Fail(fmt.Sprintf("Could not start server %s", err))
 		}
 
-		ServerTests(server, hostBase)
+		ServerTests(server, hostBase, dockerRegistryURL)
 	})
 
 })
