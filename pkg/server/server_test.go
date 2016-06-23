@@ -27,7 +27,7 @@ var _ = Describe("Server Test", func() {
 
 	ServerTests := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
 
-		It("Get Namespaces ", func() {
+		FIt("Get Namespaces ", func() {
 
 			httpResponse, namespaces, err := getNamespaces(hostBase)
 
@@ -43,7 +43,7 @@ var _ = Describe("Server Test", func() {
 			application := "application"
 			revision := "v1.0"
 
-			response, body, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+			response, body, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -60,7 +60,7 @@ var _ = Describe("Server Test", func() {
 
 			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, namespace, application, revision)
 
-			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s&amp;publicPath=8080:/foo/bar", dockerURI)
+			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s&amp;publicPath=9000:/test-echo", dockerURI)
 
 			Expect(podspecURL).Should(Equal(expectedURL), "Pod spec url should equal %s", expectedURL)
 
@@ -88,7 +88,7 @@ var _ = Describe("Server Test", func() {
 			application := "application"
 			revision := "v1.0"
 
-			response, _, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+			response, _, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -105,7 +105,7 @@ var _ = Describe("Server Test", func() {
 
 			//now try to post again, should get a 409
 
-			response, _, err = newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+			response, _, err = newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -121,7 +121,7 @@ var _ = Describe("Server Test", func() {
 			application := "application"
 			revision := "v1.0"
 
-			response, _, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip")
+			response, _, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -148,7 +148,7 @@ var _ = Describe("Server Test", func() {
 
 			revision2 := "v1.1"
 
-			response, _, err = newFileUploadRequest(hostBase, namespace, application, revision2, "../../testresources/echo-test.zip")
+			response, _, err = newFileUploadRequest(hostBase, namespace, application, revision2, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -202,29 +202,29 @@ var _ = Describe("Server Test", func() {
 		ServerTests(server, hostBase, dockerRegistryURL)
 	})
 
-	Context("ECR Docker", func() {
+	// Context("ECR Docker", func() {
 
-		dockerRegistryURL := "977777657611.dkr.ecr.us-east-1.amazonaws.com"
+	// 	dockerRegistryURL := "977777657611.dkr.ecr.us-east-1.amazonaws.com"
 
-		//set up the provider
-		os.Setenv("DOCKER_PROVIDER", "ecr")
-		os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
-		os.Setenv("ECR_REGION", "us-east-1")
-		os.Setenv("POD_PROVIDER", "s3")
-		os.Setenv("S3_REGION", "us-east-1")
-		os.Setenv("S3_BUCKET", "podspectestbucket")
+	// 	//set up the provider
+	// 	os.Setenv("DOCKER_PROVIDER", "ecr")
+	// 	os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
+	// 	os.Setenv("ECR_REGION", "us-east-1")
+	// 	os.Setenv("POD_PROVIDER", "s3")
+	// 	os.Setenv("S3_REGION", "us-east-1")
+	// 	os.Setenv("S3_BUCKET", "podspectestbucket")
 
-		//Use our test provider for jwt tokens
-		os.Setenv("JWTTOKENIMPL", "test")
+	// 	//Use our test provider for jwt tokens
+	// 	os.Setenv("JWTTOKENIMPL", "test")
 
-		server, hostBase, err := doSetup(5281)
+	// 	server, hostBase, err := doSetup(5281)
 
-		if err != nil {
-			Fail(fmt.Sprintf("Could not start server %s", err))
-		}
+	// 	if err != nil {
+	// 		Fail(fmt.Sprintf("Could not start server %s", err))
+	// 	}
 
-		ServerTests(server, hostBase, dockerRegistryURL)
-	})
+	// 	ServerTests(server, hostBase, dockerRegistryURL)
+	// })
 
 })
 
@@ -401,7 +401,7 @@ func getPodSpec(url string) (*http.Response, string) {
 }
 
 //newfileUploadRequest upload a file form request. Returns the response, the fully read body as a string, and an error
-func newFileUploadRequest(hostBase string, namespace string, application string, revision string, path string) (*http.Response, *string, error) {
+func newFileUploadRequest(hostBase string, namespace string, application string, revision string, path string, publicPath string) (*http.Response, *string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, nil, err
@@ -424,7 +424,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 	writer.WriteField("namespace", namespace)
 	writer.WriteField("application", application)
 	writer.WriteField("revision", revision)
-	writer.WriteField("publicPath", "8080:/foo/bar")
+	writer.WriteField("publicPath", publicPath)
 
 	//set the content type
 	writer.FormDataContentType()
