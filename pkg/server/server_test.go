@@ -27,7 +27,7 @@ var _ = Describe("Server Test", func() {
 
 	ServerTests := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
 
-		FIt("Get Namespaces ", func() {
+		It("Get Namespaces ", func() {
 
 			httpResponse, namespaces, err := getNamespaces(hostBase)
 
@@ -60,7 +60,62 @@ var _ = Describe("Server Test", func() {
 
 			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, namespace, application, revision)
 
-			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s&amp;publicPath=9000:/test-echo", dockerURI)
+			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s&publicPath=9000:/test-echo", dockerURI)
+
+			Expect(podspecURL).Should(Equal(expectedURL), "Pod spec url should equal %s", expectedURL)
+
+			fmt.Printf("Received PODSPEC URL of %s ", podspecURL)
+
+			response, podSpec := getPodSpec(podspecURL)
+
+			Expect(response.StatusCode).Should(Equal(200), "Get podspec at %s should equal 200", podspecURL)
+
+			Expect(podSpec).ShouldNot(BeEmpty(), "Pod spec should have content")
+
+			httpResponse, namespaces, err = getNamespaces(hostBase)
+
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			assertContainsNamespace(namespaces, namespace)
+
+		})
+
+		It("Get Namespaces Trailing Slashes ", func() {
+
+			httpResponse, namespaces, err := getNamespaces(hostBase)
+
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			//we explicity don't test since other images might be present in the docker registry
+
+			//now create a new images
+
+			namespace := "test" + shipyard.UUIDString()
+			application := "application"
+			revision := "v1.0"
+
+			response, body, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo/")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			//check build response
+			sha, podspecURL := getBuildData(body)
+
+			shipyard.LogInfo.Printf("sha: %s\n podSpecUrl: %s\n", sha, podspecURL)
+
+			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
+			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, namespace, application, revision)
+
+			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s&publicPath=9000:/test-echo/", dockerURI)
 
 			Expect(podspecURL).Should(Equal(expectedURL), "Pod spec url should equal %s", expectedURL)
 
@@ -178,46 +233,70 @@ var _ = Describe("Server Test", func() {
 
 		})
 
+		FIt("No Cross Namepaces on GET", func() {
+			//upload the first image
+			namespace1 := "test" + shipyard.UUIDString()
+			application1 := "application1"
+
+			namespace2 := "test" + shipyard.UUIDString()
+			application2 := "application2"
+
+			revision := "v1.0"
+
+			response, _, err := newFileUploadRequest(hostBase, namespace1, application1, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			//upload to namespace 2 and ensure we can't see it
+			response, _, err = newFileUploadRequest(hostBase, namespace2, application2, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			//now ensure it is created
+			httpResponse, applications, err := getApplications(hostBase, namespace1)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			Expect(len(applications)).Should(Equal(1), "Only 1 application should be present")
+
+			assertContainsApplication(applications, application1)
+
+			//ensure we only get the application 2
+
+			httpResponse, applications, err = getApplications(hostBase, namespace2)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			Expect(len(applications)).Should(Equal(1), "Only 1 application should be present")
+
+			assertContainsApplication(applications, application2)
+
+		})
+
 	}
 
-	Context("Local Docker", func() {
-		//set up the provider
-
-		dockerRegistryURL := "localhost:5000"
-
-		os.Setenv("DOCKER_PROVIDER", "docker")
-		os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
-		os.Setenv("POD_PROVIDER", "local")
-		os.Setenv("LOCAL_DIR", "/tmp/podspecs")
-
-		//Use our test provider for jwt tokens
-		os.Setenv("JWTTOKENIMPL", "test")
-
-		server, hostBase, err := doSetup(5280)
-
-		if err != nil {
-			Fail(fmt.Sprintf("Could not start server %s", err))
-		}
-
-		ServerTests(server, hostBase, dockerRegistryURL)
-	})
-
-	// Context("ECR Docker", func() {
-
-	// 	dockerRegistryURL := "977777657611.dkr.ecr.us-east-1.amazonaws.com"
-
+	// Context("Local Docker", func() {
 	// 	//set up the provider
-	// 	os.Setenv("DOCKER_PROVIDER", "ecr")
+
+	// 	dockerRegistryURL := "localhost:5000"
+
+	// 	os.Setenv("DOCKER_PROVIDER", "docker")
 	// 	os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
-	// 	os.Setenv("ECR_REGION", "us-east-1")
-	// 	os.Setenv("POD_PROVIDER", "s3")
-	// 	os.Setenv("S3_REGION", "us-east-1")
-	// 	os.Setenv("S3_BUCKET", "podspectestbucket")
+	// 	os.Setenv("POD_PROVIDER", "local")
+	// 	os.Setenv("LOCAL_DIR", "/tmp/podspecs")
 
 	// 	//Use our test provider for jwt tokens
 	// 	os.Setenv("JWTTOKENIMPL", "test")
 
-	// 	server, hostBase, err := doSetup(5281)
+	// 	server, hostBase, err := doSetup(5280)
 
 	// 	if err != nil {
 	// 		Fail(fmt.Sprintf("Could not start server %s", err))
@@ -225,6 +304,30 @@ var _ = Describe("Server Test", func() {
 
 	// 	ServerTests(server, hostBase, dockerRegistryURL)
 	// })
+
+	Context("ECR Docker", func() {
+
+		dockerRegistryURL := "977777657611.dkr.ecr.us-east-1.amazonaws.com"
+
+		//set up the provider
+		os.Setenv("DOCKER_PROVIDER", "ecr")
+		os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
+		os.Setenv("ECR_REGION", "us-east-1")
+		os.Setenv("POD_PROVIDER", "s3")
+		os.Setenv("S3_REGION", "us-east-1")
+		os.Setenv("S3_BUCKET", "podspectestbucket")
+
+		//Use our test provider for jwt tokens
+		os.Setenv("JWTTOKENIMPL", "test")
+
+		server, hostBase, err := doSetup(5281)
+
+		if err != nil {
+			Fail(fmt.Sprintf("Could not start server %s", err))
+		}
+
+		ServerTests(server, hostBase, dockerRegistryURL)
+	})
 
 })
 

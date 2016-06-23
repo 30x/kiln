@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var regex = regexp.MustCompile(`\d+:\/[\w+\/]?`)
+var regex = regexp.MustCompile(`\d+:\/[\w+(\/)?]?`)
 
 //Image represents an image struct
 type Image struct {
@@ -59,7 +59,7 @@ func (createImage *CreateImage) Validate() *Validation {
 	}
 
 	if createImage.PublicPath == "" {
-		errors.Add("PublicPath", "Please enter a valid public path")
+		errors.Add("PublicPath", "Please enter a valid publicPath.  None was specified.")
 	}
 
 	if !regex.Match([]byte(createImage.PublicPath)) {
