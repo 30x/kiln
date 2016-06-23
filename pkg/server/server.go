@@ -82,8 +82,8 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo,
 	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.getPodSpec)
 
 	//podtemplate generation
-	routes.Methods("GET").Path("/generatepodspec/").Queries("imageURI", "").HandlerFunc(server.generatePodSpec)
-	routes.Methods("GET").Path("/generatepodspec").Queries("imageURI", "").HandlerFunc(server.generatePodSpec)
+	routes.Methods("GET").Path("/generatepodspec/").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
+	routes.Methods("GET").Path("/generatepodspec").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
 
 	//health check
 	routes.Methods("GET").Path("/status/").HandlerFunc(server.status)
@@ -266,6 +266,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain charset=utf-8")
 	//turn this off so browsers render the response as it comes in
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Location", server.generateImageURL(dockerInfo))
 
 	w.WriteHeader(http.StatusCreated)
 
@@ -332,7 +333,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		PodTemplateSpec string
 	}{
 		image.ImageID,
-		server.generatePodSpecURL(r, dockerInfo),
+		server.generatePodSpecURL(dockerInfo, createImage.PublicPath),
 	}
 
 	err = server.template.Execute(w, data)
@@ -675,7 +676,10 @@ func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := shipyard.GenerateShipyardTemplateSpec(imageURI)
+	//we purposefully don't validate these, since they're not required
+	publicPath := queryParam.Get("publicPath")
+
+	payload, err := shipyard.GenerateShipyardTemplateSpec(imageURI, publicPath)
 
 	if err != nil {
 		internalError(err.Error(), w)
@@ -693,10 +697,18 @@ func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 }
 
 //generatePodSpec get the image
-func (server *Server) generatePodSpecURL(r *http.Request, dockerInfo *shipyard.DockerInfo) string {
+func (server *Server) generatePodSpecURL(dockerInfo *shipyard.DockerInfo, publicPath string) string {
 	imageURI := server.imageCreator.GenerateRepoURI(dockerInfo)
 
-	endpoint := server.hostURL + basePath + "/generatepodspec?imageURI=" + imageURI
+	endpoint := fmt.Sprintf("%s%s/generatepodspec?imageURI=%s&publicPath=%s", server.hostURL, basePath, imageURI, publicPath)
+
+	return endpoint
+}
+
+//generatePodSpec get the image
+func (server *Server) generateImageURL(dockerInfo *shipyard.DockerInfo) string {
+
+	endpoint := fmt.Sprintf("%s%s/namespaces/%s/applications/%s/images/%s", server.hostURL, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
 
 	return endpoint
 }

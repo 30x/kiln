@@ -3,8 +3,11 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"time"
 )
+
+var regex = regexp.MustCompile(`\d+:\/[\w+\/]?`)
 
 //Image represents an image struct
 type Image struct {
@@ -34,6 +37,7 @@ type CreateImage struct {
 	Namespace   string `schema:"namespace"`
 	Application string `schema:"application"`
 	Revision    string `schema:"revision"`
+	PublicPath  string `schema:"publicPath"`
 }
 
 //Validate validate the application input is correct
@@ -52,6 +56,14 @@ func (createImage *CreateImage) Validate() *Validation {
 
 	if createImage.Revision == "" {
 		errors.Add("Revision", "Please enter a valid revision")
+	}
+
+	if createImage.PublicPath == "" {
+		errors.Add("PublicPath", "Please enter a valid public path")
+	}
+
+	if !regex.Match([]byte(createImage.PublicPath)) {
+		errors.Add("PublicPath", "Public path must match the format of [PORT]:/[URL SEGMENT/]?")
 	}
 
 	return errors

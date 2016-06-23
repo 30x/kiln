@@ -54,11 +54,13 @@ var _ = Describe("Server Test", func() {
 			//check build response
 			sha, podspecURL := getBuildData(body)
 
+			shipyard.LogInfo.Printf("sha: %s\n podSpecUrl: %s\n", sha, podspecURL)
+
 			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
 			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, namespace, application, revision)
 
-			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s", dockerURI)
+			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s&amp;publicPath=8080:/foo/bar", dockerURI)
 
 			Expect(podspecURL).Should(Equal(expectedURL), "Pod spec url should equal %s", expectedURL)
 
@@ -422,6 +424,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 	writer.WriteField("namespace", namespace)
 	writer.WriteField("application", application)
 	writer.WriteField("revision", revision)
+	writer.WriteField("publicPath", "8080:/foo/bar")
 
 	//set the content type
 	writer.FormDataContentType()
