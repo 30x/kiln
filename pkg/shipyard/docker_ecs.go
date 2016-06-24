@@ -60,7 +60,7 @@ func (imageCreator EcsImageCreator) GetNamespaces() (*[]string, error) {
 
 //GetApplications get all remote application for the specified repository
 func (imageCreator EcsImageCreator) GetApplications(repository string) (*[]string, error) {
-	applicationResult := newApplicationResult()
+	applicationResult := newApplicationResult(repository)
 
 	err := imageCreator.getResults(applicationResult)
 
@@ -247,13 +247,15 @@ func (repositoryResult *repositoryResult) getResults() *[]string {
 }
 
 type applicationResult struct {
-	repoSet *StringSet
+	appSet         *StringSet
+	repositoryName string
 }
 
 //create a new instance of the application result
-func newApplicationResult() *applicationResult {
+func newApplicationResult(repositoryName string) *applicationResult {
 	return &applicationResult{
-		repoSet: NewStringSet(),
+		appSet:         NewStringSet(),
+		repositoryName: repositoryName,
 	}
 }
 
@@ -265,12 +267,20 @@ func (applicationResult *applicationResult) add(repositoryName *string) {
 		return
 	}
 
-	applicationResult.repoSet.Add(parts[1])
+	repoName := parts[0]
+	appName := parts[1]
+
+	//filter this repository. If it's not equal, discard it
+	if repoName != applicationResult.repositoryName {
+		return
+	}
+
+	applicationResult.appSet.Add(appName)
 }
 
 //Get the results
 func (applicationResult *applicationResult) getResults() *[]string {
-	return applicationResult.repoSet.AsSlice()
+	return applicationResult.appSet.AsSlice()
 }
 
 //BuildImage build the image

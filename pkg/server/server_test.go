@@ -233,7 +233,7 @@ var _ = Describe("Server Test", func() {
 
 		})
 
-		FIt("No Cross Namepaces on GET", func() {
+		It("No Cross Namepaces on GET", func() {
 			//upload the first image
 			namespace1 := "test" + shipyard.UUIDString()
 			application1 := "application1"

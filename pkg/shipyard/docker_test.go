@@ -91,6 +91,52 @@ var _ = Describe("docker", func() {
 				assertImageExists(imageCreator, dockerInfo2)
 			})
 
+			FIt("Test Cross Namespace", func() {
+
+				//push first image
+				repoName1 := "test" + UUIDString()
+				repoName2 := "test" + UUIDString()
+				imageName1 := "test1"
+				imageName2 := "test2"
+				revision := "v1.0"
+
+				_, dockerInfo1 := createImage(imageCreator, repoName1, imageName1, revision)
+
+				stream, err := imageCreator.PushImage(dockerInfo1)
+
+				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				channelToOutput(stream)
+
+				_, dockerInfo2 := createImage(imageCreator, repoName2, imageName2, revision)
+
+				stream, err = imageCreator.PushImage(dockerInfo2)
+
+				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				channelToOutput(stream)
+
+				applications, err := imageCreator.GetApplications(repoName1)
+
+				Expect(err).Should(BeNil(), "Unable to get applications", err)
+
+				Expect(len(*applications)).Should(Equal(1), "Only 1 application should be returned")
+
+				appName := (*applications)[0]
+
+				Expect(appName).Should(Equal(imageName1))
+
+				applications, err = imageCreator.GetApplications(repoName2)
+
+				Expect(err).Should(BeNil(), "Unable to get applications", err)
+
+				Expect(len(*applications)).Should(Equal(1), "Only 1 application should be returned")
+
+				appName = (*applications)[0]
+				Expect(appName).Should(Equal(imageName2))
+
+			})
+
 			It("Reap", func() {
 				repoName := "test" + UUIDString()
 				imageName := "test"

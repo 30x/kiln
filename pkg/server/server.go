@@ -24,8 +24,8 @@ const maxFileSize = 1024 * 1024 * 100
 const basePath = "/beeswax/images/api/v1"
 
 const templateString = `BuildComplete
-ID: {{.ID}}
-PodTemplateSpec: {{.PodTemplateSpec}}
+ID: %s
+PodTemplateSpec: %s
 `
 
 //Server struct to create an instance of hte server
@@ -326,24 +326,12 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		internalError(message, w)
 		return
 	}
+
 	//write the last portion
 
-	data := struct {
-		ID              string
-		PodTemplateSpec string
-	}{
-		image.ImageID,
-		server.generatePodSpecURL(dockerInfo, createImage.PublicPath),
-	}
+	outputString := fmt.Sprintf(templateString, image.ImageID, server.generatePodSpecURL(dockerInfo, createImage.PublicPath))
 
-	err = server.template.Execute(w, data)
-
-	if err != nil {
-		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
-		shipyard.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
+	writeStringAndFlush(w, flusher, outputString)
 
 }
 
