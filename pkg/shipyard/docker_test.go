@@ -91,7 +91,7 @@ var _ = Describe("docker", func() {
 				assertImageExists(imageCreator, dockerInfo2)
 			})
 
-			FIt("Test Cross Namespace", func() {
+			It("Test Cross Namespace", func() {
 
 				//push first image
 				repoName1 := "test" + UUIDString()
