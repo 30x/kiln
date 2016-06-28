@@ -58,9 +58,9 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 	podTemplate := api.PodTemplateSpec{
 		ObjectMeta: api.ObjectMeta{
 			Labels: map[string]string{
-				"runtime":   "shipyard",
-				"component": repoImage.GeneratePodName(),
-				"routable":  "true",
+				"runtime":  "shipyard",
+				"app":      repoImage.GeneratePodName(),
+				"routable": "true",
 			},
 			Annotations: map[string]string{
 				//TODO, only allow from same namespace and ingress
