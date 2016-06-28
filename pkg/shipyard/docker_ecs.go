@@ -1,7 +1,7 @@
 package shipyard
 
 import (
-	"io"
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -125,7 +125,7 @@ func (imageCreator EcsImageCreator) GetImages(repository string, application str
 
 //GetImageRevision get the image revision
 func (imageCreator EcsImageCreator) GetImageRevision(dockerInfo *DockerInfo) (*types.Image, error) {
-	repositoryName := dockerInfo.RepoName + "/" + dockerInfo.ImageName
+	repositoryName := dockerInfo.GetImageName()
 
 	imageID := &ecr.ImageIdentifier{
 		ImageTag: &dockerInfo.Revision,
@@ -169,6 +169,37 @@ func (imageCreator EcsImageCreator) DeleteImageRevisionLocal(sha string) error {
 	//just delegate to the local docker impl
 
 	return imageCreator.dockerCreator.DeleteImageRevisionLocal(sha)
+}
+
+//DeleteImageRevision Delete the image from the remote repository.  Return an error if unable to do so.
+func (imageCreator EcsImageCreator) DeleteImageRevision(dockerInfo *DockerInfo) error {
+
+	repositoryName := dockerInfo.GetImageName()
+
+	imageID := &ecr.ImageIdentifier{
+		ImageTag: &dockerInfo.Revision,
+	}
+
+	input := &ecr.BatchDeleteImageInput{
+		RepositoryName: &repositoryName,
+		ImageIds:       []*ecr.ImageIdentifier{imageID},
+	}
+
+	deleteOutput, err := imageCreator.awsClient.BatchDeleteImage(input)
+
+	if err != nil {
+		return err
+	}
+
+	if len(deleteOutput.Failures) > 0 {
+		return fmt.Errorf("Unable to delete image.  Failures are %v", deleteOutput.Failures)
+	}
+
+	if len(deleteOutput.ImageIds) == 0 {
+		return fmt.Errorf("Could not find image with repository name %s and revision %s", repositoryName, dockerInfo.Revision)
+	}
+
+	return nil
 }
 
 //GetLocalImages return all local images
@@ -286,11 +317,6 @@ func (applicationResult *applicationResult) getResults() *[]string {
 //BuildImage build the image
 func (imageCreator EcsImageCreator) BuildImage(dockerInfo *DockerBuild) (chan (string), error) {
 	return imageCreator.dockerCreator.BuildImage(dockerInfo)
-}
-
-//PullImage pull the specified image to our the docker runtime
-func (imageCreator EcsImageCreator) PullImage(dockerInfo *DockerInfo) (io.ReadCloser, error) {
-	return imageCreator.dockerCreator.PullImage(dockerInfo)
 }
 
 //PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error

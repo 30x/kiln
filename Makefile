@@ -13,6 +13,14 @@ build-and-package: compile-linux build-image
 test-source:
 	go test -v $$(glide novendor)
 
+#Creates a test coverage file called coverage.txt.  This then opens a browser window to view the coverage
+test-coverage:
+	go test ./pkg/shipyard -covermode=atomic -coverprofile=coverage.tmp
+	go test ./pkg/shipyard -covermode=atomic -coverprofile=coverage.tmp
+	echo 'mode: atomic' > coverage.out
+	tail -n +2 coverage.tmp >> coverage.out
+	go tool cover -html=coverage.out -o=coverage.html
+
 compile-linux:	
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-w' -o build/shipyard .
 	

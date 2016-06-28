@@ -74,6 +74,8 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo,
 	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images").HandlerFunc(server.getImages)
 	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(server.getImage)
 	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(server.getImage)
+	routes.Methods("DELETE").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(server.deleteImage)
+	routes.Methods("DELETE").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(server.deleteImage)
 
 	//post a podspec for a specified revision
 	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}/").HandlerFunc(server.postPodSpec)
@@ -545,6 +547,54 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(image)
+}
+
+//GetImage get the image
+func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	namespace := vars["namespace"]
+	application := vars["application"]
+	revision := vars["revision"]
+
+	//not an admin, exit
+	if !validateAdmin(namespace, w, r) {
+		return
+	}
+
+	image, err := server.getImageInternal(namespace, application, revision)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.  Error is %s", namespace, application, revision, err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	//not found, return a 404
+	if image == nil {
+		notFound(fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.", namespace, application, revision), w)
+		return
+	}
+
+	dockerInfo := &shipyard.DockerInfo{
+		RepoName:  namespace,
+		ImageName: application,
+		Revision:  revision,
+	}
+
+	err = server.imageCreator.DeleteImageRevision(dockerInfo)
+
+	if err != nil {
+		writeErrorResponse(http.StatusInternalServerError, err.Error(), w)
+		return
+	}
+
+	//now write the response
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+
 	json.NewEncoder(w).Encode(image)
 }
 

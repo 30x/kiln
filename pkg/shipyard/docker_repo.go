@@ -5,13 +5,13 @@ package shipyard
 This implementation supports the local docker API, as well as the docker provided remote registry
 **/
 import (
+	"io/ioutil"
 	"os"
 	// "io"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -197,6 +197,48 @@ func (imageCreator LocalImageCreator) DeleteImageRevisionLocal(sha string) error
 	return nil
 }
 
+//DeleteImageRevision Delete the image from the remote repository.  Return an error if unable to do so.
+func (imageCreator LocalImageCreator) DeleteImageRevision(dockerInfo *DockerInfo) error {
+	//locally we just delegate to delete image revision
+	revision, err := imageCreator.GetImageRevision(dockerInfo)
+
+	if err != nil {
+		return err
+	}
+
+	//get the manifests
+	// localhost:5000/v2/test00998f29-a4c1-4bcb-662b-0439382f919b/application/manifests/v1.0
+
+	//delete all manifests
+
+	//get all blobs
+
+	url := fmt.Sprintf("http://%s/%s/manifests/%s", imageCreator.remoteRepo, dockerInfo.GetImageName(), revision.ID)
+
+	LogInfo.Printf("Deleting image from url %s", url)
+
+	req, _ := http.NewRequest("DELETE", url, nil)
+	client := &http.Client{}
+	response, err := client.Do(req)
+
+	if err != nil {
+		return err
+	}
+
+	//not sure we need this, but we want to wait for the response
+	_, err = ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("Received response code %d with message %s, expected 200", response.StatusCode, response.Status)
+	}
+
+	return nil
+}
+
 //parse the tag out of the returned image
 func getTags(images *[]types.Image, tagToParse string) *[]string {
 	nameSet := NewStringSet()
@@ -340,37 +382,6 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (s
 	go streamParser.Parse()
 
 	return streamParser.Channel(), nil
-}
-
-//PullImage pull the specified image to our the docker runtime
-func (imageCreator LocalImageCreator) PullImage(dockerInfo *DockerInfo) (io.ReadCloser, error) {
-
-	remoteRepo := imageCreator.remoteRepo
-	remoteTag := dockerInfo.GetRemoteTagPath(remoteRepo)
-	revision := dockerInfo.Revision
-
-	imagePullOpts := types.ImagePullOptions{
-		ImageID: remoteTag,
-		Tag:     revision,
-	}
-
-	//this call on every invocation is deliberate.  Our keys should rotate and we want to continue to function when
-	//that happens
-	authConfig := generateAuthConfiguration(imageCreator.remoteRepo)
-
-	imagePullOpts.RegistryAuth = authConfig
-
-	privledgedFunction := func() (string, error) {
-		return authConfig, nil
-	}
-
-	response, err := imageCreator.client.ImagePull(imagePullOpts, privledgedFunction)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
 }
 
 //GenerateRepoURI generate the repo uri

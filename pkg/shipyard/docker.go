@@ -1,10 +1,6 @@
 package shipyard
 
-import (
-	"io"
-
-	"github.com/docker/engine-api/types"
-)
+import "github.com/docker/engine-api/types"
 
 //ImageCreator the interface an ImageCreator instance must implement
 type ImageCreator interface {
@@ -23,6 +19,9 @@ type ImageCreator interface {
 	//DeleteImageRevisionLocal Delete the image from the local machine repository.  Return an error if unable to do so.  Should not be called from outside the package
 	DeleteImageRevisionLocal(sha string) error
 
+	//DeleteImageRevision Delete the image from the remote repository.  Return an error if unable to do so.
+	DeleteImageRevision(dockerInfo *DockerInfo) error
+
 	//GetLocalImages return all local images
 	GetLocalImages() (*[]types.Image, error)
 
@@ -31,9 +30,6 @@ type ImageCreator interface {
 
 	//PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
 	PushImage(dockerInfo *DockerInfo) (chan (string), error)
-
-	//PullImage pull the specified image to our the docker runtime.  Deliberately left as a readcloser since it's not exposed via api
-	PullImage(dockerInfo *DockerInfo) (io.ReadCloser, error)
 
 	//GenerateRepoURI Generate the absolute repo uri from the docker info
 	GenerateRepoURI(dockerInfo *DockerInfo) string

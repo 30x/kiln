@@ -45,3 +45,4 @@ ingress.yaml
 deployer.yaml
 #ignore delve debugger files 
 **/*.test
+coverage.**
