@@ -428,8 +428,34 @@ func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//get our token
+	token, err := authsdk.NewJWTTokenFromRequest(r)
+
+	if err != nil {
+		message := fmt.Sprintf("Unable to find oAuth token %s", err)
+		shipyard.LogError.Printf(message)
+		writeErrorResponse(http.StatusUnauthorized, message, w)
+		return
+	}
+
 	// copy everything over
 	for _, namespace := range *namespaceNames {
+
+		shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), namespace)
+
+		isAdmin, err := token.IsOrgAdmin(namespace)
+
+		if err != nil {
+			message := fmt.Sprintf("Unable to get permission token %s", err)
+			shipyard.LogError.Printf(message)
+			writeErrorResponse(http.StatusUnauthorized, message, w)
+		}
+
+		//if not an admin ignore this namespace since theyr'e not allowed to see it
+		if !isAdmin {
+			continue
+		}
+
 		namespaceObj := &Namespace{
 			Name: namespace,
 		}
