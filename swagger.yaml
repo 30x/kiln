@@ -106,7 +106,19 @@ paths:
           schema:
             $ref: '#/definitions/Image'
         '404':
-          description: The request was for a namespace or application that does not exist
+          description: The request was for a namespace, application, or revision that does not exist
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      description: Delete the image for the specfied revision of the application within the repo
+      operationId: deleteImage
+      responses:
+        '200':
+          description: The request was for a valid namespace and application and revision
+          schema:
+            $ref: '#/definitions/Image'
+        '404':
+          description: The request was for a namespace, application, or revision that does not exist
           schema:
             $ref: '#/definitions/Error'
     parameters:
@@ -134,7 +146,7 @@ definitions:
             type: array
             items:
               type: string
-            description: The logs from the build  
+            description: The logs from the build
         required:
           - created
           - size

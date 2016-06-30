@@ -5,7 +5,6 @@ package shipyard
 This implementation supports the local docker API, as well as the docker provided remote registry
 **/
 import (
-	"io/ioutil"
 	"os"
 	// "io"
 	"crypto/tls"
@@ -199,44 +198,46 @@ func (imageCreator LocalImageCreator) DeleteImageRevisionLocal(sha string) error
 
 //DeleteImageRevision Delete the image from the remote repository.  Return an error if unable to do so.
 func (imageCreator LocalImageCreator) DeleteImageRevision(dockerInfo *DockerInfo) error {
-	//locally we just delegate to delete image revision
-	revision, err := imageCreator.GetImageRevision(dockerInfo)
 
-	if err != nil {
-		return err
-	}
+	return fmt.Errorf("Deleting an image from the local registry is not supported")
+	// //locally we just delegate to delete image revision
+	// revision, err := imageCreator.GetImageRevision(dockerInfo)
 
-	//get the manifests
-	// localhost:5000/v2/test00998f29-a4c1-4bcb-662b-0439382f919b/application/manifests/v1.0
+	// if err != nil {
+	// 	return err
+	// }
 
-	//delete all manifests
+	// //Get the manifests and delete them
 
-	//get all blobs
+	// url := fmt.Sprintf("http://%s/%s/manifests/%s", imageCreator.remoteRepo, dockerInfo.GetImageName(), revision.ID)
 
-	url := fmt.Sprintf("http://%s/%s/manifests/%s", imageCreator.remoteRepo, dockerInfo.GetImageName(), revision.ID)
+	// LogInfo.Printf("Deleting image from url %s", url)
 
-	LogInfo.Printf("Deleting image from url %s", url)
+	// req, _ := http.NewRequest("GET", url, nil)
+	// client := &http.Client{}
+	// response, err := client.Do(req)
 
-	req, _ := http.NewRequest("DELETE", url, nil)
-	client := &http.Client{}
-	response, err := client.Do(req)
+	// if err != nil {
+	// 	return err
+	// }
 
-	if err != nil {
-		return err
-	}
+	// if response.StatusCode != http.StatusOK {
+	// 	return fmt.Errorf("Received response code %d with message %s, expected 200", response.StatusCode, response.Status)
+	// }
 
-	//not sure we need this, but we want to wait for the response
-	_, err = ioutil.ReadAll(response.Body)
+	// // //not sure we need this, but we want to wait for the response
+	// _, err = ioutil.ReadAll(response.Body)
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("Received response code %d with message %s, expected 200", response.StatusCode, response.Status)
-	}
+	//GET HEADER from GET, then issue delete once this is resolved.
+	// //Docker-Content-Digest →sha256:c4882905e4ddecd349b98c924edaf44e64ee5c656a93fe6c7b50984c4f4a428c
 
-	return nil
+	//https://docs.docker.com/registry/spec/api/#delete-manifest
+
+	// return nil
 }
 
 //parse the tag out of the returned image

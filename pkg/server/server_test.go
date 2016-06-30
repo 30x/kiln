@@ -25,7 +25,7 @@ import (
 
 var _ = Describe("Server Test", func() {
 
-	ServerTests := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
+	BothContexts := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
 
 		It("Get Namespaces ", func() {
 
@@ -88,20 +88,6 @@ var _ = Describe("Server Test", func() {
 			sha = imageSpec.ImageID
 
 			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
-
-			//now delete it
-			response, imageSpec = deleteImage(hostBase, namespace, application, revision)
-
-			Expect(response.StatusCode).Should(Equal(200), "Get image should return 200")
-
-			deleteSha := imageSpec.ImageID
-
-			Expect(deleteSha).Should(Equal(sha), "Should start with sha256 signature")
-
-			//should 404
-			response, imageSpec = getImage(hostBase, namespace, application, revision)
-
-			Expect(response.StatusCode).Should(Equal(404), "Get image should return 404")
 
 		})
 
@@ -388,6 +374,60 @@ var _ = Describe("Server Test", func() {
 
 	}
 
+	ECROnly := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
+		It("Delete Image ", func() {
+
+			httpResponse, _, err := getNamespaces(hostBase)
+
+			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			//we explicity don't test since other images might be present in the docker registry
+
+			//now create a new images
+
+			namespace := "test" + shipyard.UUIDString()
+			application := "application"
+			revision := "v1.0"
+
+			response, body, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+
+			//read body to the end and discard results
+			getBuildData(body)
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			//get the image
+			response, imageSpec := getImage(hostBase, namespace, application, revision)
+
+			Expect(response.StatusCode).Should(Equal(200), "Get image should return 200")
+
+			sha := imageSpec.ImageID
+
+			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
+
+			//now delete it
+			response, imageSpec = deleteImage(hostBase, namespace, application, revision)
+
+			Expect(response.StatusCode).Should(Equal(200), "Get image should return 200")
+
+			deleteSha := imageSpec.ImageID
+
+			Expect(deleteSha).Should(Equal(sha), "Should start with sha256 signature")
+
+			//should 404
+			response, imageSpec = getImage(hostBase, namespace, application, revision)
+
+			Expect(response.StatusCode).Should(Equal(404), "Get image should return 404")
+
+		})
+	}
+
 	Context("Local Docker", func() {
 		//set up the provider
 
@@ -407,7 +447,7 @@ var _ = Describe("Server Test", func() {
 			Fail(fmt.Sprintf("Could not start server %s", err))
 		}
 
-		ServerTests(server, hostBase, dockerRegistryURL)
+		BothContexts(server, hostBase, dockerRegistryURL)
 	})
 
 	Context("ECR Docker", func() {
@@ -431,7 +471,8 @@ var _ = Describe("Server Test", func() {
 			Fail(fmt.Sprintf("Could not start server %s", err))
 		}
 
-		ServerTests(server, hostBase, dockerRegistryURL)
+		BothContexts(server, hostBase, dockerRegistryURL)
+		ECROnly(server, hostBase, dockerRegistryURL)
 	})
 
 })
