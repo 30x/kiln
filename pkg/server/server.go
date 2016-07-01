@@ -269,6 +269,8 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	//turn this off so browsers render the response as it comes in
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Location", server.generateImageURL(dockerInfo))
+	//turn off proxy buffering in nginx (http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering)
+	w.Header().Set("X-Accel-Buffering", "no")
 
 	w.WriteHeader(http.StatusCreated)
 
