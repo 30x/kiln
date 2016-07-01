@@ -3,7 +3,9 @@
 
 
 
-if [ ! -r /root/.docker/config.json ]
+
+#We only need to do this when we're in ECR.  Otherwise we can safely ignore this
+if [ ! -r /root/.docker/config.json ] && [ $DOCKER_PROVIDER = "ecr" ]
 then
     echo "No file /root/.docker/config.json exists.  Checking for k8s secret"
     
@@ -19,8 +21,9 @@ then
     mkdir -p /root/.docker
     echo "Copying /root/k8s-secret/.dockerconfigjson to /root/.docker/config.json "
     cp /root/k8s-secret/.dockerconfigjson /root/.docker/config.json 
+    echo "File in place, starting shipyard"
 fi
 
-echo "File in place, starting shipyard"
+
 
 ./shipyard
