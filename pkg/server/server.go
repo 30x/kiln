@@ -274,13 +274,13 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	flusher, ok := w.(http.Flusher)
 
-	//force chunked encoding
-	flusher.Flush()
-
 	//a serious problem, need to kill the server so we catch this during testing
 	if !ok {
 		panic("expected http.ResponseWriter to be an http.Flusher")
 	}
+
+	//force chunked encoding
+	flusher.Flush()
 
 	//stream the log data
 	err = chunkData(w, flusher, outputChannel)

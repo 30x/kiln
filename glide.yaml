@@ -11,7 +11,7 @@ import:
   version: v1.10.3
 - package: github.com/docker/engine-api/client
   vcs: git
-  version: v0.2.3
+  version: v0.3.3
 - package: github.com/gorilla/handlers
   vcs: git
   version: ee54c7b44cab12289237fb8631314790076e728b
@@ -28,7 +28,7 @@ import:
   - pkg/client/api
 - package: github.com/30x/authsdk
   vcs: git
-  version: 6449d0d8d0285d71132e473155bcfaa4c3c7d3b7
+  version: 50e1bb8adac0afdac021b4b08091876d1a70324c
 
     
 # - package: github.com/golang/glog

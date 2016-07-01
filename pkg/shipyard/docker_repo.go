@@ -6,13 +6,13 @@ This implementation supports the local docker API, as well as the docker provide
 **/
 import (
 	"os"
+
+	"golang.org/x/net/context"
 	// "io"
-	"crypto/tls"
+
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/docker/docker/cliconfig"
@@ -43,7 +43,7 @@ func NewLocalImageCreator(repo string) (ImageCreator, error) {
 	}
 
 	//TODO, stop selecting all
-	_, err = client.ImageList(types.ImageListOptions{All: false})
+	_, err = client.ImageList(context.Background(), types.ImageListOptions{All: false})
 
 	if err != nil {
 		return nil, err
@@ -59,45 +59,14 @@ func NewLocalImageCreator(repo string) (ImageCreator, error) {
 // Use DOCKER_CERT_PATH to load the tls certificates from.
 // Use DOCKER_TLS_VERIFY to enable or disable TLS verification, off by default.
 func newEnvClient() (*client.Client, error) {
-	var transport *http.Transport
-	dockerCertPath := os.Getenv("DOCKER_CERT_PATH")
-	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY")
-
-	if dockerCertPath != "" && dockerTLSVerify != "" {
-		tlsc := &tls.Config{}
-
-		cert, err := tls.LoadX509KeyPair(filepath.Join(dockerCertPath, "cert.pem"), filepath.Join(dockerCertPath, "key.pem"))
-		if err != nil {
-			return nil, fmt.Errorf("Error loading x509 key pair: %s", err)
-		}
-
-		tlsc.Certificates = append(tlsc.Certificates, cert)
-		tlsc.InsecureSkipVerify = dockerTLSVerify == ""
-		transport = &http.Transport{
-			TLSClientConfig: tlsc,
-		}
-	}
-
-	dockerHost := os.Getenv("DOCKER_HOST")
-
-	if dockerHost == "" {
-		LogError.Fatalf("You must sent the DOCKER_HOST env variable")
-	}
-
-	parts := strings.SplitN(dockerHost, "://", 2)
-
-	if len(parts) != 2 {
-		LogError.Fatalf("You must specify a protocol on your server.  tcp:// or http:// is required")
-	}
-
-	return client.NewClient(dockerHost, os.Getenv("DOCKER_API_VERSION"), transport, nil)
+	return client.NewEnvClient()
 }
 
 //GetNamespaces get all remote repositories
 func (imageCreator LocalImageCreator) GetNamespaces() (*[]string, error) {
 	opts := types.ImageListOptions{All: false}
 
-	images, err := imageCreator.client.ImageList(opts)
+	images, err := imageCreator.client.ImageList(context.Background(), opts)
 
 	if err != nil {
 		return nil, err
@@ -117,7 +86,7 @@ func (imageCreator LocalImageCreator) GetApplications(repository string) (*[]str
 
 	opts := types.ImageListOptions{All: false, Filters: filters}
 
-	images, err := imageCreator.client.ImageList(opts)
+	images, err := imageCreator.client.ImageList(context.Background(), opts)
 
 	if err != nil {
 		return nil, err
@@ -141,7 +110,7 @@ func (imageCreator LocalImageCreator) GetImages(repository string, application s
 
 	opts := types.ImageListOptions{All: false, Filters: filters}
 
-	images, err := imageCreator.client.ImageList(opts)
+	images, err := imageCreator.client.ImageList(context.Background(), opts)
 
 	return &images, err
 }
@@ -164,7 +133,7 @@ func (imageCreator LocalImageCreator) GetImageRevision(dockerInfo *DockerInfo) (
 
 	opts := types.ImageListOptions{All: false, Filters: filters}
 
-	images, err := imageCreator.client.ImageList(opts)
+	images, err := imageCreator.client.ImageList(context.Background(), opts)
 
 	if err == nil && len(images) > 0 {
 		return &images[0], err
@@ -182,7 +151,7 @@ func (imageCreator LocalImageCreator) DeleteImageRevisionLocal(sha string) error
 		ImageID:       sha,
 		PruneChildren: false,
 	}
-	deleted, err := imageCreator.client.ImageRemove(imageRemoveOptions)
+	deleted, err := imageCreator.client.ImageRemove(context.Background(), imageRemoveOptions)
 
 	if err != nil {
 		return err
@@ -263,7 +232,7 @@ func (imageCreator LocalImageCreator) GetLocalImages() (*[]types.Image, error) {
 
 	opts := types.ImageListOptions{All: false}
 
-	images, err := imageCreator.client.ImageList(opts)
+	images, err := imageCreator.client.ImageList(context.Background(), opts)
 
 	return &images, err
 }
@@ -312,7 +281,7 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild) (chan 
 		Remove:      true,
 	}
 
-	response, err := imageCreator.client.ImageBuild(imageBuildOptions)
+	response, err := imageCreator.client.ImageBuild(context.Background(), imageBuildOptions)
 
 	if err != nil {
 		LogInfo.Fatal(err)
@@ -349,7 +318,7 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (s
 
 	LogInfo.Printf("Tagging local image id of %s with remote tag of %s and tag %s", localTag, remoteTag, revision)
 
-	err := imageCreator.client.ImageTag(imageTagOptions)
+	err := imageCreator.client.ImageTag(context.Background(), imageTagOptions)
 
 	if err != nil {
 		return nil, err
@@ -371,7 +340,7 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (s
 		return authConfig, nil
 	}
 
-	reader, err := imageCreator.client.ImagePush(imagePushOptions, privledgedFunction)
+	reader, err := imageCreator.client.ImagePush(context.Background(), imagePushOptions, privledgedFunction)
 
 	if err != nil {
 		return nil, err
