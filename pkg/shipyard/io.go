@@ -238,6 +238,10 @@ LABEL ` + TAG_APPLICATION + `={{.ImageName}}
 LABEL ` + TAG_REVISION + `={{.Revision}}
 
 CMD ["npm", "start"]
+
+{{range .EnvVars}}
+ENV {{.}}
+{{end}}
 `
 
 //constant that's initialized below.  Constants must only be primitive types
