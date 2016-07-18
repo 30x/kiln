@@ -27,9 +27,9 @@ var _ = Describe("Server Test", func() {
 
 	BothContexts := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
 
-		It("Get Namespaces ", func() {
+		It("Get Imagespaces ", func() {
 
-			httpResponse, namespaces, err := getNamespaces(hostBase)
+			httpResponse, imagespaces, err := getImagespaces(hostBase)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
@@ -39,11 +39,11 @@ var _ = Describe("Server Test", func() {
 
 			//now create a new images
 
-			namespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + shipyard.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
-			response, body, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+			response, body, err := newFileUploadRequest(hostBase, imagespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -58,7 +58,7 @@ var _ = Describe("Server Test", func() {
 
 			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
-			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, namespace, application, revision)
+			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, imagespace, application, revision)
 
 			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s&publicPath=9000:/test-echo", dockerURI)
 
@@ -72,16 +72,16 @@ var _ = Describe("Server Test", func() {
 
 			Expect(podSpec).ShouldNot(BeEmpty(), "Pod spec should have content")
 
-			httpResponse, namespaces, err = getNamespaces(hostBase)
+			httpResponse, imagespaces, err = getImagespaces(hostBase)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
 			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
-			assertContainsNamespace(namespaces, namespace)
+			assertContainsNamespace(imagespaces, imagespace)
 
 			//get the image
-			response, imageSpec := getImage(hostBase, namespace, application, revision)
+			response, imageSpec := getImage(hostBase, imagespace, application, revision)
 
 			Expect(response.StatusCode).Should(Equal(200), "Get image should return 200")
 
@@ -91,9 +91,9 @@ var _ = Describe("Server Test", func() {
 
 		})
 
-		It("Get Namespaces Trailing Slashes ", func() {
+		It("Get Imagespaces Trailing Slashes ", func() {
 
-			httpResponse, namespaces, err := getNamespaces(hostBase)
+			httpResponse, imagespaces, err := getImagespaces(hostBase)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
@@ -103,11 +103,11 @@ var _ = Describe("Server Test", func() {
 
 			//now create a new images
 
-			namespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + shipyard.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
-			response, body, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo/")
+			response, body, err := newFileUploadRequest(hostBase, imagespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo/")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -122,7 +122,7 @@ var _ = Describe("Server Test", func() {
 
 			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
-			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, namespace, application, revision)
+			dockerURI := fmt.Sprintf("%s/%s/%s:%s", dockerRegistryURL, imagespace, application, revision)
 
 			expectedURL := hostBase + fmt.Sprintf("/generatepodspec?imageURI=%s&publicPath=9000:/test-echo/", dockerURI)
 
@@ -136,23 +136,23 @@ var _ = Describe("Server Test", func() {
 
 			Expect(podSpec).ShouldNot(BeEmpty(), "Pod spec should have content")
 
-			httpResponse, namespaces, err = getNamespaces(hostBase)
+			httpResponse, imagespaces, err = getImagespaces(hostBase)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
 			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
-			assertContainsNamespace(namespaces, namespace)
+			assertContainsNamespace(imagespaces, imagespace)
 
 		})
 
 		It("Create Duplicate Application ", func() {
 			//upload the first image
-			namespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + shipyard.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
-			response, _, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+			response, _, err := newFileUploadRequest(hostBase, imagespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -161,7 +161,7 @@ var _ = Describe("Server Test", func() {
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
 			//now ensure it is created
-			httpResponse, applications, err := getApplications(hostBase, namespace)
+			httpResponse, applications, err := getApplications(hostBase, imagespace)
 
 			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
@@ -169,7 +169,7 @@ var _ = Describe("Server Test", func() {
 
 			//now try to post again, should get a 409
 
-			response, _, err = newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+			response, _, err = newFileUploadRequest(hostBase, imagespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -181,11 +181,11 @@ var _ = Describe("Server Test", func() {
 
 		It("Test Application Images", func() {
 			//upload the first image
-			namespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + shipyard.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
-			response, _, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+			response, _, err := newFileUploadRequest(hostBase, imagespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -194,7 +194,7 @@ var _ = Describe("Server Test", func() {
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
 			//now ensure it is created
-			httpResponse, images, err := getImages(hostBase, namespace, application)
+			httpResponse, images, err := getImages(hostBase, imagespace, application)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
@@ -212,7 +212,7 @@ var _ = Describe("Server Test", func() {
 
 			revision2 := "v1.1"
 
-			response, _, err = newFileUploadRequest(hostBase, namespace, application, revision2, "../../testresources/echo-test.zip", "9000:/test-echo")
+			response, _, err = newFileUploadRequest(hostBase, imagespace, application, revision2, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -221,7 +221,7 @@ var _ = Describe("Server Test", func() {
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
 			//now ensure it is created
-			httpResponse, images, err = getImages(hostBase, namespace, application)
+			httpResponse, images, err = getImages(hostBase, imagespace, application)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
@@ -244,15 +244,15 @@ var _ = Describe("Server Test", func() {
 
 		It("No Cross Namepaces on GET", func() {
 			//upload the first image
-			namespace1 := "test" + shipyard.UUIDString()
+			imagespace1 := "test" + shipyard.UUIDString()
 			application1 := "application1"
 
-			namespace2 := "test" + shipyard.UUIDString()
+			imagespace2 := "test" + shipyard.UUIDString()
 			application2 := "application2"
 
 			revision := "v1.0"
 
-			response, _, err := newFileUploadRequest(hostBase, namespace1, application1, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+			response, _, err := newFileUploadRequest(hostBase, imagespace1, application1, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -260,8 +260,8 @@ var _ = Describe("Server Test", func() {
 			//now check the resposne code
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
-			//upload to namespace 2 and ensure we can't see it
-			response, _, err = newFileUploadRequest(hostBase, namespace2, application2, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+			//upload to imagespace 2 and ensure we can't see it
+			response, _, err = newFileUploadRequest(hostBase, imagespace2, application2, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -270,7 +270,7 @@ var _ = Describe("Server Test", func() {
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
 			//now ensure it is created
-			httpResponse, applications, err := getApplications(hostBase, namespace1)
+			httpResponse, applications, err := getApplications(hostBase, imagespace1)
 
 			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
@@ -280,7 +280,7 @@ var _ = Describe("Server Test", func() {
 
 			//ensure we only get the application 2
 
-			httpResponse, applications, err = getApplications(hostBase, namespace2)
+			httpResponse, applications, err = getApplications(hostBase, imagespace2)
 
 			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
 
@@ -290,94 +290,12 @@ var _ = Describe("Server Test", func() {
 
 		})
 
-		It("Podspec Storage", func() {
-
-			namespace := "test" + shipyard.UUIDString()
-			application := "application"
-			revision := "v1.0"
-
-			content := `{"name":"value"}`
-
-			httpResponse, body := putPodSpec(content, hostBase, namespace, application, revision)
-
-			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-			Expect(body).Should(Equal(""))
-
-			//now get it
-
-			httpResponse, body = getPodSpec(hostBase, namespace, application, revision)
-
-			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-			Expect(body).Should(Equal(content))
-
-			//TODO implement this
-			// //delete it
-
-			// httpResponse, body = deletePodSpec(hostBase, namespace, application, revision)
-
-			// Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-			// Expect(body).Should(Equal(content))
-
-			// //now get it, should be gone
-
-			// httpResponse, body = getPodSpec(hostBase, namespace, application, revision)
-
-			// Expect(httpResponse.StatusCode).Should(Equal(404), "Response should be 404")
-
-			// Expect(body).Should(Equal(content))
-
-		})
-
-		It("Podspec Storage", func() {
-
-			namespace := "test" + shipyard.UUIDString()
-			application := "application"
-			revision := "v1.0"
-
-			content := `{"name":"value"}`
-
-			httpResponse, body := putPodSpec(content, hostBase, namespace, application, revision)
-
-			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-			Expect(body).Should(Equal(""))
-
-			//now get it
-
-			httpResponse, body = getPodSpec(hostBase, namespace, application, revision)
-
-			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-			Expect(body).Should(Equal(content))
-
-			//TODO implement this
-			// //delete it
-
-			// httpResponse, body = deletePodSpec(hostBase, namespace, application, revision)
-
-			// Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-			// Expect(body).Should(Equal(content))
-
-			// //now get it, should be gone
-
-			// httpResponse, body = getPodSpec(hostBase, namespace, application, revision)
-
-			// Expect(httpResponse.StatusCode).Should(Equal(404), "Response should be 404")
-
-			// Expect(body).Should(Equal(content))
-
-		})
-
 	}
 
 	ECROnly := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
 		It("Delete Image ", func() {
 
-			httpResponse, _, err := getNamespaces(hostBase)
+			httpResponse, _, err := getImagespaces(hostBase)
 
 			Expect(err).Should(BeNil(), "No error should be returned from the get. Error is %s", err)
 
@@ -387,11 +305,11 @@ var _ = Describe("Server Test", func() {
 
 			//now create a new images
 
-			namespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + shipyard.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
-			response, body, err := newFileUploadRequest(hostBase, namespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
+			response, body, err := newFileUploadRequest(hostBase, imagespace, application, revision, "../../testresources/echo-test.zip", "9000:/test-echo")
 
 			//read body to the end and discard results
 			getBuildData(body)
@@ -403,7 +321,7 @@ var _ = Describe("Server Test", func() {
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
 			//get the image
-			response, imageSpec := getImage(hostBase, namespace, application, revision)
+			response, imageSpec := getImage(hostBase, imagespace, application, revision)
 
 			Expect(response.StatusCode).Should(Equal(200), "Get image should return 200")
 
@@ -412,7 +330,7 @@ var _ = Describe("Server Test", func() {
 			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
 			//now delete it
-			response, imageSpec = deleteImage(hostBase, namespace, application, revision)
+			response, imageSpec = deleteImage(hostBase, imagespace, application, revision)
 
 			Expect(response.StatusCode).Should(Equal(200), "Get image should return 200")
 
@@ -421,7 +339,7 @@ var _ = Describe("Server Test", func() {
 			Expect(deleteSha).Should(Equal(sha), "Should start with sha256 signature")
 
 			//should 404
-			response, imageSpec = getImage(hostBase, namespace, application, revision)
+			response, imageSpec = getImage(hostBase, imagespace, application, revision)
 
 			Expect(response.StatusCode).Should(Equal(404), "Get image should return 404")
 
@@ -458,9 +376,8 @@ var _ = Describe("Server Test", func() {
 		os.Setenv("DOCKER_PROVIDER", "ecr")
 		os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
 		os.Setenv("ECR_REGION", "us-east-1")
-		os.Setenv("POD_PROVIDER", "s3")
-		os.Setenv("S3_REGION", "us-east-1")
-		os.Setenv("S3_BUCKET", "podspectestbucket")
+		os.Setenv("POD_PROVIDER", "local")
+		os.Setenv("LOCAL_DIR", "/tmp/podspecs")
 
 		//Use our test provider for jwt tokens
 		os.Setenv("JWTTOKENIMPL", "test")
@@ -503,7 +420,7 @@ func doSetup(port int) (*server.Server, string, error) {
 
 	//wait for it to start
 
-	hostBase := fmt.Sprintf("%s/beeswax/images/api/v1", baseHost)
+	hostBase := fmt.Sprintf("%s/imagespaces", baseHost)
 
 	started := false
 
@@ -532,15 +449,15 @@ func doSetup(port int) (*server.Server, string, error) {
 }
 
 //assertContainsNamespace check if namespace array has the expected namespace in it
-func assertContainsNamespace(namespaces []*server.Namespace, expectedNamespace string) {
+func assertContainsNamespace(imagespaces []*server.Imagespace, expectedImagespace string) {
 
-	for _, namespace := range namespaces {
-		if namespace.Name == expectedNamespace {
+	for _, imagespace := range imagespaces {
+		if imagespace.Name == expectedImagespace {
 			return
 		}
 	}
 
-	Fail(fmt.Sprintf("Could not find namespace %s in list returned", expectedNamespace))
+	Fail(fmt.Sprintf("Could not find imagespace %s in list returned", expectedImagespace))
 }
 
 func assertContainsApplication(applications []*server.Application, expectedApplication string) {
@@ -554,10 +471,10 @@ func assertContainsApplication(applications []*server.Application, expectedAppli
 	Fail(fmt.Sprintf("Could not find application %s in list returned", expectedApplication))
 }
 
-//getNamespaces perform a get request on namespaces
-func getNamespaces(hostBase string) (*http.Response, []*server.Namespace, error) {
+//getImagespaces perform a get request on namespaces
+func getImagespaces(hostBase string) (*http.Response, []*server.Imagespace, error) {
 
-	url := fmt.Sprintf("%s/namespaces/", hostBase)
+	url := fmt.Sprintf("%s/", hostBase)
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
@@ -569,7 +486,7 @@ func getNamespaces(hostBase string) (*http.Response, []*server.Namespace, error)
 		return nil, nil, err
 	}
 
-	repositories := []*server.Namespace{}
+	repositories := []*server.Imagespace{}
 
 	bytes, err := ioutil.ReadAll(response.Body)
 
@@ -584,8 +501,8 @@ func getNamespaces(hostBase string) (*http.Response, []*server.Namespace, error)
 }
 
 //getApplications get the applications
-func getApplications(hostBase string, namespace string) (*http.Response, []*server.Application, error) {
-	url := getApplicationsURL(hostBase, namespace)
+func getApplications(hostBase string, imagespace string) (*http.Response, []*server.Application, error) {
+	url := getApplicationsURL(hostBase, imagespace)
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
@@ -607,9 +524,9 @@ func getApplications(hostBase string, namespace string) (*http.Response, []*serv
 }
 
 //getImages get the images from the response
-func getImages(hostBase string, namespace string, application string) (*http.Response, []*server.Image, error) {
+func getImages(hostBase string, imagespace string, application string) (*http.Response, []*server.Image, error) {
 
-	url := getImagesURL(hostBase, namespace, application)
+	url := getImagesURL(hostBase, imagespace, application)
 
 	shipyard.LogInfo.Printf("Invoking get at URL %s", url)
 
@@ -650,11 +567,11 @@ func getJSONContent(url string) (*http.Response, string) {
 
 }
 
-func getPodSpec(hostBase string, namespace string, application string, revision string) (*http.Response, string) {
-	url := getPodSpecURL(hostBase, namespace, application, revision)
+// func getPodSpec(hostBase string, namespace string, application string, revision string) (*http.Response, string) {
+// 	url := getPodSpecURL(hostBase, namespace, application, revision)
 
-	return getJSONContent(url)
-}
+// 	return getJSONContent(url)
+// }
 
 func getImage(hostBase string, namespace string, application string, revision string) (*http.Response, *server.Image) {
 	url := getImageURL(hostBase, namespace, application, revision)
@@ -691,38 +608,8 @@ func deleteImage(hostBase string, namespace string, application string, revision
 
 }
 
-//putPodSpec put the pod spec to the provided endpoint
-func putPodSpec(podSpec string, hostBase string, namespace string, application string, revision string) (*http.Response, string) {
-	url := getPodSpecURL(hostBase, namespace, application, revision)
-	req, _ := http.NewRequest("PUT", url, strings.NewReader(podSpec))
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
-	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Content-Type", "application/json")
-	client := &http.Client{}
-	response, _ := client.Do(req)
-
-	bytes, _ := ioutil.ReadAll(response.Body)
-
-	return response, string(bytes)
-
-}
-
-func deletePodSpec(hostBase string, namespace string, application string, revision string) (*http.Response, string) {
-	url := getPodSpecURL(hostBase, namespace, application, revision)
-	req, _ := http.NewRequest("DELETE", url, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
-	req.Header.Add("Accept", "application/json")
-	client := &http.Client{}
-	response, _ := client.Do(req)
-
-	bytes, _ := ioutil.ReadAll(response.Body)
-
-	return response, string(bytes)
-
-}
-
 //newfileUploadRequest upload a file form request. Returns the response, the fully read body as a string, and an error
-func newFileUploadRequest(hostBase string, namespace string, application string, revision string, path string, publicPath string) (*http.Response, *string, error) {
+func newFileUploadRequest(hostBase string, imagespace string, application string, revision string, path string, publicPath string) (*http.Response, *string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, nil, err
@@ -742,8 +629,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 		return nil, nil, err
 	}
 
-	writer.WriteField("namespace", namespace)
-	writer.WriteField("application", application)
+	writer.WriteField("name", application)
 	writer.WriteField("revision", revision)
 	writer.WriteField("publicPath", publicPath)
 
@@ -756,7 +642,7 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 		return nil, nil, err
 	}
 
-	uri := fmt.Sprintf("%s/builds", hostBase)
+	uri := fmt.Sprintf("%s/%s/images", hostBase, imagespace)
 
 	request, err := http.NewRequest("POST", uri, body)
 
@@ -789,31 +675,26 @@ func newFileUploadRequest(hostBase string, namespace string, application string,
 }
 
 //getApplicationsURL get the appplicationsUrl
-func getApplicationsURL(hostBase string, namespace string) string {
+func getApplicationsURL(hostBase string, imagespace string) string {
 
-	applicationsURL := fmt.Sprintf("%s/namespaces/%s/applications", hostBase, namespace)
+	applicationsURL := fmt.Sprintf("%s/%s/images/", hostBase, imagespace)
 
 	// shipyard.LogInfo.Printf("Creating URL %s", applicationsURL)
 
 	return applicationsURL
 }
 
-func getApplicationURL(hostBase string, namespace string, application string) string {
-	return fmt.Sprintf("%s/%s", getApplicationsURL(hostBase, namespace), application)
+func getApplicationURL(hostBase string, imagespace string, application string) string {
+	return fmt.Sprintf("%s/%s", getApplicationsURL(hostBase, imagespace), application)
 }
 
-func getImagesURL(hostBase string, namespace string, application string) string {
-	return fmt.Sprintf("%s/images/", getApplicationURL(hostBase, namespace, application))
+func getImagesURL(hostBase string, imagespace string, application string) string {
+	return getApplicationURL(hostBase, imagespace, application)
 }
 
 //get the URL for the image
-func getImageURL(hostBase string, namespace string, application string, revision string) string {
-	return fmt.Sprintf("%s/images/%s", getApplicationURL(hostBase, namespace, application), revision)
-}
-
-//getPodSpecURL get the podspec url for GET and PUT operations
-func getPodSpecURL(hostBase string, namespace string, application string, revision string) string {
-	return fmt.Sprintf("%s/podspec/%s", getApplicationURL(hostBase, namespace, application), revision)
+func getImageURL(hostBase string, imagespace string, application string, revision string) string {
+	return fmt.Sprintf("%s/version/%s", getApplicationURL(hostBase, imagespace, application), revision)
 }
 
 func getBuildData(buildResponseBody *string) (imageSha string, podTemplateSpecURI string) {
