@@ -38,6 +38,7 @@ type CreateImage struct {
 	Application string `schema:"application"`
 	Revision    string `schema:"revision"`
 	PublicPath  string `schema:"publicPath"`
+	EnvVars     []string `schema:"envVar"`
 }
 
 //Validate validate the application input is correct

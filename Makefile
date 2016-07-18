@@ -1,6 +1,6 @@
 #Format is MAJOR . MINOR . PATCH
 
-IMAGE_VERSION=0.1.12
+IMAGE_VERSION=0.1.13
 
 
 test-build-and-package: test-source build-and-package
@@ -15,15 +15,16 @@ test-source:
 
 #Creates a test coverage file called coverage.txt.  This then opens a browser window to view the coverage
 test-coverage:
+	eval $( aws ecr get-login --region us-east-1)
 	go test ./pkg/shipyard -covermode=atomic -coverprofile=coverage.tmp
 	go test ./pkg/shipyard -covermode=atomic -coverprofile=coverage.tmp
 	echo 'mode: atomic' > coverage.out
 	tail -n +2 coverage.tmp >> coverage.out
 	go tool cover -html=coverage.out -o=coverage.html
 
-compile-linux:	
+compile-linux:
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-w' -o build/shipyard .
-	
+
 build-image:
 	docker build -t thirtyx/shipyard .
 

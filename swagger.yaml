@@ -50,6 +50,12 @@ paths:
           description: The public path of the application in the format of [PORT]:[URL]. For example, 8080:/ or 9000:/foo/bar
           required: true
           type: string
+        - name: envVar
+          in: formData
+          description: An optional array of environment variables for the image
+          type: array
+          items:
+            type: string
   '/namespaces':
     get:
       description: Get all namespaces
