@@ -10,13 +10,14 @@ spec:
     metadata:
       labels:
         name: shipyard
-        microservice: "true"
+        routable: "true"
       annotations:
-        trafficHosts: "deploy.k8s.local"
-        publicPaths: "5280:/beeswax/images"
+        publicHosts: "test.k8s.local"
+        publicPaths: "5280:/imagespaces"
+        projectcalico.org/policy: "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.129.0.0/16"
     spec:
       containers:
-      - image: thirtyx/shipyard:latest
+      - image: localhost:5000/thirtyx/shipyard
         imagePullPolicy: Always
         name: shipyard
         ports:
@@ -27,19 +28,29 @@ spec:
         - name: DOCKER_PROVIDER
           value: docker
         - name: DOCKER_REGISTRY_URL
-          value: 172.17.4.99:5000
+          value: localhost:5000
         - name: DOCKER_HOST
           value: unix:///var/run/docker.sock
         - name: POD_PROVIDER
           value: local
-        - name: LOCAL_DIR
-          value: /tmp/storagedir
         - name: SHUTDOWN_TIMEOUT
           value: "60"
+        - name: AUTH_API_HOST
+          value: api.e2e.apigee.net
+        - name: REAP_INTERVAL
+          value: "60"
+          # Leave images < 5 minutes old
+        - name: REAP_MIN_AGE
+          value: "300"
+        - name: SELF_BASE_URL
+          value: "http://localhost:5280"
+        - name: LOCAL_DIR
+          value: /tmp/storagedir
         volumeMounts:
         - mountPath: /var/run/docker.sock
           name: dockersocket
           readOnly: false
+
       volumes:
       - name: dockersocket
         hostPath:

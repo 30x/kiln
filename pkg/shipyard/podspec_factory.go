@@ -17,8 +17,6 @@ func NewPodSpecIoFromEnv() (PodspecIo, error) {
 	switch creatorValue {
 	case "local":
 		return newLocalPodSpecFromEnv()
-	case "s3":
-		return newS3PodSpecFromEnv()
 	default:
 		return nil, errors.New("You most specifity the POD_PROVIDER environment variable.  Valid values are 'local' or 's3'")
 	}
@@ -33,20 +31,4 @@ func newLocalPodSpecFromEnv() (*LocalPodSpec, error) {
 	}
 
 	return NewLocalPodSpec(localDirectory)
-}
-
-func newS3PodSpecFromEnv() (*S3PodSpec, error) {
-	s3Region := os.Getenv("S3_REGION")
-
-	if s3Region == "" {
-		LogError.Fatalf("You must specify the S3_REGION variable. An example value is 'us-east-1'")
-	}
-
-	s3BucketName := os.Getenv("S3_BUCKET")
-
-	if s3BucketName == "" {
-		LogError.Fatalf("You must specify the S3_BUCKET variable. An example value is 'testbeeswaxbucket'")
-	}
-
-	return NewS3PodSpec(s3Region, s3BucketName)
 }

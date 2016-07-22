@@ -116,6 +116,8 @@ var _ = Describe("Io", func() {
       LABEL com.github.30x.shipyard.revision=v1.0
 
       CMD ["npm", "start"]
+
+
       `
 
 			//take out all the whitespace to ensure that the payloads match, don't test whitespace since this always fails

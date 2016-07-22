@@ -15,8 +15,8 @@ type Image struct {
 	ImageID string    `json:"imageId"`
 }
 
-//Namespace represents an image struct
-type Namespace NamedObject
+//Imagespace represents an image struct
+type Imagespace NamedObject
 
 //Application represents an image struct
 type Application NamedObject
@@ -34,8 +34,8 @@ type Link struct {
 
 //CreateImage the structure for creating an appliction via form
 type CreateImage struct {
-	Namespace   string `schema:"namespace"`
-	Application string `schema:"application"`
+	Imagespace   string
+	Application string `schema:"name"`
 	Revision    string `schema:"revision"`
 	PublicPath  string `schema:"publicPath"`
 	EnvVars     []string `schema:"envVar"`
@@ -47,8 +47,8 @@ func (createImage *CreateImage) Validate() *Validation {
 		messages: make(map[string]string),
 	}
 
-	if createImage.Namespace == "" {
-		errors.Add("Namespace", "Namespace must be specified")
+	if createImage.Imagespace == "" {
+		errors.Add("Imagespace", "Imagespace must be specified")
 	}
 
 	if createImage.Application == "" {

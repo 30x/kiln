@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -21,7 +20,7 @@ import (
 //TODO make an env variable.  100 Meg max
 const maxFileSize = 1024 * 1024 * 100
 
-const basePath = "/beeswax/images/api/v1"
+const basePath = "/imagespaces"
 
 const templateString = `BuildComplete
 ID: %s
@@ -40,9 +39,7 @@ type Server struct {
 
 //NewServer Create a new server using the provided podspecIo and Image creator.  The hostURL is a public host name to allow the server to generate self links.  Should be of the form
 func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo, hostURL string) *Server {
-	r := mux.NewRouter()
-
-	routes := r.PathPrefix(basePath).Subrouter()
+	routes := mux.NewRouter()
 
 	//allow the trailing slash
 	//Note that when setting this to true, all URLS must end with a slash so we match paths both with and without the trailing slash
@@ -62,34 +59,26 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo,
 	}
 
 	//a bit hacky, but need the pointer to the server
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/builds/").HandlerFunc(server.postApplication)
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/builds").HandlerFunc(server.postApplication)
-	routes.Methods("GET").Path("/namespaces/").HandlerFunc(server.getNamespaces)
-	routes.Methods("GET").Path("/namespaces").HandlerFunc(server.getNamespaces)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/").HandlerFunc(server.getApplications)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications").HandlerFunc(server.getApplications)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/").HandlerFunc(server.getApplication)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}").HandlerFunc(server.getApplication)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images/").HandlerFunc(server.getImages)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images").HandlerFunc(server.getImages)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(server.getImage)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(server.getImage)
-	routes.Methods("DELETE").Path("/namespaces/{namespace}/applications/{application}/images/{revision}/").HandlerFunc(server.deleteImage)
-	routes.Methods("DELETE").Path("/namespaces/{namespace}/applications/{application}/images/{revision}").HandlerFunc(server.deleteImage)
-
-	//post a podspec for a specified revision
-	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}/").HandlerFunc(server.postPodSpec)
-	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.postPodSpec)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}/").HandlerFunc(server.getPodSpec)
-	routes.Methods("GET").Path("/namespaces/{namespace}/applications/{application}/podspec/{revision}").HandlerFunc(server.getPodSpec)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/imagespaces/{org}/images/").HandlerFunc(server.postApplication)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/imagespaces/{org}/images").HandlerFunc(server.postApplication)
+	routes.Methods("GET").Path("/imagespaces/").HandlerFunc(server.getImagespaces) // getImagespaces
+	routes.Methods("GET").Path("/imagespaces").HandlerFunc(server.getImagespaces)
+	routes.Methods("GET").Path("/imagespaces/{org}/images/").HandlerFunc(server.getApplications) // get all images by name in imageSpace
+	routes.Methods("GET").Path("/imagespaces/{org}/images").HandlerFunc(server.getApplications)
+	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/").HandlerFunc(server.getImages) // get all revisions of an app in an imageSpace
+	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}").HandlerFunc(server.getImages)
+	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/version/{revision}/").HandlerFunc(server.getImage) // get image by revision
+	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/version/{revision}").HandlerFunc(server.getImage)
+	routes.Methods("DELETE").Path("/imagespaces/{org}/images/{name}/version/{revision}/").HandlerFunc(server.deleteImage) // delete image by revision
+	routes.Methods("DELETE").Path("/imagespaces/{org}/images/{name}/version/{revision}").HandlerFunc(server.deleteImage)
 
 	//podtemplate generation
-	routes.Methods("GET").Path("/generatepodspec/").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
-	routes.Methods("GET").Path("/generatepodspec").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
+	routes.Methods("GET").Path("/imagespaces/generatepodspec/").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
+	routes.Methods("GET").Path("/imagespaces/generatepodspec").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
 
 	//health check
-	routes.Methods("GET").Path("/status/").HandlerFunc(server.status)
-	routes.Methods("GET").Path("/status").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/imagespaces/status/").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/imagespaces/status").HandlerFunc(server.status)
 
 	//now wrap everything with logging
 
@@ -124,6 +113,7 @@ func (server *Server) Start(port int, timeout time.Duration) {
 
 }
 
+// TODO: Fix how org and other info is parsed
 //postApplication and render a response
 func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(maxFileSize)
@@ -150,6 +140,10 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	createImage := new(CreateImage)
 
+	// pull org name, from path vars
+	vars := mux.Vars(r)
+	createImage.Imagespace = vars["org"]
+
 	// r.PostForm is a map of our POST form values without the file
 	err = server.decoder.Decode(createImage, r.Form)
 
@@ -170,12 +164,12 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//not an admin, exit
-	if !validateAdmin(createImage.Namespace, w, r) {
+	if !validateAdmin(createImage.Imagespace, w, r) {
 		return
 	}
 
 	dockerInfo := &shipyard.DockerInfo{
-		RepoName:  createImage.Namespace,
+		RepoName:  createImage.Imagespace,
 		ImageName: createImage.Application,
 		Revision:  createImage.Revision,
 		EnvVars: 	 createImage.EnvVars,
@@ -194,7 +188,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	//image exists, don't allow the user to create it
 	if existingImage != nil {
-		writeErrorResponse(http.StatusConflict, fmt.Sprintf("An image in namespace %s with application %s and revision %s already exists", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision), w)
+		writeErrorResponse(http.StatusConflict, fmt.Sprintf("An image in imageSpace %s with application %s and revision %s already exists", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision), w)
 		return
 	}
 
@@ -316,7 +310,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image, err := server.getImageInternal(createImage.Namespace, createImage.Application, createImage.Revision)
+	image, err := server.getImageInternal(createImage.Imagespace, createImage.Application, createImage.Revision)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not retrieve image for verification.  Error is %s", err)
@@ -387,17 +381,17 @@ func writeStringAndFlush(w http.ResponseWriter, flusher http.Flusher, line strin
 func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	namespace := vars["namespace"]
+	imageSpace := vars["org"]
 
 	//not an admin, exit
-	if !validateAdmin(namespace, w, r) {
+	if !validateAdmin(imageSpace, w, r) {
 		return
 	}
 
-	appNames, err := server.imageCreator.GetApplications(namespace)
+	appNames, err := server.imageCreator.GetApplications(imageSpace)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for namespace %s.  Error is %s", namespace, err)
+		message := fmt.Sprintf("Could not get images for imageSpace %s.  Error is %s", imageSpace, err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -416,16 +410,16 @@ func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(applications)
 }
 
-//getNamespaces get the namespaces
-func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
+//getImagespaces get the imagespaces
+func (server *Server) getImagespaces(w http.ResponseWriter, r *http.Request) {
 
 	//TODO, what's the security on this?  Open?  How can I validate they're an admin if I dont' see them, or do I filter?
-	namespaces := []*Namespace{}
+	imagespaces := []*Imagespace{}
 
-	namespaceNames, err := server.imageCreator.GetNamespaces()
+	imagespaceNames, err := server.imageCreator.GetImagespaces()
 
 	if err != nil {
-		message := fmt.Sprintf("Unable to retrieve namespaces.  %s", err)
+		message := fmt.Sprintf("Unable to retrieve imagespaces.  %s", err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -442,11 +436,11 @@ func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// copy everything over
-	for _, namespace := range *namespaceNames {
+	for _, imagespace := range *imagespaceNames {
 
-		shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), namespace)
+		shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), imagespace)
 
-		isAdmin, err := token.IsOrgAdmin(namespace)
+		isAdmin, err := token.IsOrgAdmin(imagespace)
 
 		if err != nil {
 			message := fmt.Sprintf("Unable to get permission token %s", err)
@@ -454,73 +448,38 @@ func (server *Server) getNamespaces(w http.ResponseWriter, r *http.Request) {
 			writeErrorResponse(http.StatusUnauthorized, message, w)
 		}
 
-		//if not an admin ignore this namespace since theyr'e not allowed to see it
+		//if not an admin ignore this imagespace since theyr'e not allowed to see it
 		if !isAdmin {
 			continue
 		}
 
-		namespaceObj := &Namespace{
-			Name: namespace,
+		imagespaceObj := &Imagespace{
+			Name: imagespace,
 		}
 
-		namespaces = append(namespaces, namespaceObj)
+		imagespaces = append(imagespaces, imagespaceObj)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(namespaces)
-}
-
-//GetApplication return an application, if it exists
-func (server *Server) getApplication(w http.ResponseWriter, r *http.Request) {
-
-	//TODO finish this
-	vars := mux.Vars(r)
-	namespace := vars["namespace"]
-
-	//not an admin, exit
-	if !validateAdmin(namespace, w, r) {
-		return
-	}
-
-	// application := vars["application"]
-
-	// appNames, err := imageCreator.GetApplications(namespace)
-
-	// if err != nil {
-	// 	message := fmt.Sprintf("Could not get images for namespace %s.  Error is %s", namespace, err)
-	// 	shipyard.LogError.Printf(message)
-	// 	internalError(message, w)
-	// 	return
-	// }
-
-	// applications := []*Application{}
-
-	// for _, appName := range *appNames {
-	// 	application := &Application{
-	// 		Name: appName,
-	// 	}
-	// 	applications = append(applications, application)
-	// }
-
-	// json.NewEncoder(w).Encode(applications)
+	json.NewEncoder(w).Encode(imagespaces)
 }
 
 //GetImages get the images for the given application
 func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	namespace := vars["namespace"]
-	application := vars["application"]
+	imageSpace := vars["org"]
+	application := vars["name"]
 
 	//not an admin, exit
-	if !validateAdmin(namespace, w, r) {
+	if !validateAdmin(imageSpace, w, r) {
 		return
 	}
 
-	dockerImages, err := server.imageCreator.GetImages(namespace, application)
+	dockerImages, err := server.imageCreator.GetImages(imageSpace, application)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for namespace %s and application %s.  Error is %s", namespace, application, err)
+		message := fmt.Sprintf("Could not get images for imageSpace %s and application %s.  Error is %s", imageSpace, application, err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -551,19 +510,19 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	namespace := vars["namespace"]
-	application := vars["application"]
+	imageSpace := vars["org"]
+	application := vars["name"]
 	revision := vars["revision"]
 
 	//not an admin, exit
-	if !validateAdmin(namespace, w, r) {
+	if !validateAdmin(imageSpace, w, r) {
 		return
 	}
 
-	image, err := server.getImageInternal(namespace, application, revision)
+	image, err := server.getImageInternal(imageSpace, application, revision)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.  Error is %s", namespace, application, revision, err)
+		message := fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.  Error is %s", imageSpace, application, revision, err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -571,7 +530,7 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 
 	//not found, return a 404
 	if image == nil {
-		notFound(fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.", namespace, application, revision), w)
+		notFound(fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.", imageSpace, application, revision), w)
 		return
 	}
 
@@ -583,19 +542,19 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	namespace := vars["namespace"]
-	application := vars["application"]
+	imageSpace := vars["org"]
+	application := vars["name"]
 	revision := vars["revision"]
 
 	//not an admin, exit
-	if !validateAdmin(namespace, w, r) {
+	if !validateAdmin(imageSpace, w, r) {
 		return
 	}
 
-	image, err := server.getImageInternal(namespace, application, revision)
+	image, err := server.getImageInternal(imageSpace, application, revision)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.  Error is %s", namespace, application, revision, err)
+		message := fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.  Error is %s", imageSpace, application, revision, err)
 		shipyard.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -603,12 +562,12 @@ func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 
 	//not found, return a 404
 	if image == nil {
-		notFound(fmt.Sprintf("Could not get images for namespace %s,  application %s, and revision %s.", namespace, application, revision), w)
+		notFound(fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.", imageSpace, application, revision), w)
 		return
 	}
 
 	dockerInfo := &shipyard.DockerInfo{
-		RepoName:  namespace,
+		RepoName:  imageSpace,
 		ImageName: application,
 		Revision:  revision,
 	}
@@ -628,10 +587,10 @@ func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 }
 
 //getImageInternal get an image.  Image can be nil if not found, or an error will be returned if
-func (server *Server) getImageInternal(namespace string, application string, revision string) (*Image, error) {
+func (server *Server) getImageInternal(imageSpace string, application string, revision string) (*Image, error) {
 
 	dockerInfo := &shipyard.DockerInfo{
-		RepoName:  namespace,
+		RepoName:  imageSpace,
 		ImageName: application,
 		Revision:  revision,
 	}
@@ -652,81 +611,6 @@ func (server *Server) getImageInternal(namespace string, application string, rev
 	}
 
 	return imageResponse, nil
-}
-
-//postPodSpec get the image
-func (server *Server) postPodSpec(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	namespace := vars["namespace"]
-	application := vars["application"]
-	revision := vars["revision"]
-
-	//not an admin, exit
-	if !validateAdmin(namespace, w, r) {
-		return
-	}
-
-	jsonBytes, err := ioutil.ReadAll(r.Body)
-
-	if err != nil {
-		message := fmt.Sprintf("Could not read body. Error is %s", err)
-		shipyard.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
-
-	json := string(jsonBytes)
-
-	//TODO validate
-
-	//write an ok resposne
-	err = server.podSpecIo.WritePodSpec(namespace, application, revision, json)
-
-	if err != nil {
-		message := fmt.Sprintf("Could not write file. Error is %s", err)
-		shipyard.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-}
-
-//getPodSpec
-func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	namespace := vars["namespace"]
-	application := vars["application"]
-	revision := vars["revision"]
-
-	//not an admin, exit
-	if !validateAdmin(namespace, w, r) {
-		return
-	}
-
-	podSpec, err := server.podSpecIo.ReadPodSpec(namespace, application, revision)
-
-	if err != nil {
-		message := fmt.Sprintf("Could not get podspec for namespace %s,  application %s, and revision %s.  Error is %s", namespace, application, revision, err)
-		shipyard.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
-
-	//not found, return a 404
-	if podSpec == nil {
-		notFound(fmt.Sprintf("Could not get podspec for namespace %s,  application %s, and revision %s.", namespace, application, revision), w)
-		return
-	}
-
-	//write the response
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(*podSpec))
-
 }
 
 //generatePodSpec get the image
@@ -775,7 +659,7 @@ func (server *Server) generatePodSpecURL(dockerInfo *shipyard.DockerInfo, public
 //generatePodSpec get the image
 func (server *Server) generateImageURL(dockerInfo *shipyard.DockerInfo) string {
 
-	endpoint := fmt.Sprintf("%s%s/namespaces/%s/applications/%s/images/%s", server.hostURL, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	endpoint := fmt.Sprintf("%s%s/%s/images/%s/version/%s", server.hostURL, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
 
 	return endpoint
 }
@@ -818,7 +702,7 @@ func notFound(message string, w http.ResponseWriter) {
 }
 
 //validateAdmin Validate the requestor is an admin in the namepace.  If returns false, the caller should halt and return.  True if the request should continue.  TODO make this cleaner
-func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) bool {
+func validateAdmin(imageSpace string, w http.ResponseWriter, r *http.Request) bool {
 
 	//validate this user has a token and is org admin
 	token, err := authsdk.NewJWTTokenFromRequest(r)
@@ -830,9 +714,9 @@ func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) boo
 		return false
 	}
 
-	shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), namespace)
+	shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), imageSpace)
 
-	isAdmin, err := token.IsOrgAdmin(namespace)
+	isAdmin, err := token.IsOrgAdmin(imageSpace)
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to get permission token %s", err)
@@ -843,12 +727,12 @@ func validateAdmin(namespace string, w http.ResponseWriter, r *http.Request) boo
 
 	//if not an admin, give access denied
 	if !isAdmin {
-		shipyard.LogInfo.Printf("User %s is not an admin for namespace %s", token.GetUsername(), namespace)
-		writeErrorResponse(http.StatusForbidden, fmt.Sprintf("You do not have admin permisison for namespace %s", namespace), w)
+		shipyard.LogInfo.Printf("User %s is not an admin for imageSpace %s", token.GetUsername(), imageSpace)
+		writeErrorResponse(http.StatusForbidden, fmt.Sprintf("You do not have admin permisison for imageSpace %s", imageSpace), w)
 		return false
 	}
 
-	shipyard.LogInfo.Printf("User %s is an admin for namespace %s", token.GetUsername(), namespace)
+	shipyard.LogInfo.Printf("User %s is an admin for imageSpace %s", token.GetUsername(), imageSpace)
 
 	return true
 }

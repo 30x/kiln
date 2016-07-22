@@ -62,8 +62,8 @@ func newEnvClient() (*client.Client, error) {
 	return client.NewEnvClient()
 }
 
-//GetNamespaces get all remote repositories
-func (imageCreator LocalImageCreator) GetNamespaces() (*[]string, error) {
+//GetImagespaces get all remote repositories
+func (imageCreator LocalImageCreator) GetImagespaces() (*[]string, error) {
 	opts := types.ImageListOptions{All: false}
 
 	images, err := imageCreator.client.ImageList(context.Background(), opts)

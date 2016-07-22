@@ -2,16 +2,16 @@ swagger: '2.0'
 info:
   version: 0.0.0
   title: APIs for building docker images.
-basePath: /beeswax/images/api/v1
+basePath: /imagespaces
 consumes:
   - application/json
 produces:
   - application/json
 paths:
-  '/builds':
+  '/{org}/images/':
     post:
       description: Create an image of the specified revision
-      operationId: createApplication
+      operationId: postApplication
       consumes:
         - multipart/form-data
       produces:
@@ -30,6 +30,7 @@ paths:
           schema:
             $ref: '#/definitions/Error'
       parameters:
+        - $ref: '#/parameters/org'
         - name: application
           in: formData
           description: The Application name
@@ -56,63 +57,63 @@ paths:
           type: array
           items:
             type: string
-  '/namespaces':
+  '/':
     get:
-      description: Get all namespaces
-      operationId: getAllNamespaces
+      description: Get all imagespaces
+      operationId: getImagespaces
       responses:
         '200':
-          description: The request was for a namespaces
+          description: The request was for imagespaces
           schema:
             type: array
             items:
-              $ref: '#/definitions/Namespace'
-  '/namespaces/{namespace}/applications':
+              $ref: '#/definitions/Imagespace'
+  '/{org}/images':
     get:
-      description: Get all applications for this namespace
-      operationId: getAllApplications
+      description: Get all built application images for this imagespace
+      operationId: getApplications
       responses:
         '200':
-          description: The request was for a namespace and applications exist within that namespace
+          description: The request was for an imagespace and application images exist within that imagespace
           schema:
             type: array
             items:
               $ref: '#/definitions/Application'
         '404':
-          description: The request was for a namespace that does not exist
+          description: The request was for a imagespace that does not exist
           schema:
             $ref: '#/definitions/Error'
       parameters:
-        - $ref: '#/parameters/namespace'
-  '/namespaces/{namespace}/apps/{application}/images':
+        - $ref: '#/parameters/org'
+  '/{org}/images/{name}/':
     get:
-      description: Get all built images for the application in the namespace
-      operationId: getImageRevisions
+      description: Get all built images for the application in the imagespace
+      operationId: getImages
       responses:
         '200':
-          description: The request was for a valid namespace and application
+          description: The request was for a valid imagespace and application
           schema:
             type: array
             items:
               $ref: '#/definitions/Image'
         '404':
-          description: The request was for a namespace or application that does not exist
+          description: The request was for a imagespace or application that does not exist
           schema:
             $ref: '#/definitions/Error'
     parameters:
-      - $ref: '#/parameters/namespace'
+      - $ref: '#/parameters/org'
       - $ref: '#/parameters/application'
-  '/namespaces/{namespace}/apps/{application}/images/{revision}':
+  '/{org}/images/{name}/version/{revision}':
     get:
       description: Get the image for the specfied revision of the application within the repo
       operationId: getImage
       responses:
         '200':
-          description: The request was for a valid namespace and application and revision
+          description: The request was for a valid imagespace and application and revision
           schema:
             $ref: '#/definitions/Image'
         '404':
-          description: The request was for a namespace, application, or revision that does not exist
+          description: The request was for a imagespace, application, or revision that does not exist
           schema:
             $ref: '#/definitions/Error'
     delete:
@@ -120,15 +121,15 @@ paths:
       operationId: deleteImage
       responses:
         '200':
-          description: The request was for a valid namespace and application and revision
+          description: The request was for a valid imagespace and application and revision
           schema:
             $ref: '#/definitions/Image'
         '404':
-          description: The request was for a namespace, application, or revision that does not exist
+          description: The request was for a imagespace, application, or revision that does not exist
           schema:
             $ref: '#/definitions/Error'
     parameters:
-      - $ref: '#/parameters/namespace'
+      - $ref: '#/parameters/org'
       - $ref: '#/parameters/application'
       - $ref: '#/parameters/revision'
 definitions:
@@ -158,8 +159,8 @@ definitions:
           - size
           - imageId
           - logs
-  Namespace:
-    description: A namespace
+  Imagespace:
+    description: An imagespace
     allOf:
       - $ref: '#/definitions/Links'
       - type: object
@@ -212,14 +213,14 @@ definitions:
     required:
       - _links
 parameters:
-  namespace:
-    name: namespace
+  org:
+    name: org
     in: path
     description: The Docker namespace name
     required: true
     type: string
   application:
-    name: application
+    name: name
     in: path
     description: The Application name
     required: true
