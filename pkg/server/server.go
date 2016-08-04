@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"io/ioutil"
 
 	"github.com/30x/authsdk"
 	"github.com/30x/shipyard/pkg/shipyard"
@@ -73,6 +74,11 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 	//podtemplate generation
 	routes.Methods("GET").Path("/imagespaces/generatepodspec/").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
 	routes.Methods("GET").Path("/imagespaces/generatepodspec").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
+	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/podspec/{revision}/").HandlerFunc(server.getPodSpec)
+	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/podspec/{revision}").HandlerFunc(server.getPodSpec)
+	//post a podspec for a specified revision
+	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/imagespaces/{org}/images/{name}/podspec/{revision}/").HandlerFunc(server.postPodSpec)
+	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/imagespaces/{org}/images/{name}/podspec/{revision}").HandlerFunc(server.postPodSpec)
 
 	//health check
 	routes.Methods("GET").Path("/imagespaces/status/").HandlerFunc(server.status)
@@ -609,6 +615,81 @@ func (server *Server) getImageInternal(imageSpace string, application string, re
 	}
 
 	return imageResponse, nil
+}
+
+//postPodSpec get the image
+func (server *Server) postPodSpec(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	imagespace := vars["org"]
+	application := vars["name"]
+	revision := vars["revision"]
+
+	//not an admin, exit
+	if !validateAdmin(imagespace, w, r) {
+		return
+	}
+
+	jsonBytes, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not read body. Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	json := string(jsonBytes)
+
+	//TODO validate
+
+	//write an ok resposne
+	err = server.podSpecIo.WritePodSpec(imagespace, application, revision, json)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not write file. Error is %s", err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+}
+
+//getPodSpec
+func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	imagespace := vars["org"]
+	name := vars["name"]
+	revision := vars["revision"]
+
+	//not an admin, exit
+	if !validateAdmin(imagespace, w, r) {
+		return
+	}
+
+	podSpec, err := server.podSpecIo.ReadPodSpec(imagespace, name, revision)
+
+	if err != nil {
+		message := fmt.Sprintf("Could not get podspec for imagespace %s,  name %s, and revision %s.  Error is %s", imagespace, name, revision, err)
+		shipyard.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	//not found, return a 404
+	if podSpec == nil {
+		notFound(fmt.Sprintf("Could not get podspec for imagespace %s,  name %s, and revision %s.", imagespace, name, revision), w)
+		return
+	}
+
+	//write the response
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(*podSpec))
+
 }
 
 //generatePodSpec get the image
