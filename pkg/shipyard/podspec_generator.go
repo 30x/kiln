@@ -12,6 +12,11 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 )
 
+const (
+	routableLabelName = "routable"
+	publicPathsAnnotationName = "publicPaths"
+)
+
 //GenerateShipyardTemplateSpec generate a valid pod template spec given the docker image uri, and return it as a json encoded string
 func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, error) {
 
@@ -142,4 +147,40 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 	}
 
 	return string(json), nil
+}
+
+// ValidatePTS validates that the given podspec conforms to Shipyard standards
+func ValidatePTS(podspec string) (bool, string, error) {
+	pts := api.PodTemplateSpec{}
+	LogInfo.Printf("Validating pod template spec\n")
+
+	err := json.Unmarshal([]byte(podspec), &pts)
+	if err != nil {
+		return false, "failed to Unmarshal as Pod Template Spec", err
+	}
+
+	// validate that PTS contains routable label
+	if _, exists := pts.Labels[routableLabelName]; !exists {
+		return false, "missing routable label", nil
+	}
+
+	// valudate that PTS contains publicPaths annotation
+	if _, exists := pts.Annotations[publicPathsAnnotationName]; !exists {
+		return false, "missing publicPaths annotation", nil
+	}
+
+	// verify that any containers reference images built by Shipyard
+	dockerRegistry := os.Getenv("DOCKER_REGISTRY_URL")
+	for _, container := range pts.Spec.Containers {
+		parts := strings.Split(container.Image, "/")
+
+		if len(parts) < 3 {
+			return false, "invalid image URI", nil
+		} else if parts[0] != dockerRegistry {
+			return false, "invalid image URI", nil
+		}
+	}
+
+	LogInfo.Printf("Pod template spec passes validation\n")
+	return true, "", nil
 }

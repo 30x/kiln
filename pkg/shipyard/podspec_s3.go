@@ -62,6 +62,12 @@ func NewS3PodSpec(awsRegion string, bucketName string) (*S3PodSpec, error) {
 //WritePodSpec write the pod spec
 func (s3PodSpec *S3PodSpec) WritePodSpec(namespace string, application string, revision string, podspec string) error {
 
+  if valid, reason, err := ValidatePTS(podspec); err != nil {
+    return err
+  } else if !valid {
+    return fmt.Errorf("Provided pod template spec is invalid: %s.", reason)
+  }
+
 	key := createS3Path(namespace, application, revision)
 
 	//upload the json
@@ -106,6 +112,6 @@ func (s3PodSpec *S3PodSpec) ReadPodSpec(namespace string, application string, re
 
 //createPath create the path of the json
 func createS3Path(namespace string, application string, revision string) string {
-  // Changed this from %s/%s/%s 
+  // Changed this from %s/%s/%s
 	return fmt.Sprintf("%s/%s:%s", namespace, application, revision)
 }
