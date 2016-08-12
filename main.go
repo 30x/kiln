@@ -74,12 +74,6 @@ func main() {
 		shipyard.LogError.Fatal("You must specify a valid integer for the REAP_MIN_AGE value")
 	}
 
-	selfBaseURL := os.Getenv("SELF_BASE_URL")
-
-	if selfBaseURL == "" {
-		shipyard.LogError.Fatal("You must specifiy the SELF_BASE_URL environment variable")
-	}
-
 	//start the reaper process in the background
 
 	minTime := time.Duration(reaperMinAge) * time.Second
@@ -92,7 +86,7 @@ func main() {
 
 	shipyard.LogInfo.Printf("Successfully configured server and validated configuration. Starting server.")
 
-	server := server.NewServer(imageCreator, podSpec, selfBaseURL)
+	server := server.NewServer(imageCreator, podSpec)
 
 	server.Start(port, time.Duration(timeout)*time.Second)
 }
