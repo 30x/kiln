@@ -16,7 +16,7 @@ func NewImageCreatorFromEnv() (ImageCreator, error) {
 
 	repoURL := os.Getenv("DOCKER_REGISTRY_URL")
 
-	if repoURL == "" {
+	if repoURL == "" && os.Getenv("LOCAL_REGISTRY_ONLY") == "" {
 		return nil, errors.New("You must set the DOCKER_REGISTRY_URL environment variable.  An example would be localhost:5000")
 	}
 

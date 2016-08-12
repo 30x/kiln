@@ -356,6 +356,9 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (s
 
 //GenerateRepoURI generate the repo uri
 func (imageCreator LocalImageCreator) GenerateRepoURI(dockerInfo *DockerInfo) string {
+	if os.Getenv("LOCAL_REGISTRY_ONLY") != "" {
+		return dockerInfo.GetTagName()
+	}
 	return dockerInfo.GetRemoteTagName(imageCreator.remoteRepo)
 }
 

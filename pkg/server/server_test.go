@@ -458,7 +458,7 @@ func doSetup(port int) (*server.Server, string, error) {
 
 	baseHost := fmt.Sprintf("http://localhost:%d", port)
 
-	testServer := server.NewServer(imageCreator, podSpecProvider, baseHost)
+	testServer := server.NewServer(imageCreator, podSpecProvider)
 
 	//start server in the background
 	go func() {

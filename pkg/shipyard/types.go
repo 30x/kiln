@@ -73,6 +73,30 @@ func NewRepoImage(URI string) (*RepoImage, error) {
 	}, nil
 }
 
+//NewLocalRepoImage Parse the repo URI
+func NewLocalRepoImage(URI string) (*RepoImage, error) {
+	parts := strings.Split(URI, "/")
+
+	if len(parts) != 2 {
+		return nil, errors.New("You must supply an absolute URI.  The format should be {repoName}/{image}:{tag}")
+	}
+
+	tags := strings.Split(parts[1], ":")
+
+	if len(tags) != 2 {
+		return nil, errors.New("You must supply an absolute URI.  The format should be {repoName}/{image}:{tag}")
+	}
+
+	return &RepoImage{
+		OriginalURI: URI,
+		Registry:    "",
+		DockerInfo: DockerInfo{
+			RepoName:  parts[0],
+			ImageName: tags[0],
+			Revision:  tags[1]},
+	}, nil
+}
+
 //GenerateName Generate a unqiue app name from this repo image
 func (repoImage *RepoImage) GenerateName() string {
 	return repoImage.OriginalURI
