@@ -34,11 +34,10 @@ type Server struct {
 	imageCreator shipyard.ImageCreator
 	podSpecIo    shipyard.PodspecIo
 	template     *template.Template
-	hostURL      string
 }
 
-//NewServer Create a new server using the provided podspecIo and Image creator.  The hostURL is a public host name to allow the server to generate self links.  Should be of the form
-func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo, hostURL string) *Server {
+//NewServer Create a new server using the provided podspecIo and Image creator.
+func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo) *Server {
 	routes := mux.NewRouter()
 
 	//allow the trailing slash
@@ -55,7 +54,6 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo,
 		imageCreator: imageCreator,
 		podSpecIo:    podSpecIo,
 		template:     template,
-		hostURL:      hostURL,
 	}
 
 	//a bit hacky, but need the pointer to the server
@@ -263,7 +261,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain charset=utf-8")
 	//turn this off so browsers render the response as it comes in
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("Location", server.generateImageURL(dockerInfo))
+	w.Header().Set("Location", server.generateImageURL(dockerInfo, r.Host))
 	//turn off proxy buffering in nginx (http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering)
 	w.Header().Set("X-Accel-Buffering", "no")
 
@@ -328,7 +326,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	//write the last portion
 
-	outputString := fmt.Sprintf(templateString, image.ImageID, server.generatePodSpecURL(dockerInfo, createImage.PublicPath))
+	outputString := fmt.Sprintf(templateString, image.ImageID, server.generatePodSpecURL(dockerInfo, r.Host, createImage.PublicPath))
 
 	writeStringAndFlush(w, flusher, outputString)
 
@@ -648,18 +646,18 @@ func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 }
 
 //generatePodSpec get the image
-func (server *Server) generatePodSpecURL(dockerInfo *shipyard.DockerInfo, publicPath string) string {
+func (server *Server) generatePodSpecURL(dockerInfo *shipyard.DockerInfo, hostname string, publicPath string) string {
 	imageURI := server.imageCreator.GenerateRepoURI(dockerInfo)
 
-	endpoint := fmt.Sprintf("%s%s/generatepodspec?imageURI=%s&publicPath=%s", server.hostURL, basePath, imageURI, publicPath)
+	endpoint := fmt.Sprintf("%s%s/generatepodspec?imageURI=%s&publicPath=%s", hostname, basePath, imageURI, publicPath)
 
 	return endpoint
 }
 
 //generatePodSpec get the image
-func (server *Server) generateImageURL(dockerInfo *shipyard.DockerInfo) string {
+func (server *Server) generateImageURL(dockerInfo *shipyard.DockerInfo, hostname string) string {
 
-	endpoint := fmt.Sprintf("%s%s/%s/images/%s/version/%s", server.hostURL, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	endpoint := fmt.Sprintf("%s%s/%s/images/%s/version/%s", hostname, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
 
 	return endpoint
 }
