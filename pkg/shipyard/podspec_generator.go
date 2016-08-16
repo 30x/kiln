@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	routableLabelName = "routable"
-	publicPathsAnnotationName = "publicPaths"
+	routableLabelNameDefault = "routable"
+	publicPathsAnnotationNameDefault = "publicPaths"
 )
 
 //GenerateShipyardTemplateSpec generate a valid pod template spec given the docker image uri, and return it as a json encoded string
@@ -151,12 +151,22 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 
 // ValidatePTS validates that the given podspec conforms to Shipyard standards
 func ValidatePTS(podspec string) (bool, string, error) {
+	var routableLabelName, publicPathsAnnotationName string
+
 	pts := api.PodTemplateSpec{}
 	LogInfo.Printf("Validating pod template spec\n")
 
 	err := json.Unmarshal([]byte(podspec), &pts)
 	if err != nil {
 		return false, "failed to Unmarshal as Pod Template Spec", err
+	}
+
+	if routableLabelName = os.Getenv("ROUTING_LABEL_SELECTOR"); routableLabelName == "" {
+		routableLabelName = routableLabelNameDefault
+	}
+
+	if publicPathsAnnotationName = os.Getenv("PATHS_ANNOTATION"); publicPathsAnnotationName == "" {
+		publicPathsAnnotationName = publicPathsAnnotationNameDefault
 	}
 
 	// validate that PTS contains routable label
