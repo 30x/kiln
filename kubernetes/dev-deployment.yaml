@@ -1,0 +1,122 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: shipyard
+  labels:
+    name: shipyard
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        name: shipyard
+        routable: "true"
+      annotations:
+        privateHosts: "shipyard.e2e.apigee.net shipyard-prod.e2e.apigee.net shipyard-test.e2e.apigee.net"
+        privatePaths: "5280:/imagespaces"
+        # Remove for deployment because we DO NOT want direct access to these services
+        # publicHosts: "shipyard.e2e.apigee.net shipyard-prod.e2e.apigee.net shipyard-test.e2e.apigee.net"
+        # publicPaths: "5280:/imagespaces"
+        projectcalico.org/policy: "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.129.0.0/16"
+    spec:
+      containers:
+      - image: registry-1.docker.io/thirtyx/shipyard:dev
+        imagePullPolicy: Always
+        name: shipyard
+        ports:
+        - containerPort: 5280
+        env:
+        - name: PORT
+          value: "5280"
+        - name: DOCKER_PROVIDER
+          value: ecr
+        - name: DOCKER_REGISTRY_URL
+          valueFrom:
+            secretKeyRef:
+              name: docker-config
+              key: host
+        - name: DOCKER_HOST
+          value: unix:///var/run/docker.sock
+        - name: POD_PROVIDER
+          value: s3
+        - name: S3_BUCKET
+          value: e2e-podtemplatespec
+        - name: S3_REGION
+          value: us-west-2
+        - name: ECR_REGION
+          value: us-west-2
+        - name: ECR_TIMEOUT
+          value: "5"
+        - name: SHUTDOWN_TIMEOUT
+          value: "60"
+        - name: AUTH_API_HOST
+          value: api.e2e.apigee.net
+        - name: AWS_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-access
+              key: key
+        - name: AWS_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-access
+              key: secret
+        - name: PULL_SECRET_NAME
+          value: "ecr-key"
+          #Reap every minute
+        - name: REAP_INTERVAL
+          value: "60"
+          # Leave images < 5 minutes old
+        - name: REAP_MIN_AGE
+          value: "300"
+        - name: SELF_BASE_URL
+          value: "https://shipyard.e2e.apigee.net"
+
+        #Our application shuts down on a timer.  This liviness checks will then try to check the pod and fail, causing the
+        #Pod to be killed and re-created, assigning the new secret
+        livenessProbe:
+          httpGet:
+            path: /imagespaces/status
+            port: 5280
+          initialDelaySeconds: 15
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /root/k8s-secret
+          name: ecr-key
+          readOnly: true
+        - mountPath: /var/run/docker.sock
+          name: dockersocket
+          readOnly: false
+      #The sidecar that will kill this pod off with randomness after it detects the secret is updated
+      - image: registry-1.docker.io/thirtyx/secretrestart:0.1.1
+        imagePullPolicy: Always
+        name: secretrestart
+        env:
+        - name: SECRET_NAME
+          value: "ecr-key"
+          # We always receive an event when the pod comes up, so we want to ignore it
+        - name: IGNORE_COUNT
+          value: "1"
+          #Allow 5 minutes of delta so all our pods don't shut down at the same time
+        - name: SHUTDOWN_TIMESPAN
+          value: "300"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+          #The volume mounts required by shipyard
+      volumes:
+      - name: ecr-key
+        secret:
+          secretName: ecr-key
+      - name: dockersocket
+        hostPath:
+          path: /var/run/docker.sock

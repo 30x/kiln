@@ -290,6 +290,54 @@ var _ = Describe("Server Test", func() {
 
 		})
 
+		It("Podspec Storage", func() {
+
+			namespace := "test" + shipyard.UUIDString()
+			application := "application"
+			revision := "v1.0"
+
+			content := `{"name":"value"}`
+
+			httpResponse, body := putPodSpec(content, hostBase, namespace, application, revision)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			Expect(body).Should(Equal(""))
+
+			//now get it
+
+			httpResponse, body = getPodSpec(hostBase, namespace, application, revision)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			Expect(body).Should(Equal(content))
+
+		})
+
+		It("Podspec Storage", func() {
+
+			namespace := "test" + shipyard.UUIDString()
+			application := "application"
+			revision := "v1.0"
+
+			content := `{"name":"value"}`
+
+			httpResponse, body := putPodSpec(content, hostBase, namespace, application, revision)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			Expect(body).Should(Equal(""))
+
+			//now get it
+
+			httpResponse, body = getPodSpec(hostBase, namespace, application, revision)
+
+			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
+
+			Expect(body).Should(Equal(content))
+
+		})
+
 	}
 
 	ECROnly := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
@@ -567,11 +615,11 @@ func getJSONContent(url string) (*http.Response, string) {
 
 }
 
-// func getPodSpec(hostBase string, namespace string, application string, revision string) (*http.Response, string) {
-// 	url := getPodSpecURL(hostBase, namespace, application, revision)
+func getPodSpec(hostBase string, namespace string, application string, revision string) (*http.Response, string) {
+	url := getPodSpecURL(hostBase, namespace, application, revision)
 
-// 	return getJSONContent(url)
-// }
+	return getJSONContent(url)
+}
 
 func getImage(hostBase string, namespace string, application string, revision string) (*http.Response, *server.Image) {
 	url := getImageURL(hostBase, namespace, application, revision)
@@ -672,6 +720,28 @@ func newFileUploadRequest(hostBase string, imagespace string, application string
 	bodyResponse := string(bodyBytes)
 
 	return response, &bodyResponse, nil
+}
+
+
+//putPodSpec put the pod spec to the provided endpoint
+func putPodSpec(podSpec string, hostBase string, namespace string, application string, revision string) (*http.Response, string) {
+	url := getPodSpecURL(hostBase, namespace, application, revision)
+	req, _ := http.NewRequest("PUT", url, strings.NewReader(podSpec))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+	client := &http.Client{}
+	response, _ := client.Do(req)
+
+	bytes, _ := ioutil.ReadAll(response.Body)
+
+	return response, string(bytes)
+
+}
+
+//getPodSpecURL get the podspec url for GET and PUT operations
+func getPodSpecURL(hostBase string, namespace string, application string, revision string) string {
+	return fmt.Sprintf("%s/podspec/%s", getApplicationURL(hostBase, namespace, application), revision)
 }
 
 //getApplicationsURL get the appplicationsUrl

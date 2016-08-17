@@ -1,6 +1,6 @@
 #Format is MAJOR . MINOR . PATCH
 
-IMAGE_VERSION=0.1.13
+IMAGE_VERSION=0.1.14
 
 
 test-build-and-package: test-source build-and-package
@@ -9,6 +9,7 @@ build-and-push-to-hub: build-and-package push-to-hub
 
 build-and-package: compile-linux build-image
 
+dev-build-push: compile-linux build-image push-to-dev
 
 test-source:
 	go test -v $$(glide novendor)
@@ -28,6 +29,10 @@ compile-linux:
 build-image:
 	docker build -t thirtyx/shipyard .
 
+push-to-dev:
+	docker tag -f thirtyx/shipyard thirtyx/shipyard:dev
+	docker push thirtyx/shipyard:dev
+
 push-to-local:
 	docker tag -f thirtyx/shipyard localhost:5000/thirtyx/shipyard
 	docker push localhost:5000/thirtyx/shipyard
@@ -38,3 +43,6 @@ push-to-hub:
 
 deploy-to-kube:
 	kubectl run shipyard --image=localhost:5000/thirtyx/shipyard:latest
+
+deploy-dev:
+	kubectl create -f kubernetes/dev-deployment.yaml --namespace=shipyard
