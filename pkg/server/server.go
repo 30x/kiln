@@ -730,7 +730,7 @@ func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 func (server *Server) generatePodSpecURL(dockerInfo *shipyard.DockerInfo, hostname string, publicPath string) string {
 	imageURI := server.imageCreator.GenerateRepoURI(dockerInfo)
 
-	endpoint := fmt.Sprintf("http://%s%s/generatepodspec?imageURI=%s&publicPath=%s", hostname, basePath, imageURI, publicPath)
+	endpoint := fmt.Sprintf("https://%s%s/generatepodspec?imageURI=%s&publicPath=%s", hostname, basePath, imageURI, publicPath)
 
 	return endpoint
 }
