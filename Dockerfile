@@ -7,7 +7,7 @@ RUN apk add ca-certificates
 RUN update-ca-certificates
 
 
-COPY build/shipyard /
+COPY build/kiln /
 COPY start.sh /
 
 RUN chmod 755 /start.sh

@@ -1,4 +1,4 @@
-package shipyard
+package kiln
 
 import (
 	"errors"

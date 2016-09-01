@@ -4,10 +4,10 @@ imports:
 - name: github.com/30x/authsdk
   version: 6b14ddd8c44287bebe38af3b7902d33046ac7118
   vcs: git
-- name: github.com/30x/shipyard
+- name: github.com/30x/kiln
   version: 8349e0c1199f195c693be5c2817a1b07241122fd
   subpackages:
-  - pkg/shipyard
+  - pkg/kiln
 - name: github.com/aws/aws-sdk-go
   version: 4151ef572710e04d25d9385114b33847ba6a923a
   vcs: git

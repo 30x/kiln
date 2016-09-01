@@ -1,28 +1,28 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: shipyard
+  name: kiln
   labels:
-    name: shipyard
+    name: kiln
 spec:
   replicas: 3
   template:
     metadata:
       labels:
-        name: shipyard
+        name: kiln
         routable: "true"
       annotations:
-        privateHosts: "shipyard.e2e.apigee.net shipyard-prod.e2e.apigee.net shipyard-test.e2e.apigee.net"
+        privateHosts: "kiln.e2e.apigee.net kiln-prod.e2e.apigee.net kiln-test.e2e.apigee.net"
         privatePaths: "5280:/imagespaces"
         # Remove for deployment because we DO NOT want direct access to these services
-        # publicHosts: "shipyard.e2e.apigee.net shipyard-prod.e2e.apigee.net shipyard-test.e2e.apigee.net"
+        # publicHosts: "kiln.e2e.apigee.net kiln-prod.e2e.apigee.net kiln-test.e2e.apigee.net"
         # publicPaths: "5280:/imagespaces"
         projectcalico.org/policy: "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.129.0.0/16"
     spec:
       containers:
-      - image: registry-1.docker.io/thirtyx/shipyard:dev
+      - image: registry-1.docker.io/thirtyx/kiln:dev
         imagePullPolicy: Always
-        name: shipyard
+        name: kiln
         ports:
         - containerPort: 5280
         env:
@@ -70,7 +70,7 @@ spec:
         - name: REAP_MIN_AGE
           value: "300"
         - name: SELF_BASE_URL
-          value: "https://shipyard.e2e.apigee.net"
+          value: "https://kiln.e2e.apigee.net"
 
         #Our application shuts down on a timer.  This liviness checks will then try to check the pod and fail, causing the
         #Pod to be killed and re-created, assigning the new secret
@@ -112,7 +112,7 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
-          #The volume mounts required by shipyard
+          #The volume mounts required by kiln
       volumes:
       - name: ecr-key
         secret:

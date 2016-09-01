@@ -1,9 +1,9 @@
-package shipyard_test
+package kiln_test
 
 import (
 	"strings"
 
-	. "github.com/30x/shipyard/pkg/shipyard"
+	. "github.com/30x/kiln/pkg/kiln"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	// "github.com/docker/engine-api/types"
@@ -21,7 +21,7 @@ var _ = Describe("Docker Stream", func() {
 {"status":"Downloading","progressDetail":{"current":32264,"total":2320212},"progress":"[\u003e                                                  ] 32.26 kB/2.32 MB","id":"d0ca440e8637"}
 {"status":"Downloading","progressDetail":{"current":64465,"total":2320212},"progress":"[=\u003e                                                 ] 64.47 kB/2.32 MB","id":"d0ca440e8637"}
 {"status":"Downloading","progressDetail":{"current":97233,"total":2320212},"progress":"[==\u003e                                                ] 97.23 kB/2.32 MB","id":"d0ca440e8637"}
-{"status":"Downloading","progressDetail":{"current":130001,"total":2320212},"progress":"[==\u003e           
+{"status":"Downloading","progressDetail":{"current":130001,"total":2320212},"progress":"[==\u003e
 {"stream":" ---\u003e 8a54b3f8ac77\n"}
 {"stream":"Step 2 : ADD . .\n"}`
 

@@ -1,4 +1,4 @@
-package shipyard
+package kiln
 
 import (
 	"encoding/json"
@@ -17,8 +17,8 @@ const (
 	publicPathsAnnotationNameDefault = "publicPaths"
 )
 
-//GenerateShipyardTemplateSpec generate a valid pod template spec given the docker image uri, and return it as a json encoded string
-func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, error) {
+//GenerateKilnTemplateSpec generate a valid pod template spec given the docker image uri, and return it as a json encoded string
+func GenerateKilnTemplateSpec(dockerURI string, publicPath string) (string, error) {
 
 	//TODO validate we only ever have 1 port in the public paths.  Parse out the port and then set it below.
 	var repoImage *RepoImage
@@ -43,7 +43,7 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 
 	port := ""
 
-	//for shipyard, we should only have 1 port and path
+	//for kiln, we should only have 1 port and path
 	if len(parts) != 2 {
 		return "", errors.New("Only 1 public path is supported. It must be of the format {PORT}:/{PATH?}")
 	}
@@ -72,7 +72,7 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 	podTemplate := api.PodTemplateSpec{
 		ObjectMeta: api.ObjectMeta{
 			Labels: map[string]string{
-				"runtime":   "shipyard",
+				"runtime":   "kiln",
 				"component": repoImage.GeneratePodName(),
 				"routable":  "true",
 			},
@@ -158,7 +158,7 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 	return string(json), nil
 }
 
-// ValidatePTS validates that the given podspec conforms to Shipyard standards
+// ValidatePTS validates that the given podspec conforms to Kiln standards
 func ValidatePTS(podspec string) (bool, string, error) {
 	var routableLabelName, publicPathsAnnotationName string
 
@@ -188,7 +188,7 @@ func ValidatePTS(podspec string) (bool, string, error) {
 		return false, "missing publicPaths annotation", nil
 	}
 
-	// verify that any containers reference images built by Shipyard
+	// verify that any containers reference images built by Kiln
 	dockerRegistry := os.Getenv("DOCKER_REGISTRY_URL")
 	for _, container := range pts.Spec.Containers {
 		parts := strings.Split(container.Image, "/")

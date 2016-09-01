@@ -1,4 +1,4 @@
-package shipyard
+package kiln
 
 import (
 	"archive/tar"
@@ -17,9 +17,9 @@ const DEFAULT_TMP_DIR = "/tmp"
 const SHIPYARD_ENV_VARIABLE = "SHIPYARD_TMP_DIR"
 const DEFAULT_FILE_MODE = 0775
 
-const TAG_REPO = "com.github.30x.shipyard.repo"
-const TAG_APPLICATION = "com.github.30x.shipyard.app"
-const TAG_REVISION = "com.github.30x.shipyard.revision"
+const TAG_REPO = "com.github.30x.kiln.repo"
+const TAG_APPLICATION = "com.github.30x.kiln.app"
+const TAG_REVISION = "com.github.30x.kiln.revision"
 
 //SourceInfo The description of the source package
 type SourceInfo struct {
@@ -52,7 +52,7 @@ func CreateNewWorkspace() (*SourceInfo, error) {
 
 	uuid := uuidBinary.String()
 
-	rootDirectory := tmpDir + "/shipyard/" + uuid
+	rootDirectory := tmpDir + "/kiln/" + uuid
 	sourceDirectory := rootDirectory + "/source"
 	dockerFile := sourceDirectory + "/Dockerfile"
 	zipFileName := rootDirectory + "/input.zip"

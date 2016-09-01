@@ -1,4 +1,4 @@
-package: github.com/30x/shipyard
+package: github.com/30x/kiln
 import:
 - package: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3

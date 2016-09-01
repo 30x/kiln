@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestShipyard(t *testing.T) {
+func TestKiln(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Shipyard Server Suite")
+	RunSpecs(t, "Kiln Server Suite")
 }

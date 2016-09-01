@@ -1,9 +1,9 @@
-package shipyard_test
+package kiln_test
 
 import (
 	"time"
 
-	. "github.com/30x/shipyard/pkg/shipyard"
+	. "github.com/30x/kiln/pkg/kiln"
 	"github.com/docker/engine-api/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

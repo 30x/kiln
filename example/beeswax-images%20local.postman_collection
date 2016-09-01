@@ -100,7 +100,7 @@
 		{
 			"id": "a3bb47e5-6f36-1a80-7e79-7d8825794529",
 			"headers": "",
-			"url": " http://localhost:5280/beeswax/images/api/v1/generatepodspec?imageURI=localhost:5000/thirtyx/shipyard:latest&publicPath=5280:/beeswax/images/",
+			"url": " http://localhost:5280/beeswax/images/api/v1/generatepodspec?imageURI=localhost:5000/thirtyx/kiln:latest&publicPath=5280:/beeswax/images/",
 			"preRequestScript": null,
 			"pathVariables": {},
 			"method": "GET",
@@ -110,7 +110,7 @@
 			"currentHelper": "normal",
 			"helperAttributes": {},
 			"time": 1464301734393,
-			"name": "Get shipyard deployment pod spec",
+			"name": "Get kiln deployment pod spec",
 			"description": "",
 			"collectionId": "965334ee-bb8b-375b-a89a-c7c8b763d55c",
 			"responses": []

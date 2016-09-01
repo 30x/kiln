@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/30x/shipyard/pkg/server"
-	"github.com/30x/shipyard/pkg/shipyard"
+	"github.com/30x/kiln/pkg/server"
+	"github.com/30x/kiln/pkg/kiln"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -39,7 +39,7 @@ var _ = Describe("Server Test", func() {
 
 			//now create a new images
 
-			imagespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + kiln.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
@@ -54,7 +54,7 @@ var _ = Describe("Server Test", func() {
 			//check build response
 			sha, podspecURL := getBuildData(body)
 
-			shipyard.LogInfo.Printf("sha: %s\n podSpecUrl: %s\n", sha, podspecURL)
+			kiln.LogInfo.Printf("sha: %s\n podSpecUrl: %s\n", sha, podspecURL)
 
 			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
@@ -103,7 +103,7 @@ var _ = Describe("Server Test", func() {
 
 			//now create a new images
 
-			imagespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + kiln.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
@@ -118,7 +118,7 @@ var _ = Describe("Server Test", func() {
 			//check build response
 			sha, podspecURL := getBuildData(body)
 
-			shipyard.LogInfo.Printf("sha: %s\n podSpecUrl: %s\n", sha, podspecURL)
+			kiln.LogInfo.Printf("sha: %s\n podSpecUrl: %s\n", sha, podspecURL)
 
 			Expect(strings.Index(sha, "sha256:")).Should(Equal(0), "Should start with sha256 signature")
 
@@ -148,7 +148,7 @@ var _ = Describe("Server Test", func() {
 
 		It("Create Duplicate Application ", func() {
 			//upload the first image
-			imagespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + kiln.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
@@ -181,7 +181,7 @@ var _ = Describe("Server Test", func() {
 
 		It("Test Application Images", func() {
 			//upload the first image
-			imagespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + kiln.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
@@ -244,10 +244,10 @@ var _ = Describe("Server Test", func() {
 
 		It("No Cross Namepaces on GET", func() {
 			//upload the first image
-			imagespace1 := "test" + shipyard.UUIDString()
+			imagespace1 := "test" + kiln.UUIDString()
 			application1 := "application1"
 
-			imagespace2 := "test" + shipyard.UUIDString()
+			imagespace2 := "test" + kiln.UUIDString()
 			application2 := "application2"
 
 			revision := "v1.0"
@@ -292,11 +292,11 @@ var _ = Describe("Server Test", func() {
 
 		It("Podspec Storage", func() {
 
-			namespace := "test" + shipyard.UUIDString()
+			namespace := "test" + kiln.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
-			content := `{"name":"value"}`
+			content := `{"metadata":{"creationTimestamp":null,"labels":{"component":"test-application","routable":"true","runtime":"kiln"},"annotations":{"projectcalico.org/policy":"allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.1.0.0/16","publicPaths":"9000:/example"}},"spec":{"volumes":null,"containers":[{"name":"test-application","image":"977777657611.dkr.ecr.us-west-2.amazonaws.com/test/example:0","ports":[{"containerPort":9000}],"env":[{"name":"PORT","value":"9000"},{"name":"PRIVATE_API_KEY","valueFrom":{"secretKeyRef":{"Name":"routing","key":"private-api-key"}}},{"name":"PUBLIC_API_KEY","valueFrom":{"secretKeyRef":{"Name":"routing","key":"public-api-key"}}}],"resources":{},"imagePullPolicy":"Always"}],"serviceAccountName":"","imagePullSecrets":[{"Name":"ecr-key"}]}}`
 
 			httpResponse, body := putPodSpec(content, hostBase, namespace, application, revision)
 
@@ -316,11 +316,11 @@ var _ = Describe("Server Test", func() {
 
 		It("Podspec Storage", func() {
 
-			namespace := "test" + shipyard.UUIDString()
+			namespace := "test" + kiln.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
-			content := `{"name":"value"}`
+			content := `{"metadata":{"creationTimestamp":null,"labels":{"component":"test-application","routable":"true","runtime":"kiln"},"annotations":{"projectcalico.org/policy":"allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.1.0.0/16","publicPaths":"9000:/example"}},"spec":{"volumes":null,"containers":[{"name":"test-application","image":"977777657611.dkr.ecr.us-west-2.amazonaws.com/test/example:0","ports":[{"containerPort":9000}],"env":[{"name":"PORT","value":"9000"},{"name":"PRIVATE_API_KEY","valueFrom":{"secretKeyRef":{"Name":"routing","key":"private-api-key"}}},{"name":"PUBLIC_API_KEY","valueFrom":{"secretKeyRef":{"Name":"routing","key":"public-api-key"}}}],"resources":{},"imagePullPolicy":"Always"}],"serviceAccountName":"","imagePullSecrets":[{"Name":"ecr-key"}]}}`
 
 			httpResponse, body := putPodSpec(content, hostBase, namespace, application, revision)
 
@@ -353,7 +353,7 @@ var _ = Describe("Server Test", func() {
 
 			//now create a new images
 
-			imagespace := "test" + shipyard.UUIDString()
+			imagespace := "test" + kiln.UUIDString()
 			application := "application"
 			revision := "v1.0"
 
@@ -444,13 +444,13 @@ var _ = Describe("Server Test", func() {
 
 //create a new instance of the server based on the env vars and the image creator.  Return them to be tested
 func doSetup(port int) (*server.Server, string, error) {
-	imageCreator, err := shipyard.NewImageCreatorFromEnv()
+	imageCreator, err := kiln.NewImageCreatorFromEnv()
 
 	if err != nil {
 		return nil, "", err
 	}
 
-	podSpecProvider, err := shipyard.NewPodSpecIoFromEnv()
+	podSpecProvider, err := kiln.NewPodSpecIoFromEnv()
 
 	if err != nil {
 		return nil, "", err
@@ -576,7 +576,7 @@ func getImages(hostBase string, imagespace string, application string) (*http.Re
 
 	url := getImagesURL(hostBase, imagespace, application)
 
-	shipyard.LogInfo.Printf("Invoking get at URL %s", url)
+	kiln.LogInfo.Printf("Invoking get at URL %s", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
@@ -594,7 +594,7 @@ func getImages(hostBase string, imagespace string, application string) (*http.Re
 
 	body := string(bytes)
 
-	shipyard.LogInfo.Printf("Response is %s", body)
+	kiln.LogInfo.Printf("Response is %s", body)
 
 	json.Unmarshal(bytes, &images)
 
@@ -628,7 +628,7 @@ func getImage(hostBase string, namespace string, application string, revision st
 
 	image := &server.Image{}
 
-	shipyard.LogInfo.Printf("Response is %s", body)
+	kiln.LogInfo.Printf("Response is %s", body)
 
 	json.Unmarshal([]byte(body), image)
 
@@ -648,7 +648,7 @@ func deleteImage(hostBase string, namespace string, application string, revision
 
 	image := &server.Image{}
 
-	shipyard.LogInfo.Printf("Response is %s", bytes)
+	kiln.LogInfo.Printf("Response is %s", bytes)
 
 	json.Unmarshal(bytes, image)
 
@@ -747,9 +747,9 @@ func getPodSpecURL(hostBase string, namespace string, application string, revisi
 //getApplicationsURL get the appplicationsUrl
 func getApplicationsURL(hostBase string, imagespace string) string {
 
-	applicationsURL := fmt.Sprintf("%s/%s/images/", hostBase, imagespace)
+	applicationsURL := fmt.Sprintf("%s/%s/images", hostBase, imagespace)
 
-	// shipyard.LogInfo.Printf("Creating URL %s", applicationsURL)
+	// kiln.LogInfo.Printf("Creating URL %s", applicationsURL)
 
 	return applicationsURL
 }

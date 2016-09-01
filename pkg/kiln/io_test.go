@@ -1,4 +1,4 @@
-package shipyard_test
+package kiln_test
 
 import (
 	"io/ioutil"
@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/30x/shipyard/pkg/shipyard"
+	. "github.com/30x/kiln/pkg/kiln"
 )
 
 var _ = Describe("Io", func() {
@@ -111,9 +111,9 @@ var _ = Describe("Io", func() {
       #Taken from the runtime on start
       EXPOSE 9000
 
-      LABEL com.github.30x.shipyard.repo=testRepo
-      LABEL com.github.30x.shipyard.app=testImage
-      LABEL com.github.30x.shipyard.revision=v1.0
+      LABEL com.github.30x.kiln.repo=testRepo
+      LABEL com.github.30x.kiln.app=testImage
+      LABEL com.github.30x.kiln.revision=v1.0
 
       CMD ["npm", "start"]
 
