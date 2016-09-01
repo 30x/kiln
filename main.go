@@ -50,39 +50,39 @@ func main() {
 		shipyard.LogError.Fatalf("Unable to create pod spec provider.  Error is %s", err)
 	}
 
-	reaperIntervalString := os.Getenv("REAP_INTERVAL")
-
-	if reaperIntervalString == "" {
-		shipyard.LogError.Fatal("You must specifiy the REAP_INTERVAL environment variable")
-	}
-
-	reaperInterval, err := strconv.Atoi(reaperIntervalString)
-
-	if err != nil {
-		shipyard.LogError.Fatal("You must specify a valid integer for the REAP_INTERVAL value")
-	}
-
-	reaperMinAgeString := os.Getenv("REAP_MIN_AGE")
-
-	if reaperMinAgeString == "" {
-		shipyard.LogError.Fatal("You must specifiy the REAP_MIN_AGE environment variable")
-	}
-
-	reaperMinAge, err := strconv.Atoi(reaperMinAgeString)
-
-	if err != nil {
-		shipyard.LogError.Fatal("You must specify a valid integer for the REAP_MIN_AGE value")
-	}
-
 	//start the reaper process in the background
+	if os.Getenv("NO_REAP") == "" {
+		reaperIntervalString := os.Getenv("REAP_INTERVAL")
 
-	minTime := time.Duration(reaperMinAge) * time.Second
-	reapInterval := time.Duration(reaperInterval) * time.Second
+		if reaperIntervalString == "" {
+			shipyard.LogError.Fatal("You must specifiy the REAP_INTERVAL environment variable")
+		}
 
-	shipyard.LogInfo.Printf("Starting background reaper process. Reper will remove images older than %f second, and will run every %f seconds ", minTime.Seconds(), reapInterval.Seconds())
+		reaperInterval, err := strconv.Atoi(reaperIntervalString)
 
-	//start the reap interval
-	go shipyard.ReapForever(minTime, imageCreator, reapInterval)
+		if err != nil {
+			shipyard.LogError.Fatal("You must specify a valid integer for the REAP_INTERVAL value")
+		}
+
+		reaperMinAgeString := os.Getenv("REAP_MIN_AGE")
+
+		if reaperMinAgeString == "" {
+			shipyard.LogError.Fatal("You must specifiy the REAP_MIN_AGE environment variable")
+		}
+
+		reaperMinAge, err := strconv.Atoi(reaperMinAgeString)
+
+		if err != nil {
+			shipyard.LogError.Fatal("You must specify a valid integer for the REAP_MIN_AGE value")
+		}
+
+		minTime := time.Duration(reaperMinAge) * time.Second
+		reapInterval := time.Duration(reaperInterval) * time.Second
+
+		shipyard.LogInfo.Printf("Starting background reaper process. Reper will remove images older than %f second, and will run every %f seconds ", minTime.Seconds(), reapInterval.Seconds())
+		//start the reap interval
+		go shipyard.ReapForever(minTime, imageCreator, reapInterval)
+	}
 
 	shipyard.LogInfo.Printf("Successfully configured server and validated configuration. Starting server.")
 

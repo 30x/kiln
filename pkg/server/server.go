@@ -296,22 +296,24 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	//defer cleaning up the image
 	// defer server.imageCreator.CleanImageRevision(dockerInfo)
 
-	pushChannel, err := server.imageCreator.PushImage(dockerInfo)
+	if os.Getenv("LOCAL_REGISTRY_ONLY") == "" {
+		pushChannel, err := server.imageCreator.PushImage(dockerInfo)
 
-	if err != nil {
-		message := fmt.Sprintf("Could not push image from docker info %+v.  Error is %s", dockerInfo, err)
-		shipyard.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
+		if err != nil {
+			message := fmt.Sprintf("Could not push image from docker info %+v.  Error is %s", dockerInfo, err)
+			shipyard.LogError.Printf(message)
+			internalError(message, w)
+			return
+		}
 
-	err = chunkData(w, flusher, pushChannel)
+		err = chunkData(w, flusher, pushChannel)
 
-	if err != nil {
-		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
-		shipyard.LogError.Printf(message)
-		internalError(message, w)
-		return
+		if err != nil {
+			message := fmt.Sprintf("Could not flush data.  Error is %s", err)
+			shipyard.LogError.Printf(message)
+			internalError(message, w)
+			return
+		}
 	}
 
 	image, err := server.getImageInternal(createImage.Imagespace, createImage.Application, createImage.Revision)

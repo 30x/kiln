@@ -12,13 +12,14 @@ spec:
         name: shipyard
         routable: "true"
       annotations:
-        publicHosts: "test.k8s.local"
+        publicHosts: "sso.k8s.local"
         publicPaths: "5280:/imagespaces"
-        projectcalico.org/policy: "allow tcp from cidr 192.168.0.0/16; allow tcp from cidr 10.129.0.0/16"
+        privateHosts: "sso.k8s.local"
+        privatePaths: "5280:/imagespaces"
     spec:
       containers:
-      - image: localhost:5000/thirtyx/shipyard
-        imagePullPolicy: Always
+      - image: thirtyx/shipyard:local
+        imagePullPolicy: IfNotPresent
         name: shipyard
         ports:
         - containerPort: 5280
@@ -27,8 +28,6 @@ spec:
           value: "5280"
         - name: DOCKER_PROVIDER
           value: docker
-        - name: DOCKER_REGISTRY_URL
-          value: localhost:5000
         - name: DOCKER_HOST
           value: unix:///var/run/docker.sock
         - name: POD_PROVIDER
@@ -37,13 +36,10 @@ spec:
           value: "60"
         - name: AUTH_API_HOST
           value: api.e2e.apigee.net
-        - name: REAP_INTERVAL
-          value: "60"
-          # Leave images < 5 minutes old
-        - name: REAP_MIN_AGE
-          value: "300"
-        - name: SELF_BASE_URL
-          value: "http://localhost:5280"
+        - name: NO_REAP
+          value: "true"
+        - name: LOCAL_REGISTRY_ONLY
+          value: "true"
         - name: LOCAL_DIR
           value: /tmp/storagedir
         volumeMounts:

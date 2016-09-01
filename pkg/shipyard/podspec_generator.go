@@ -21,8 +21,17 @@ const (
 func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, error) {
 
 	//TODO validate we only ever have 1 port in the public paths.  Parse out the port and then set it below.
+	var repoImage *RepoImage
+	var err error
+	var pullPolicy api.PullPolicy
 
-	repoImage, err := NewRepoImage(dockerURI)
+	if os.Getenv("LOCAL_REGISTRY_ONLY") == "" {
+		repoImage, err = NewRepoImage(dockerURI)
+		pullPolicy = api.PullAlways
+	} else {
+		repoImage, err = NewLocalRepoImage(dockerURI)
+		pullPolicy = api.PullIfNotPresent
+	}
 
 	if err != nil {
 		return "", err
@@ -80,7 +89,7 @@ func GenerateShipyardTemplateSpec(dockerURI string, publicPath string) (string, 
 					Name: repoImage.GeneratePodName(),
 					//TODO: How would we get default images?
 					Image:           dockerURI,
-					ImagePullPolicy: api.PullAlways,
+					ImagePullPolicy: pullPolicy,
 					Env: []api.EnvVar{
 						api.EnvVar{
 							Name:  "PORT",

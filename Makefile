@@ -11,6 +11,9 @@ build-and-package: compile-linux build-image
 
 dev-build-push: compile-linux build-image push-to-dev
 
+# builds and pushes the image used for local dev clusters
+build-push-local: compile-linux build-image push-local-image
+
 test-source:
 	go test -v $$(glide novendor)
 
@@ -32,6 +35,10 @@ build-image:
 push-to-dev:
 	docker tag -f thirtyx/shipyard thirtyx/shipyard:dev
 	docker push thirtyx/shipyard:dev
+
+push-local-image:
+	docker tag -f thirtyx/shipyard thirtyx/shipyard:local
+	docker push thirtyx/shipyard:local
 
 push-to-local:
 	docker tag -f thirtyx/shipyard localhost:5000/thirtyx/shipyard
