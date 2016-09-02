@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 
 	"github.com/30x/authsdk"
-	"github.com/30x/shipyard/pkg/shipyard"
+	"github.com/30x/kiln/pkg/kiln"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -32,13 +32,13 @@ PodTemplateSpec: %s
 type Server struct {
 	router       http.Handler
 	decoder      *schema.Decoder
-	imageCreator shipyard.ImageCreator
-	podSpecIo    shipyard.PodspecIo
+	imageCreator kiln.ImageCreator
+	podSpecIo    kiln.PodspecIo
 	template     *template.Template
 }
 
 //NewServer Create a new server using the provided podspecIo and Image creator.
-func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo) *Server {
+func NewServer(imageCreator kiln.ImageCreator, podSpecIo kiln.PodspecIo) *Server {
 	routes := mux.NewRouter()
 
 	//allow the trailing slash
@@ -98,7 +98,7 @@ func NewServer(imageCreator shipyard.ImageCreator, podSpecIo shipyard.PodspecIo)
 func (server *Server) Start(port int, timeout time.Duration) {
 	address := fmt.Sprintf(":%d", port)
 
-	shipyard.LogInfo.Printf("Starting server at address %s", address)
+	kiln.LogInfo.Printf("Starting server at address %s", address)
 
 	srv := &graceful.Server{
 		Timeout: timeout,
@@ -124,7 +124,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Unable parse form %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -134,7 +134,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to upload file %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -153,7 +153,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Unable parse form %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -172,7 +172,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dockerInfo := &shipyard.DockerInfo{
+	dockerInfo := &kiln.DockerInfo{
 		RepoName:  createImage.Imagespace,
 		ImageName: createImage.Application,
 		Revision:  createImage.Revision,
@@ -185,7 +185,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to check if image exists for %v", dockerInfo)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -196,11 +196,11 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	workspace, err := shipyard.CreateNewWorkspace()
+	workspace, err := kiln.CreateNewWorkspace()
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to create workspace, %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -226,7 +226,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not extract zip file %s ", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -235,7 +235,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not create docker file %s ", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -244,12 +244,12 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not create tar file %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
 
-	dockerBuild := &shipyard.DockerBuild{
+	dockerBuild := &kiln.DockerBuild{
 		DockerInfo: dockerInfo,
 		TarFile:    workspace.TargetTarName,
 	}
@@ -258,7 +258,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not build image from docker info %+v.  Error is %s", dockerInfo, err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -288,7 +288,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -301,7 +301,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			message := fmt.Sprintf("Could not push image from docker info %+v.  Error is %s", dockerInfo, err)
-			shipyard.LogError.Printf(message)
+			kiln.LogError.Printf(message)
 			internalError(message, w)
 			return
 		}
@@ -310,7 +310,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			message := fmt.Sprintf("Could not flush data.  Error is %s", err)
-			shipyard.LogError.Printf(message)
+			kiln.LogError.Printf(message)
 			internalError(message, w)
 			return
 		}
@@ -320,20 +320,19 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not retrieve image for verification.  Error is %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
 
 	if image == nil {
 		message := fmt.Sprintf("Unable to verify the image was pushed to the repository")
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
 
 	//write the last portion
-
 	outputString := fmt.Sprintf(templateString, image.ImageID, server.generatePodSpecURL(dockerInfo, r.Host, createImage.PublicPath))
 
 	writeStringAndFlush(w, flusher, outputString)
@@ -343,16 +342,16 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 //dup the data over to the response writer
 func chunkData(w http.ResponseWriter, flusher http.Flusher, outputChannel chan (string)) error {
 
-	shipyard.LogInfo.Println("Beginning flushing of log data")
+	kiln.LogInfo.Println("Beginning flushing of log data")
 
 	for {
 
 		data, ok := <-outputChannel
 
-		shipyard.LogInfo.Printf("Received data %s and ok %t", data, ok)
+		kiln.LogInfo.Printf("Received data %s and ok %t", data, ok)
 
 		if !ok {
-			shipyard.LogInfo.Printf("Received end of channel, breaking")
+			kiln.LogInfo.Printf("Received end of channel, breaking")
 			break
 		}
 
@@ -363,7 +362,7 @@ func chunkData(w http.ResponseWriter, flusher http.Flusher, outputChannel chan (
 		}
 	}
 
-	shipyard.LogInfo.Println("Completed flushing of log data")
+	kiln.LogInfo.Println("Completed flushing of log data")
 
 	return nil
 
@@ -398,7 +397,7 @@ func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get images for imageSpace %s.  Error is %s", imageSpace, err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -426,7 +425,7 @@ func (server *Server) getImagespaces(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to retrieve imagespaces.  %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -436,7 +435,7 @@ func (server *Server) getImagespaces(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to find oAuth token %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		writeErrorResponse(http.StatusUnauthorized, message, w)
 		return
 	}
@@ -444,13 +443,13 @@ func (server *Server) getImagespaces(w http.ResponseWriter, r *http.Request) {
 	// copy everything over
 	for _, imagespace := range *imagespaceNames {
 
-		shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), imagespace)
+		kiln.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), imagespace)
 
 		isAdmin, err := token.IsOrgAdmin(imagespace)
 
 		if err != nil {
 			message := fmt.Sprintf("Unable to get permission token %s", err)
-			shipyard.LogError.Printf(message)
+			kiln.LogError.Printf(message)
 			writeErrorResponse(http.StatusUnauthorized, message, w)
 		}
 
@@ -486,7 +485,7 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get images for imageSpace %s and application %s.  Error is %s", imageSpace, application, err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -496,7 +495,7 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 	//pre-allocate slice for efficiency
 	images := make([]*Image, length)
 
-	shipyard.LogInfo.Printf("Processing %d images from the server", len(images))
+	kiln.LogInfo.Printf("Processing %d images from the server", len(images))
 
 	for i, image := range *dockerImages {
 
@@ -529,7 +528,7 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.  Error is %s", imageSpace, application, revision, err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -561,7 +560,7 @@ func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.  Error is %s", imageSpace, application, revision, err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -572,7 +571,7 @@ func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dockerInfo := &shipyard.DockerInfo{
+	dockerInfo := &kiln.DockerInfo{
 		RepoName:  imageSpace,
 		ImageName: application,
 		Revision:  revision,
@@ -595,7 +594,7 @@ func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 //getImageInternal get an image.  Image can be nil if not found, or an error will be returned if
 func (server *Server) getImageInternal(imageSpace string, application string, revision string) (*Image, error) {
 
-	dockerInfo := &shipyard.DockerInfo{
+	dockerInfo := &kiln.DockerInfo{
 		RepoName:  imageSpace,
 		ImageName: application,
 		Revision:  revision,
@@ -636,7 +635,7 @@ func (server *Server) postPodSpec(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not read body. Error is %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -650,7 +649,7 @@ func (server *Server) postPodSpec(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not write file. Error is %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -677,7 +676,7 @@ func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		message := fmt.Sprintf("Could not get podspec for imagespace %s,  name %s, and revision %s.  Error is %s", imagespace, name, revision, err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
@@ -711,7 +710,7 @@ func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 	//we purposefully don't validate these, since they're not required
 	publicPath := queryParam.Get("publicPath")
 
-	payload, err := shipyard.GenerateShipyardTemplateSpec(imageURI, publicPath)
+	payload, err := kiln.GenerateKilnTemplateSpec(imageURI, publicPath)
 
 	if err != nil {
 		internalError(err.Error(), w)
@@ -729,7 +728,7 @@ func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
 }
 
 //generatePodSpec get the image
-func (server *Server) generatePodSpecURL(dockerInfo *shipyard.DockerInfo, hostname string, publicPath string) string {
+func (server *Server) generatePodSpecURL(dockerInfo *kiln.DockerInfo, hostname string, publicPath string) string {
 	imageURI := server.imageCreator.GenerateRepoURI(dockerInfo)
 
 	endpoint := fmt.Sprintf("https://%s%s/generatepodspec?imageURI=%s&publicPath=%s", hostname, basePath, imageURI, publicPath)
@@ -738,7 +737,7 @@ func (server *Server) generatePodSpecURL(dockerInfo *shipyard.DockerInfo, hostna
 }
 
 //generatePodSpec get the image
-func (server *Server) generateImageURL(dockerInfo *shipyard.DockerInfo, hostname string) string {
+func (server *Server) generateImageURL(dockerInfo *kiln.DockerInfo, hostname string) string {
 
 	endpoint := fmt.Sprintf("%s%s/%s/images/%s/version/%s", hostname, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
 
@@ -790,30 +789,30 @@ func validateAdmin(imageSpace string, w http.ResponseWriter, r *http.Request) bo
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to find oAuth token %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		writeErrorResponse(http.StatusUnauthorized, message, w)
 		return false
 	}
 
-	shipyard.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), imageSpace)
+	kiln.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), imageSpace)
 
 	isAdmin, err := token.IsOrgAdmin(imageSpace)
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to get permission token %s", err)
-		shipyard.LogError.Printf(message)
+		kiln.LogError.Printf(message)
 		writeErrorResponse(http.StatusUnauthorized, message, w)
 		return false
 	}
 
 	//if not an admin, give access denied
 	if !isAdmin {
-		shipyard.LogInfo.Printf("User %s is not an admin for imageSpace %s", token.GetUsername(), imageSpace)
+		kiln.LogInfo.Printf("User %s is not an admin for imageSpace %s", token.GetUsername(), imageSpace)
 		writeErrorResponse(http.StatusForbidden, fmt.Sprintf("You do not have admin permisison for imageSpace %s", imageSpace), w)
 		return false
 	}
 
-	shipyard.LogInfo.Printf("User %s is an admin for imageSpace %s", token.GetUsername(), imageSpace)
+	kiln.LogInfo.Printf("User %s is an admin for imageSpace %s", token.GetUsername(), imageSpace)
 
 	return true
 }

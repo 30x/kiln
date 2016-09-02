@@ -1,4 +1,4 @@
-# Shipyard
+# Kiln
 
 A system for creating and managing docker based node runtimes for node apps
 
@@ -16,3 +16,12 @@ SHUTDOWN_TIMEOUT=1 PORT=5280 DOCKER_PROVIDER=docker DOCKER_REGISTRY_URL=localhos
 ```
 
 You can then use the collection to experiment with the api.  The zip file within the example directory is a simple echo node application. This will echo the output of the request.
+
+## Testing
+
+To run tests, you must be logged into AWS ECR.
+
+```bash
+eval (aws ecr get-login --region us-east-1)
+make test-source
+```

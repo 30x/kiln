@@ -33,9 +33,9 @@ node_modules
 .node_repl_history
 management/.idea
 *.iml
-shipyard/.idea
-shipyard/pkg
-shipyard/bin
+kiln/.idea
+kiln/pkg
+kiln/bin
 .idea
 .vscode
 debug.test
@@ -43,6 +43,6 @@ debug
 build
 ingress.yaml
 deployer.yaml
-#ignore delve debugger files 
+#ignore delve debugger files
 **/*.test
 coverage.**

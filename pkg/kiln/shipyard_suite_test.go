@@ -1,4 +1,4 @@
-package shipyard_test
+package kiln_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestShipyard(t *testing.T) {
+func TestKiln(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Shipyard Suite")
+	RunSpecs(t, "Kiln Suite")
 }

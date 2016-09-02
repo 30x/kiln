@@ -1,15 +1,15 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: shipyard
+  name: kiln
   labels:
-    name: shipyard
+    name: kiln
 spec:
   replicas: 3
   template:
     metadata:
       labels:
-        name: shipyard
+        name: kiln
         routable: "true"
       annotations:
         privateHosts: "shipyard.e2e.local"
@@ -19,9 +19,9 @@ spec:
         publicPaths: "5280:/beeswax/images"
     spec:
       containers:
-      - image: registry-1.docker.io/thirtyx/shipyard:0.1.1
+      - image: registry-1.docker.io/thirtyx/kiln:0.1.1
         imagePullPolicy: Always
-        name: shipyard
+        name: kiln
         ports:
         - containerPort: 5280
         env:
@@ -50,7 +50,7 @@ spec:
           value: "60"
         #Every 4 hours 4 * 60 * 60
         - name: SHUTDOWN_TIMER
-          value: "14400"  
+          value: "14400"
         - name: AWS_ACCESS_KEY
           valueFrom:
             secretKeyRef:

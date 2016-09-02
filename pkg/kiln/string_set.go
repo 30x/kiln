@@ -1,4 +1,4 @@
-package shipyard
+package kiln
 
 //StringSet a set of strings
 type StringSet struct {

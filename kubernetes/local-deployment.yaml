@@ -1,15 +1,15 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: shipyard
+  name: kiln
   labels:
-    name: shipyard
+    name: kiln
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        name: shipyard
+        name: kiln
         routable: "true"
       annotations:
         publicHosts: "sso.k8s.local"
@@ -18,9 +18,9 @@ spec:
         privatePaths: "5280:/imagespaces"
     spec:
       containers:
-      - image: thirtyx/shipyard:local
+      - image: thirtyx/kiln:local
         imagePullPolicy: IfNotPresent
-        name: shipyard
+        name: kiln
         ports:
         - containerPort: 5280
         env:
