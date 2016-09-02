@@ -279,6 +279,7 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild) (chan 
 		Tags:        []string{name},
 		ForceRemove: true,
 		Remove:      true,
+		NoCache: true,
 	}
 
 	response, err := imageCreator.client.ImageBuild(context.Background(), imageBuildOptions)
