@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"time"
-	"io/ioutil"
 
 	"github.com/30x/authsdk"
 	"github.com/30x/kiln/pkg/kiln"
@@ -176,7 +176,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		RepoName:  createImage.Imagespace,
 		ImageName: createImage.Application,
 		Revision:  createImage.Revision,
-		EnvVars: 	 createImage.EnvVars,
+		EnvVars:   createImage.EnvVars,
 	}
 
 	//check if the image exists, if it does, return a 409
@@ -801,7 +801,7 @@ func validateAdmin(imageSpace string, w http.ResponseWriter, r *http.Request) bo
 	if err != nil {
 		message := fmt.Sprintf("Unable to get permission token %s", err)
 		kiln.LogError.Printf(message)
-		writeErrorResponse(http.StatusUnauthorized, message, w)
+		writeErrorResponse(http.StatusForbidden, message, w)
 		return false
 	}
 
