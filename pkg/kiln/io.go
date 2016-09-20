@@ -230,8 +230,6 @@ const templateString = `FROM mhart/alpine-node:4
 
 ADD . .
 RUN npm install
-#Taken from the runtime on start
-EXPOSE 9000
 
 LABEL ` + TAG_REPO + `={{.RepoName}}
 LABEL ` + TAG_APPLICATION + `={{.ImageName}}
