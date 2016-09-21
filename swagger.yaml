@@ -31,7 +31,7 @@ paths:
             $ref: '#/definitions/Error'
       parameters:
         - $ref: '#/parameters/org'
-        - name: application
+        - name: name
           in: formData
           description: The Application name
           required: true
