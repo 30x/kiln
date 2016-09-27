@@ -226,7 +226,7 @@ func (sourceInfo *SourceInfo) Clean() error {
 }
 
 //The TEMPLATE for generating a go file
-const templateString = `FROM mhart/alpine-node:4
+const templateString = `FROM mhart/alpine-node:{{.NodeVersion}}
 
 ADD . .
 RUN npm install

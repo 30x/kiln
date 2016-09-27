@@ -177,6 +177,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		ImageName: createImage.Application,
 		Revision:  createImage.Revision,
 		EnvVars:   createImage.EnvVars,
+		NodeVersion: createImage.NodeVersion,
 	}
 
 	//check if the image exists, if it does, return a 409
