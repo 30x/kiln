@@ -12,6 +12,7 @@ type DockerInfo struct {
 	ImageName string
 	Revision  string
 	EnvVars   []string
+	NodeVersion string
 }
 
 //GetImageName generate an image of the format {RepoName}/{ImageName}
