@@ -56,12 +56,6 @@ func GenerateKilnTemplateSpec(dockerURI string, publicPath string) (string, erro
 		return "", errors.New("Port must be parsable to an int")
 	}
 
-	pullSecretName := os.Getenv("PULL_SECRET_NAME")
-
-	if pullSecretName == "" {
-		pullSecretName = "ecr-key"
-	}
-
 	//the cdir to allow traffic from.  TODO make this space or comma delimited
 	cdir := os.Getenv("POD_CDIR")
 
@@ -127,11 +121,6 @@ func GenerateKilnTemplateSpec(dockerURI string, publicPath string) (string, erro
 							ContainerPort: intPort,
 						},
 					},
-				},
-			},
-			ImagePullSecrets: []api.LocalObjectReference{
-				api.LocalObjectReference{
-					Name: pullSecretName,
 				},
 			},
 		},

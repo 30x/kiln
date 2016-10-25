@@ -112,9 +112,13 @@ func (parser *PushStreamParser) Parse() {
 			continue
 		}
 
-		text := fmt.Sprintf("current uploaded:%d, total size:%d\n", pushStatusMessage.ProgressDetail.Current, pushStatusMessage.ProgressDetail.Total)
+		if pushStatusMessage.ProgressDetail.Current == 0 && pushStatusMessage.ProgressDetail.Total == 0 {
+			continue;
+		} else {
+			text := fmt.Sprintf("current uploaded:%d, total size:%d\n", pushStatusMessage.ProgressDetail.Current, pushStatusMessage.ProgressDetail.Total)
 
-		parser.outputChannel <- text
+			parser.outputChannel <- text
+		}
 	}
 
 	LogInfo.Printf("Completed parsing push stream")
