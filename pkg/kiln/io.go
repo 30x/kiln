@@ -229,7 +229,9 @@ func (sourceInfo *SourceInfo) Clean() error {
 const templateString = `FROM mhart/alpine-node:{{.NodeVersion}}
 
 ADD . .
-RUN npm install
+RUN apk add --no-cache git && \
+    npm install && \
+    apk del git
 
 LABEL ` + TAG_REPO + `={{.RepoName}}
 LABEL ` + TAG_APPLICATION + `={{.ImageName}}
