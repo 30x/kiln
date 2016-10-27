@@ -80,9 +80,15 @@ func NewServer(imageCreator kiln.ImageCreator, podSpecIo kiln.PodspecIo) *Server
 	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/imagespaces/{org}/images/{name}/podspec/{revision}/").HandlerFunc(server.postPodSpec)
 	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/imagespaces/{org}/images/{name}/podspec/{revision}").HandlerFunc(server.postPodSpec)
 
+	// dockerfile
+	routes.Methods("GET").Path("/imagespaces/kiln/Dockerfile/").HandlerFunc(server.getDockerfile)
+	routes.Methods("GET").Path("/imagespaces/kiln/Dockerfile").HandlerFunc(server.getDockerfile)
+
 	//health check
 	routes.Methods("GET").Path("/imagespaces/status/").HandlerFunc(server.status)
 	routes.Methods("GET").Path("/imagespaces/status").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/imagespaces/kiln/status/").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/imagespaces/kiln/status").HandlerFunc(server.status)
 
 	//now wrap everything with logging
 
@@ -115,6 +121,28 @@ func (server *Server) Start(port int, timeout time.Duration) {
 		}
 	}
 
+}
+
+// getDockerFile replies with the Dockerfile kiln uses to build images
+func (server *Server) getDockerfile(w http.ResponseWriter, r *http.Request) {
+	dockerInfo := &kiln.DockerInfo{
+		RepoName:  "<imagespace>",
+		ImageName: "<imageName>",
+		Revision:  "<revision>",
+		EnvVars: []string{"var1=val1", "var2=val2"},
+		NodeVersion: "<nodeVersion>",
+	}
+
+	resp, err := kiln.GetExampleDockerfile(dockerInfo)
+	if err != nil {
+		message := fmt.Sprintf("Failed making example Dockerfile %s", err)
+		kiln.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write(resp.Bytes())
 }
 
 // TODO: Fix how org and other info is parsed

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"bytes"
 
 	uuid "github.com/nu7hatch/gouuid"
 )
@@ -280,4 +281,17 @@ func (sourceInfo *SourceInfo) CreateDockerFile(dockerInfo *DockerInfo) error {
 	}
 
 	return nil
+}
+
+// GetExampleDockerfile is used to create an example Dockerfile with the given information
+func GetExampleDockerfile(dockerInfo *DockerInfo) (buf *bytes.Buffer, err error) {
+	buf = &bytes.Buffer{}
+
+	err = dockerTemplate.Execute(buf, dockerInfo)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
 }
