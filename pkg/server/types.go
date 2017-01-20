@@ -4,17 +4,18 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
-	"time"
 )
 
 var regex = regexp.MustCompile(`\d+:\/[\w+(\/)?]?`)
+
 // DefaultNodeVersion the default version of alpine-node image
 const DefaultNodeVersion = "4"
 
 //Image represents an image struct
 type Image struct {
-	Created time.Time `json:"created"`
-	ImageID string    `json:"imageId"`
+	// Created time.Time `json:"created"`
+	Revision []string `json:"revision"`
+	ImageID  string   `json:"imageId"`
 }
 
 //Imagespace represents an image struct
@@ -36,12 +37,12 @@ type Link struct {
 
 //CreateImage the structure for creating an appliction via form
 type CreateImage struct {
-	Imagespace   string
-	Application string `schema:"name"`
-	Revision    string `schema:"revision"`
-	PublicPath  string `schema:"publicPath"`
+	Imagespace  string
+	Application string   `schema:"name"`
+	Revision    string   `schema:"revision"`
+	PublicPath  string   `schema:"publicPath"`
 	EnvVars     []string `schema:"envVar"`
-	NodeVersion string `schema:"nodeVersion"`
+	NodeVersion string   `schema:"nodeVersion"`
 }
 
 //Validate validate the application input is correct

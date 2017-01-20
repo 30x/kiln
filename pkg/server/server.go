@@ -504,8 +504,7 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 	for i, image := range *dockerImages {
 
 		resultImage := &Image{
-			Created: time.Unix(image.Created, 0),
-			ImageID: image.ID,
+			Revision: image.RepoTags,
 		}
 
 		images[i] = resultImage
@@ -615,8 +614,8 @@ func (server *Server) getImageInternal(imageSpace string, application string, re
 	}
 
 	imageResponse := &Image{
-		Created: time.Unix(image.Created, 0),
-		ImageID: image.ID,
+		Revision: image.RepoTags,
+		ImageID:  image.ID,
 	}
 
 	return imageResponse, nil
