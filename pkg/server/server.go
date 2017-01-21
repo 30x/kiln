@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -23,18 +22,12 @@ const maxFileSize = 1024 * 1024 * 100
 
 const basePath = "/imagespaces"
 
-const templateString = `BuildComplete
-ID: %s
-PodTemplateSpec: %s
-`
-
 //Server struct to create an instance of hte server
 type Server struct {
 	router       http.Handler
 	decoder      *schema.Decoder
 	imageCreator kiln.ImageCreator
 	podSpecIo    kiln.PodspecIo
-	template     *template.Template
 }
 
 //NewServer Create a new server using the provided podspecIo and Image creator.
@@ -48,13 +41,10 @@ func NewServer(imageCreator kiln.ImageCreator, podSpecIo kiln.PodspecIo) *Server
 	//now set up the decoder and return the server
 	decoder := schema.NewDecoder()
 
-	template := template.Must(template.New("outputTemplate").Parse(templateString))
-
 	server := &Server{
 		decoder:      decoder,
 		imageCreator: imageCreator,
 		podSpecIo:    podSpecIo,
-		template:     template,
 	}
 
 	//a bit hacky, but need the pointer to the server
@@ -72,8 +62,6 @@ func NewServer(imageCreator kiln.ImageCreator, podSpecIo kiln.PodspecIo) *Server
 	routes.Methods("DELETE").Path("/imagespaces/{org}/images/{name}/version/{revision}").HandlerFunc(server.deleteImage)
 
 	//podtemplate generation
-	routes.Methods("GET").Path("/imagespaces/generatepodspec/").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
-	routes.Methods("GET").Path("/imagespaces/generatepodspec").Queries("imageURI", "", "publicPath", "").HandlerFunc(server.generatePodSpec)
 	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/podspec/{revision}/").HandlerFunc(server.getPodSpec)
 	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/podspec/{revision}").HandlerFunc(server.getPodSpec)
 	//post a podspec for a specified revision
@@ -126,10 +114,10 @@ func (server *Server) Start(port int, timeout time.Duration) {
 // getDockerFile replies with the Dockerfile kiln uses to build images
 func (server *Server) getDockerfile(w http.ResponseWriter, r *http.Request) {
 	dockerInfo := &kiln.DockerInfo{
-		RepoName:  "<imagespace>",
-		ImageName: "<imageName>",
-		Revision:  "<revision>",
-		EnvVars: []string{"var1=val1", "var2=val2"},
+		RepoName:    "<imagespace>",
+		ImageName:   "<imageName>",
+		Revision:    "<revision>",
+		EnvVars:     []string{"var1=val1", "var2=val2"},
 		NodeVersion: "<nodeVersion>",
 	}
 
@@ -201,10 +189,10 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dockerInfo := &kiln.DockerInfo{
-		RepoName:  createImage.Imagespace,
-		ImageName: createImage.Application,
-		Revision:  createImage.Revision,
-		EnvVars:   createImage.EnvVars,
+		RepoName:    createImage.Imagespace,
+		ImageName:   createImage.Application,
+		Revision:    createImage.Revision,
+		EnvVars:     createImage.EnvVars,
 		NodeVersion: createImage.NodeVersion,
 	}
 
@@ -361,10 +349,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//write the last portion
-	outputString := fmt.Sprintf(templateString, image.ImageID, server.generatePodSpecURL(dockerInfo, r.Host, createImage.PublicPath))
-
-	writeStringAndFlush(w, flusher, outputString)
+	writeStringAndFlush(w, flusher, "Done.\n")
 
 }
 
@@ -720,49 +705,6 @@ func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(*podSpec))
 
-}
-
-//generatePodSpec get the image
-func (server *Server) generatePodSpec(w http.ResponseWriter, r *http.Request) {
-
-	//intentionally left open.
-	queryParam := r.URL.Query()
-
-	imageURI := queryParam.Get("imageURI")
-
-	//validate the image uri is correct
-	if imageURI == "" {
-		internalError("You must specify a valid docker imageURI", w)
-		return
-	}
-
-	//we purposefully don't validate these, since they're not required
-	publicPath := queryParam.Get("publicPath")
-
-	payload, err := kiln.GenerateKilnTemplateSpec(imageURI, publicPath)
-
-	if err != nil {
-		internalError(err.Error(), w)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-
-	_, err = w.Write([]byte(payload))
-
-	if err != nil {
-		internalError(err.Error(), w)
-		return
-	}
-}
-
-//generatePodSpec get the image
-func (server *Server) generatePodSpecURL(dockerInfo *kiln.DockerInfo, hostname string, publicPath string) string {
-	imageURI := server.imageCreator.GenerateRepoURI(dockerInfo)
-
-	endpoint := fmt.Sprintf("https://%s%s/generatepodspec?imageURI=%s&publicPath=%s", hostname, basePath, imageURI, publicPath)
-
-	return endpoint
 }
 
 //generatePodSpec get the image

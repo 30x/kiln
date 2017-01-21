@@ -33,19 +33,19 @@ build-image:
 	docker build -t thirtyx/kiln .
 
 push-to-dev:
-	docker tag -f thirtyx/kiln thirtyx/kiln:dev
+	docker tag thirtyx/kiln thirtyx/kiln:dev
 	docker push thirtyx/kiln:dev
 
 push-local-image:
-	docker tag -f thirtyx/kiln thirtyx/kiln:local
+	docker tag thirtyx/kiln thirtyx/kiln:local
 	docker push thirtyx/kiln:local
 
 push-to-local:
-	docker tag -f thirtyx/kiln localhost:5000/thirtyx/kiln
+	docker tag thirtyx/kiln localhost:5000/thirtyx/kiln
 	docker push localhost:5000/thirtyx/kiln
 
 push-to-hub:
-	docker tag -f thirtyx/kiln thirtyx/kiln:$(IMAGE_VERSION)
+	docker tag thirtyx/kiln thirtyx/kiln:$(IMAGE_VERSION)
 	docker push thirtyx/kiln:$(IMAGE_VERSION)
 
 deploy-to-kube:
