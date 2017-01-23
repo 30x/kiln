@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -27,11 +26,10 @@ type Server struct {
 	router       http.Handler
 	decoder      *schema.Decoder
 	imageCreator kiln.ImageCreator
-	podSpecIo    kiln.PodspecIo
 }
 
-//NewServer Create a new server using the provided podspecIo and Image creator.
-func NewServer(imageCreator kiln.ImageCreator, podSpecIo kiln.PodspecIo) *Server {
+//NewServer Create a new server using the provided Image creator.
+func NewServer(imageCreator kiln.ImageCreator) *Server {
 	routes := mux.NewRouter()
 
 	//allow the trailing slash
@@ -44,7 +42,6 @@ func NewServer(imageCreator kiln.ImageCreator, podSpecIo kiln.PodspecIo) *Server
 	server := &Server{
 		decoder:      decoder,
 		imageCreator: imageCreator,
-		podSpecIo:    podSpecIo,
 	}
 
 	//a bit hacky, but need the pointer to the server
@@ -60,13 +57,6 @@ func NewServer(imageCreator kiln.ImageCreator, podSpecIo kiln.PodspecIo) *Server
 	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/version/{revision}").HandlerFunc(server.getImage)
 	routes.Methods("DELETE").Path("/imagespaces/{org}/images/{name}/version/{revision}/").HandlerFunc(server.deleteImage) // delete image by revision
 	routes.Methods("DELETE").Path("/imagespaces/{org}/images/{name}/version/{revision}").HandlerFunc(server.deleteImage)
-
-	//podtemplate generation
-	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/podspec/{revision}/").HandlerFunc(server.getPodSpec)
-	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/podspec/{revision}").HandlerFunc(server.getPodSpec)
-	//post a podspec for a specified revision
-	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/imagespaces/{org}/images/{name}/podspec/{revision}/").HandlerFunc(server.postPodSpec)
-	routes.Methods("PUT").Headers("Content-Type", "application/json").Path("/imagespaces/{org}/images/{name}/podspec/{revision}").HandlerFunc(server.postPodSpec)
 
 	// dockerfile
 	routes.Methods("GET").Path("/imagespaces/kiln/Dockerfile/").HandlerFunc(server.getDockerfile)
@@ -630,81 +620,6 @@ func (server *Server) getImageInternal(imageSpace string, application string, re
 	}
 
 	return imageResponse, nil
-}
-
-//postPodSpec get the image
-func (server *Server) postPodSpec(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	imagespace := vars["org"]
-	application := vars["name"]
-	revision := vars["revision"]
-
-	//not an admin, exit
-	if !validateAdmin(imagespace, w, r) {
-		return
-	}
-
-	jsonBytes, err := ioutil.ReadAll(r.Body)
-
-	if err != nil {
-		message := fmt.Sprintf("Could not read body. Error is %s", err)
-		kiln.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
-
-	json := string(jsonBytes)
-
-	//TODO validate
-
-	//write an ok resposne
-	err = server.podSpecIo.WritePodSpec(imagespace, application, revision, json)
-
-	if err != nil {
-		message := fmt.Sprintf("Could not write file. Error is %s", err)
-		kiln.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-}
-
-//getPodSpec
-func (server *Server) getPodSpec(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	imagespace := vars["org"]
-	name := vars["name"]
-	revision := vars["revision"]
-
-	//not an admin, exit
-	if !validateAdmin(imagespace, w, r) {
-		return
-	}
-
-	podSpec, err := server.podSpecIo.ReadPodSpec(imagespace, name, revision)
-
-	if err != nil {
-		message := fmt.Sprintf("Could not get podspec for imagespace %s,  name %s, and revision %s.  Error is %s", imagespace, name, revision, err)
-		kiln.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
-
-	//not found, return a 404
-	if podSpec == nil {
-		notFound(fmt.Sprintf("Could not get podspec for imagespace %s,  name %s, and revision %s.", imagespace, name, revision), w)
-		return
-	}
-
-	//write the response
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(*podSpec))
-
 }
 
 //generatePodSpec get the image
