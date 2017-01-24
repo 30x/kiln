@@ -14,6 +14,8 @@ import (
 
 func main() {
 
+	kiln.LogInfo.Printf("Starting server configuration and validation...")
+
 	portString := os.Getenv("PORT")
 
 	if portString == "" {
@@ -26,6 +28,8 @@ func main() {
 		kiln.LogError.Fatal("You must specify a valid integer for the PORT value")
 	}
 
+	kiln.LogInfo.Printf("PORT accepted: %d", port)
+
 	timeoutString := os.Getenv("SHUTDOWN_TIMEOUT")
 
 	if timeoutString == "" {
@@ -37,12 +41,17 @@ func main() {
 	if err != nil {
 		kiln.LogError.Fatal("You must specify a valid integer for the SHUTDOWN_TIMEOUT value")
 	}
+
+	kiln.LogInfo.Printf("SHUTDOWN_TIMEOUT accepted: %d", timeout)
+
 	imageCreator, err := kiln.NewImageCreatorFromEnv()
 
 	//we should die here if we're unable to start
 	if err != nil {
 		kiln.LogError.Fatalf("Unable to create image creator %s", err)
 	}
+
+	kiln.LogInfo.Printf("ImageCreator set up.")
 
 	//start the reaper process in the background
 	if os.Getenv("NO_REAP") == "" {
@@ -58,6 +67,8 @@ func main() {
 			kiln.LogError.Fatal("You must specify a valid integer for the REAP_INTERVAL value")
 		}
 
+		kiln.LogInfo.Printf("REAP_INTERVAL accepted: %d", reaperInterval)
+
 		reaperMinAgeString := os.Getenv("REAP_MIN_AGE")
 
 		if reaperMinAgeString == "" {
@@ -69,6 +80,8 @@ func main() {
 		if err != nil {
 			kiln.LogError.Fatal("You must specify a valid integer for the REAP_MIN_AGE value")
 		}
+
+		kiln.LogInfo.Printf("REAP_MIN_AGE accepted: %d", reaperMinAge)
 
 		minTime := time.Duration(reaperMinAge) * time.Second
 		reapInterval := time.Duration(reaperInterval) * time.Second
