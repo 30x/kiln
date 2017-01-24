@@ -31,7 +31,13 @@
 //
 // Marshal Go value type for DynamoDB.PutItem:
 //
-//     svc := dynamodb.New(nil)
+//     sess, err := session.NewSession()
+//     if err != nil {
+//         fmt.Println("Failed create session", err)
+//         return
+//     }
+//
+//     svc := dynamodb.New(sess)
 //     item, err := dynamodbattribute.MarshalMap(r)
 //     if err != nil {
 //         fmt.Println("Failed to convert", err)
@@ -51,8 +57,11 @@
 // binary data fields in structs as base64 strings.
 //
 // The Marshal and Unmarshal functions correct this behavior, and removes
-// the reliance on encoding.json. `json` struct tags are still supported.
-// Support for the  json.Marshaler nor json.Unmarshaler interfaces have
-// been removed and replaced with have been replaced with dynamodbattribute.Marshaler
-// and dynamodbattribute.Unmarshaler interfaces.
+// the reliance on encoding.json. `json` struct tags are still supported. In
+// addition support for a new struct tag `dynamodbav` was added. Support for
+// the json.Marshaler and json.Unmarshaler interfaces have been removed and
+// replaced with have been replaced with dynamodbattribute.Marshaler and
+// dynamodbattribute.Unmarshaler interfaces.
+//
+// `time.Time` is marshaled as RFC3339 format.
 package dynamodbattribute

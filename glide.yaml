@@ -3,9 +3,6 @@ import:
 - package: github.com/nu7hatch/gouuid
   version: 179d4d0c4d8d407a32af483c2354df1d2c91e6c3
   vcs: git
-- package: github.com/aws/aws-sdk-go
-  version: 4151ef572710e04d25d9385114b33847ba6a923a
-  vcs: git
 - package: github.com/docker/docker
   version: v1.10.3
   vcs: git
@@ -23,13 +20,14 @@ import:
 - package: github.com/tylerb/graceful
   version: v1.2.5
   vcs: git
-- package: k8s.io/kubernetes
-  version: 1.2.0
-  subpackages:
-  - pkg/client/unversioned
-  - pkg/client/api
 - package: github.com/30x/authsdk
   version: 50e1bb8adac0afdac021b4b08091876d1a70324c
   vcs: git
 - package: github.com/onsi/ginkgo
   version: ^1.2.0
+- package: gopkg.in/yaml.v2
+  version: v2
+  repo: https://github.com/go-yaml/yaml.git
+  vcs: git
+- package: github.com/aws/aws-sdk-go
+  version: v1.6.15

@@ -5,7 +5,8 @@
     "endpointPrefix":"lambda",
     "protocol":"rest-json",
     "serviceFullName":"AWS Lambda",
-    "signatureVersion":"v4"
+    "signatureVersion":"v4",
+    "uid":"lambda-2015-03-31"
   },
   "operations":{
     "AddPermission":{
@@ -56,7 +57,8 @@
         {"shape":"ServiceException"},
         {"shape":"InvalidParameterValueException"},
         {"shape":"ResourceConflictException"},
-        {"shape":"TooManyRequestsException"}
+        {"shape":"TooManyRequestsException"},
+        {"shape":"ResourceNotFoundException"}
       ]
     },
     "CreateFunction":{
@@ -121,6 +123,20 @@
         {"shape":"TooManyRequestsException"},
         {"shape":"InvalidParameterValueException"},
         {"shape":"ResourceConflictException"}
+      ]
+    },
+    "GetAccountSettings":{
+      "name":"GetAccountSettings",
+      "http":{
+        "method":"GET",
+        "requestUri":"/2016-08-19/account-settings/",
+        "responseCode":200
+      },
+      "input":{"shape":"GetAccountSettingsRequest"},
+      "output":{"shape":"GetAccountSettingsResponse"},
+      "errors":[
+        {"shape":"TooManyRequestsException"},
+        {"shape":"ServiceException"}
       ]
     },
     "GetAlias":{
@@ -225,7 +241,12 @@
         {"shape":"EC2ThrottledException"},
         {"shape":"EC2AccessDeniedException"},
         {"shape":"InvalidSubnetIDException"},
-        {"shape":"InvalidSecurityGroupIDException"}
+        {"shape":"InvalidSecurityGroupIDException"},
+        {"shape":"InvalidZipFileException"},
+        {"shape":"KMSDisabledException"},
+        {"shape":"KMSInvalidStateException"},
+        {"shape":"KMSAccessDeniedException"},
+        {"shape":"KMSNotFoundException"}
       ]
     },
     "InvokeAsync":{
@@ -406,6 +427,22 @@
     }
   },
   "shapes":{
+    "AccountLimit":{
+      "type":"structure",
+      "members":{
+        "TotalCodeSize":{"shape":"Long"},
+        "CodeSizeUnzipped":{"shape":"Long"},
+        "CodeSizeZipped":{"shape":"Long"},
+        "ConcurrentExecutions":{"shape":"Integer"}
+      }
+    },
+    "AccountUsage":{
+      "type":"structure",
+      "members":{
+        "TotalCodeSize":{"shape":"Long"},
+        "FunctionCount":{"shape":"Long"}
+      }
+    },
     "Action":{
       "type":"string",
       "pattern":"(lambda:[*]|lambda:[a-zA-Z]+|[*])"
@@ -429,6 +466,7 @@
         "Principal":{"shape":"Principal"},
         "SourceArn":{"shape":"Arn"},
         "SourceAccount":{"shape":"SourceOwner"},
+        "EventSourceToken":{"shape":"EventSourceToken"},
         "Qualifier":{
           "shape":"Qualifier",
           "location":"querystring",
@@ -470,7 +508,10 @@
       "max":10000,
       "min":1
     },
-    "Blob":{"type":"blob"},
+    "Blob":{
+      "type":"blob",
+      "sensitive":true
+    },
     "BlobStream":{
       "type":"blob",
       "streaming":true
@@ -515,7 +556,8 @@
         "FunctionName":{"shape":"FunctionName"},
         "Enabled":{"shape":"Enabled"},
         "BatchSize":{"shape":"BatchSize"},
-        "StartingPosition":{"shape":"EventSourcePosition"}
+        "StartingPosition":{"shape":"EventSourcePosition"},
+        "StartingPositionTimestamp":{"shape":"Date"}
       }
     },
     "CreateFunctionRequest":{
@@ -537,10 +579,19 @@
         "Timeout":{"shape":"Timeout"},
         "MemorySize":{"shape":"MemorySize"},
         "Publish":{"shape":"Boolean"},
-        "VpcConfig":{"shape":"VpcConfig"}
+        "VpcConfig":{"shape":"VpcConfig"},
+        "DeadLetterConfig":{"shape":"DeadLetterConfig"},
+        "Environment":{"shape":"Environment"},
+        "KMSKeyArn":{"shape":"KMSKeyArn"}
       }
     },
     "Date":{"type":"timestamp"},
+    "DeadLetterConfig":{
+      "type":"structure",
+      "members":{
+        "TargetArn":{"shape":"ResourceArn"}
+      }
+    },
     "DeleteAliasRequest":{
       "type":"structure",
       "required":[
@@ -630,6 +681,42 @@
       "exception":true
     },
     "Enabled":{"type":"boolean"},
+    "Environment":{
+      "type":"structure",
+      "members":{
+        "Variables":{"shape":"EnvironmentVariables"}
+      }
+    },
+    "EnvironmentError":{
+      "type":"structure",
+      "members":{
+        "ErrorCode":{"shape":"String"},
+        "Message":{"shape":"SensitiveString"}
+      }
+    },
+    "EnvironmentResponse":{
+      "type":"structure",
+      "members":{
+        "Variables":{"shape":"EnvironmentVariables"},
+        "Error":{"shape":"EnvironmentError"}
+      }
+    },
+    "EnvironmentVariableName":{
+      "type":"string",
+      "pattern":"[a-zA-Z]([a-zA-Z0-9_])+",
+      "sensitive":true
+    },
+    "EnvironmentVariableValue":{
+      "type":"string",
+      "pattern":"[^,]*",
+      "sensitive":true
+    },
+    "EnvironmentVariables":{
+      "type":"map",
+      "key":{"shape":"EnvironmentVariableName"},
+      "value":{"shape":"EnvironmentVariableValue"},
+      "sensitive":true
+    },
     "EventSourceMappingConfiguration":{
       "type":"structure",
       "members":{
@@ -651,8 +738,15 @@
       "type":"string",
       "enum":[
         "TRIM_HORIZON",
-        "LATEST"
+        "LATEST",
+        "AT_TIMESTAMP"
       ]
+    },
+    "EventSourceToken":{
+      "type":"string",
+      "max":256,
+      "min":0,
+      "pattern":"[a-zA-Z0-9._\\-]+"
     },
     "FunctionArn":{
       "type":"string",
@@ -689,7 +783,10 @@
         "LastModified":{"shape":"Timestamp"},
         "CodeSha256":{"shape":"String"},
         "Version":{"shape":"Version"},
-        "VpcConfig":{"shape":"VpcConfigResponse"}
+        "VpcConfig":{"shape":"VpcConfigResponse"},
+        "DeadLetterConfig":{"shape":"DeadLetterConfig"},
+        "Environment":{"shape":"EnvironmentResponse"},
+        "KMSKeyArn":{"shape":"KMSKeyArn"}
       }
     },
     "FunctionList":{
@@ -701,6 +798,18 @@
       "max":140,
       "min":1,
       "pattern":"(arn:aws:lambda:)?([a-z]{2}-[a-z]+-\\d{1}:)?(\\d{12}:)?(function:)?([a-zA-Z0-9-_]+)(:(\\$LATEST|[a-zA-Z0-9-_]+))?"
+    },
+    "GetAccountSettingsRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "GetAccountSettingsResponse":{
+      "type":"structure",
+      "members":{
+        "AccountLimit":{"shape":"AccountLimit"},
+        "AccountUsage":{"shape":"AccountUsage"}
+      }
     },
     "GetAliasRequest":{
       "type":"structure",
@@ -836,6 +945,15 @@
       "error":{"httpStatusCode":502},
       "exception":true
     },
+    "InvalidZipFileException":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"String"},
+        "Message":{"shape":"String"}
+      },
+      "error":{"httpStatusCode":502},
+      "exception":true
+    },
     "InvocationRequest":{
       "type":"structure",
       "required":["FunctionName"],
@@ -924,6 +1042,46 @@
         }
       },
       "deprecated":true
+    },
+    "KMSAccessDeniedException":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"String"},
+        "Message":{"shape":"String"}
+      },
+      "error":{"httpStatusCode":502},
+      "exception":true
+    },
+    "KMSDisabledException":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"String"},
+        "Message":{"shape":"String"}
+      },
+      "error":{"httpStatusCode":502},
+      "exception":true
+    },
+    "KMSInvalidStateException":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"String"},
+        "Message":{"shape":"String"}
+      },
+      "error":{"httpStatusCode":502},
+      "exception":true
+    },
+    "KMSKeyArn":{
+      "type":"string",
+      "pattern":"(arn:aws:[a-z0-9-.]+:.*)|()"
+    },
+    "KMSNotFoundException":{
+      "type":"structure",
+      "members":{
+        "Type":{"shape":"String"},
+        "Message":{"shape":"String"}
+      },
+      "error":{"httpStatusCode":502},
+      "exception":true
     },
     "ListAliasesRequest":{
       "type":"structure",
@@ -1123,6 +1281,10 @@
       "error":{"httpStatusCode":413},
       "exception":true
     },
+    "ResourceArn":{
+      "type":"string",
+      "pattern":"(arn:aws:[a-z0-9-.]+:.*)|()"
+    },
     "ResourceConflictException":{
       "type":"structure",
       "members":{
@@ -1149,8 +1311,11 @@
       "type":"string",
       "enum":[
         "nodejs",
+        "nodejs4.3",
         "java8",
-        "python2.7"
+        "python2.7",
+        "dotnetcore1.0",
+        "nodejs4.3-edge"
       ]
     },
     "S3Bucket":{
@@ -1174,6 +1339,10 @@
       "type":"list",
       "member":{"shape":"SecurityGroupId"},
       "max":5
+    },
+    "SensitiveString":{
+      "type":"string",
+      "sensitive":true
     },
     "ServiceException":{
       "type":"structure",
@@ -1210,6 +1379,14 @@
       "member":{"shape":"SubnetId"},
       "max":16
     },
+    "ThrottleReason":{
+      "type":"string",
+      "enum":[
+        "ConcurrentInvocationLimitExceeded",
+        "FunctionInvocationRateLimitExceeded",
+        "CallerRateLimitExceeded"
+      ]
+    },
     "Timeout":{
       "type":"integer",
       "min":1
@@ -1224,7 +1401,8 @@
           "locationName":"Retry-After"
         },
         "Type":{"shape":"String"},
-        "message":{"shape":"String"}
+        "message":{"shape":"String"},
+        "Reason":{"shape":"ThrottleReason"}
       },
       "error":{"httpStatusCode":429},
       "exception":true
@@ -1303,7 +1481,11 @@
         "Description":{"shape":"Description"},
         "Timeout":{"shape":"Timeout"},
         "MemorySize":{"shape":"MemorySize"},
-        "VpcConfig":{"shape":"VpcConfig"}
+        "VpcConfig":{"shape":"VpcConfig"},
+        "Environment":{"shape":"Environment"},
+        "Runtime":{"shape":"Runtime"},
+        "DeadLetterConfig":{"shape":"DeadLetterConfig"},
+        "KMSKeyArn":{"shape":"KMSKeyArn"}
       }
     },
     "Version":{
