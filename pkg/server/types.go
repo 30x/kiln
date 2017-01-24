@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 var regex = regexp.MustCompile(`\d+:\/[\w+(\/)?]?`)
@@ -13,9 +14,9 @@ const DefaultNodeVersion = "4"
 
 //Image represents an image struct
 type Image struct {
-	// Created time.Time `json:"created"`
-	Revision []string `json:"revision"`
-	ImageID  string   `json:"imageId"`
+	Created  *time.Time `json:"created,omitempty"`
+	Revision []string   `json:"revision,omitempty"`
+	ImageID  string     `json:"imageId,omitempty"`
 }
 
 //Imagespace represents an image struct

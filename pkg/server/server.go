@@ -613,9 +613,12 @@ func (server *Server) getImageInternal(imageSpace string, application string, re
 		return nil, nil
 	}
 
+	created := time.Unix(image.Created, 0)
+
 	imageResponse := &Image{
 		Revision: image.RepoTags,
 		ImageID:  image.ID,
+		Created:  &created,
 	}
 
 	return imageResponse, nil
