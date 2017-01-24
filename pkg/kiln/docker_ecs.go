@@ -154,11 +154,29 @@ func (imageCreator EcsImageCreator) GetImageRevision(dockerInfo *DockerInfo) (*t
 		return nil, nil
 	}
 
+	descriptionRequest := ecr.DescribeImagesInput{
+		ImageIds:       []*ecr.ImageIdentifier{awsImage},
+		RepositoryName: &repositoryName,
+	}
+
+	descriptionOutput, err := imageCreator.awsClient.DescribeImages(&descriptionRequest)
+
+	if err != nil && isNotFoundError(err) {
+		return nil, err
+	}
+
+	if len(descriptionOutput.ImageDetails) < 1 {
+		return nil, nil
+	}
+
+	description := descriptionOutput.ImageDetails[0]
+
 	repoTag := repositoryName + ":" + *awsImage.ImageTag
 
 	dockerImage := types.Image{
 		ID:       *awsImage.ImageDigest,
 		RepoTags: []string{repoTag},
+		Created:  description.ImagePushedAt.Unix(),
 	}
 
 	return &dockerImage, nil

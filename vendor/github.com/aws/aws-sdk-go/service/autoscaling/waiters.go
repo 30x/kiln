@@ -6,6 +6,10 @@ import (
 	"github.com/aws/aws-sdk-go/private/waiter"
 )
 
+// WaitUntilGroupExists uses the Auto Scaling API operation
+// DescribeAutoScalingGroups to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *AutoScaling) WaitUntilGroupExists(input *DescribeAutoScalingGroupsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeAutoScalingGroups",
@@ -14,15 +18,15 @@ func (c *AutoScaling) WaitUntilGroupExists(input *DescribeAutoScalingGroupsInput
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
-				Matcher:  "pathAll",
-				Argument: "length(AutoScalingGroups)",
-				Expected: 1,
+				Matcher:  "path",
+				Argument: "length(AutoScalingGroups) > `0`",
+				Expected: true,
 			},
 			{
 				State:    "retry",
-				Matcher:  "pathAll",
-				Argument: "length(AutoScalingGroups)",
-				Expected: 0,
+				Matcher:  "path",
+				Argument: "length(AutoScalingGroups) > `0`",
+				Expected: false,
 			},
 		},
 	}
@@ -35,6 +39,10 @@ func (c *AutoScaling) WaitUntilGroupExists(input *DescribeAutoScalingGroupsInput
 	return w.Wait()
 }
 
+// WaitUntilGroupInService uses the Auto Scaling API operation
+// DescribeAutoScalingGroups to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *AutoScaling) WaitUntilGroupInService(input *DescribeAutoScalingGroupsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeAutoScalingGroups",
@@ -43,13 +51,13 @@ func (c *AutoScaling) WaitUntilGroupInService(input *DescribeAutoScalingGroupsIn
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
-				Matcher:  "pathAll",
+				Matcher:  "path",
 				Argument: "contains(AutoScalingGroups[].[length(Instances[?LifecycleState=='InService']) >= MinSize][], `false`)",
 				Expected: false,
 			},
 			{
 				State:    "retry",
-				Matcher:  "pathAll",
+				Matcher:  "path",
 				Argument: "contains(AutoScalingGroups[].[length(Instances[?LifecycleState=='InService']) >= MinSize][], `false`)",
 				Expected: true,
 			},
@@ -64,6 +72,10 @@ func (c *AutoScaling) WaitUntilGroupInService(input *DescribeAutoScalingGroupsIn
 	return w.Wait()
 }
 
+// WaitUntilGroupNotExists uses the Auto Scaling API operation
+// DescribeAutoScalingGroups to wait for a condition to be met before returning.
+// If the condition is not meet within the max attempt window an error will
+// be returned.
 func (c *AutoScaling) WaitUntilGroupNotExists(input *DescribeAutoScalingGroupsInput) error {
 	waiterCfg := waiter.Config{
 		Operation:   "DescribeAutoScalingGroups",
@@ -72,15 +84,15 @@ func (c *AutoScaling) WaitUntilGroupNotExists(input *DescribeAutoScalingGroupsIn
 		Acceptors: []waiter.WaitAcceptor{
 			{
 				State:    "success",
-				Matcher:  "pathAll",
-				Argument: "length(AutoScalingGroups)",
-				Expected: 0,
+				Matcher:  "path",
+				Argument: "length(AutoScalingGroups) > `0`",
+				Expected: false,
 			},
 			{
 				State:    "retry",
-				Matcher:  "pathAll",
-				Argument: "length(AutoScalingGroups)",
-				Expected: 1,
+				Matcher:  "path",
+				Argument: "length(AutoScalingGroups) > `0`",
+				Expected: true,
 			},
 		},
 	}
