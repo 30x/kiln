@@ -19,8 +19,8 @@ type Image struct {
 	ImageID  string     `json:"imageId,omitempty"`
 }
 
-//Imagespace represents an image struct
-type Imagespace NamedObject
+//Organization represents an image struct
+type Organization NamedObject
 
 //Application represents an image struct
 type Application NamedObject
@@ -38,12 +38,12 @@ type Link struct {
 
 //CreateImage the structure for creating an appliction via form
 type CreateImage struct {
-	Imagespace  string
-	Application string   `schema:"name"`
-	Revision    string   `schema:"revision"`
-	PublicPath  string   `schema:"publicPath"`
-	EnvVars     []string `schema:"envVar"`
-	NodeVersion string   `schema:"nodeVersion"`
+	Organization string
+	Application  string   `schema:"name"`
+	Revision     string   `schema:"revision"`
+	PublicPath   string   `schema:"publicPath"`
+	EnvVars      []string `schema:"envVar"`
+	NodeVersion  string   `schema:"nodeVersion"`
 }
 
 //Validate validate the application input is correct
@@ -52,8 +52,8 @@ func (createImage *CreateImage) Validate() *Validation {
 		messages: make(map[string]string),
 	}
 
-	if createImage.Imagespace == "" {
-		errors.Add("Imagespace", "Imagespace must be specified")
+	if createImage.Organization == "" {
+		errors.Add("Organization", "Organization must be specified")
 	}
 
 	if createImage.Application == "" {

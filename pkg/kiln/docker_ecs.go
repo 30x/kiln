@@ -48,8 +48,8 @@ func NewEcsImageCreator(repo string, region string) (ImageCreator, error) {
 	}, nil
 }
 
-//GetImagespaces get all remote repositories
-func (imageCreator EcsImageCreator) GetImagespaces() (*[]string, error) {
+//GetOrganizations get all remote repositories
+func (imageCreator EcsImageCreator) GetOrganizations() (*[]string, error) {
 
 	repositoryResult := newRepositoryResult()
 

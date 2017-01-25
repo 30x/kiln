@@ -19,7 +19,7 @@ import (
 //TODO make an env variable.  100 Meg max
 const maxFileSize = 1024 * 1024 * 100
 
-const basePath = "/imagespaces"
+const basePath = "/organizations"
 
 //Server struct to create an instance of hte server
 type Server struct {
@@ -45,28 +45,28 @@ func NewServer(imageCreator kiln.ImageCreator) *Server {
 	}
 
 	//a bit hacky, but need the pointer to the server
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/imagespaces/{org}/images/").HandlerFunc(server.postApplication)
-	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/imagespaces/{org}/images").HandlerFunc(server.postApplication)
-	routes.Methods("GET").Path("/imagespaces/").HandlerFunc(server.getImagespaces) // getImagespaces
-	routes.Methods("GET").Path("/imagespaces").HandlerFunc(server.getImagespaces)
-	routes.Methods("GET").Path("/imagespaces/{org}/images/").HandlerFunc(server.getApplications) // get all images by name in imageSpace
-	routes.Methods("GET").Path("/imagespaces/{org}/images").HandlerFunc(server.getApplications)
-	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/").HandlerFunc(server.getImages) // get all revisions of an app in an imageSpace
-	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}").HandlerFunc(server.getImages)
-	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/version/{revision}/").HandlerFunc(server.getImage) // get image by revision
-	routes.Methods("GET").Path("/imagespaces/{org}/images/{name}/version/{revision}").HandlerFunc(server.getImage)
-	routes.Methods("DELETE").Path("/imagespaces/{org}/images/{name}/version/{revision}/").HandlerFunc(server.deleteImage) // delete image by revision
-	routes.Methods("DELETE").Path("/imagespaces/{org}/images/{name}/version/{revision}").HandlerFunc(server.deleteImage)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/organizations/{org}/apps/").HandlerFunc(server.postApplication)
+	routes.Methods("POST").HeadersRegexp("Content-Type", "multipart/form-data.*").Path("/organizations/{org}/apps").HandlerFunc(server.postApplication)
+	routes.Methods("GET").Path("/organizations/").HandlerFunc(server.getOrganizations) // getOrganization
+	routes.Methods("GET").Path("/organizations").HandlerFunc(server.getOrganizations)
+	routes.Methods("GET").Path("/organizations/{org}/apps/").HandlerFunc(server.getApplications) // get all images by name in organization
+	routes.Methods("GET").Path("/organizations/{org}/apps").HandlerFunc(server.getApplications)
+	routes.Methods("GET").Path("/organizations/{org}/apps/{name}/").HandlerFunc(server.getImages) // get all revisions of an app in an organization
+	routes.Methods("GET").Path("/organizations/{org}/apps/{name}").HandlerFunc(server.getImages)
+	routes.Methods("GET").Path("/organizations/{org}/apps/{name}/version/{revision}/").HandlerFunc(server.getImage) // get image by revision
+	routes.Methods("GET").Path("/organizations/{org}/apps/{name}/version/{revision}").HandlerFunc(server.getImage)
+	routes.Methods("DELETE").Path("/organizations/{org}/apps/{name}/version/{revision}/").HandlerFunc(server.deleteImage) // delete image by revision
+	routes.Methods("DELETE").Path("/organizations/{org}/apps/{name}/version/{revision}").HandlerFunc(server.deleteImage)
 
 	// dockerfile
-	routes.Methods("GET").Path("/imagespaces/kiln/Dockerfile/").HandlerFunc(server.getDockerfile)
-	routes.Methods("GET").Path("/imagespaces/kiln/Dockerfile").HandlerFunc(server.getDockerfile)
+	routes.Methods("GET").Path("/organizations/kiln/Dockerfile/").HandlerFunc(server.getDockerfile)
+	routes.Methods("GET").Path("/organizations/kiln/Dockerfile").HandlerFunc(server.getDockerfile)
 
 	//health check
-	routes.Methods("GET").Path("/imagespaces/status/").HandlerFunc(server.status)
-	routes.Methods("GET").Path("/imagespaces/status").HandlerFunc(server.status)
-	routes.Methods("GET").Path("/imagespaces/kiln/status/").HandlerFunc(server.status)
-	routes.Methods("GET").Path("/imagespaces/kiln/status").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/organizations/status/").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/organizations/status").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/organizations/kiln/status/").HandlerFunc(server.status)
+	routes.Methods("GET").Path("/organizations/kiln/status").HandlerFunc(server.status)
 
 	//now wrap everything with logging
 
@@ -104,7 +104,7 @@ func (server *Server) Start(port int, timeout time.Duration) {
 // getDockerFile replies with the Dockerfile kiln uses to build images
 func (server *Server) getDockerfile(w http.ResponseWriter, r *http.Request) {
 	dockerInfo := &kiln.DockerInfo{
-		RepoName:    "<imagespace>",
+		RepoName:    "<organization>",
 		ImageName:   "<imageName>",
 		Revision:    "<revision>",
 		EnvVars:     []string{"var1=val1", "var2=val2"},
@@ -152,7 +152,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	// pull org name, from path vars
 	vars := mux.Vars(r)
-	createImage.Imagespace = vars["org"]
+	createImage.Organization = vars["org"]
 
 	// r.PostForm is a map of our POST form values without the file
 	err = server.decoder.Decode(createImage, r.Form)
@@ -174,12 +174,12 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//not an admin, exit
-	if !validateAdmin(createImage.Imagespace, w, r) {
+	if !validateAdmin(createImage.Organization, w, r) {
 		return
 	}
 
 	dockerInfo := &kiln.DockerInfo{
-		RepoName:    createImage.Imagespace,
+		RepoName:    createImage.Organization,
 		ImageName:   createImage.Application,
 		Revision:    createImage.Revision,
 		EnvVars:     createImage.EnvVars,
@@ -199,7 +199,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	//image exists, don't allow the user to create it
 	if existingImage != nil {
-		writeErrorResponse(http.StatusConflict, fmt.Sprintf("An image in imageSpace %s with application %s and revision %s already exists", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision), w)
+		writeErrorResponse(http.StatusConflict, fmt.Sprintf("An image in organization %s with application %s and revision %s already exists", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision), w)
 		return
 	}
 
@@ -323,7 +323,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	image, err := server.getImageInternal(createImage.Imagespace, createImage.Application, createImage.Revision)
+	image, err := server.getImageInternal(createImage.Organization, createImage.Application, createImage.Revision)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not retrieve image for verification.  Error is %s", err)
@@ -390,17 +390,17 @@ func writeStringAndFlush(w http.ResponseWriter, flusher http.Flusher, line strin
 func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	imageSpace := vars["org"]
+	organization := vars["org"]
 
 	//not an admin, exit
-	if !validateAdmin(imageSpace, w, r) {
+	if !validateAdmin(organization, w, r) {
 		return
 	}
 
-	appNames, err := server.imageCreator.GetApplications(imageSpace)
+	appNames, err := server.imageCreator.GetApplications(organization)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for imageSpace %s.  Error is %s", imageSpace, err)
+		message := fmt.Sprintf("Could not get images for organization %s.  Error is %s", organization, err)
 		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -419,16 +419,16 @@ func (server *Server) getApplications(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(applications)
 }
 
-//getImagespaces get the imagespaces
-func (server *Server) getImagespaces(w http.ResponseWriter, r *http.Request) {
+//getOrganizations get the organization
+func (server *Server) getOrganizations(w http.ResponseWriter, r *http.Request) {
 
 	//TODO, what's the security on this?  Open?  How can I validate they're an admin if I dont' see them, or do I filter?
-	imagespaces := []*Imagespace{}
+	organizations := []*Organization{}
 
-	imagespaceNames, err := server.imageCreator.GetImagespaces()
+	organizationNames, err := server.imageCreator.GetOrganizations()
 
 	if err != nil {
-		message := fmt.Sprintf("Unable to retrieve imagespaces.  %s", err)
+		message := fmt.Sprintf("Unable to retrieve organizations.  %s", err)
 		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -445,11 +445,11 @@ func (server *Server) getImagespaces(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// copy everything over
-	for _, imagespace := range *imagespaceNames {
+	for _, organization := range *organizationNames {
 
-		kiln.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), imagespace)
+		kiln.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), organization)
 
-		isAdmin, err := token.IsOrgAdmin(imagespace)
+		isAdmin, err := token.IsOrgAdmin(organization)
 
 		if err != nil {
 			message := fmt.Sprintf("Unable to get permission token %s", err)
@@ -457,38 +457,38 @@ func (server *Server) getImagespaces(w http.ResponseWriter, r *http.Request) {
 			writeErrorResponse(http.StatusUnauthorized, message, w)
 		}
 
-		//if not an admin ignore this imagespace since theyr'e not allowed to see it
+		//if not an admin ignore this organization since theyr'e not allowed to see it
 		if !isAdmin {
 			continue
 		}
 
-		imagespaceObj := &Imagespace{
-			Name: imagespace,
+		organizationObj := &Organization{
+			Name: organization,
 		}
 
-		imagespaces = append(imagespaces, imagespaceObj)
+		organizations = append(organizations, organizationObj)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(imagespaces)
+	json.NewEncoder(w).Encode(organizations)
 }
 
 //GetImages get the images for the given application
 func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	imageSpace := vars["org"]
+	organization := vars["org"]
 	application := vars["name"]
 
 	//not an admin, exit
-	if !validateAdmin(imageSpace, w, r) {
+	if !validateAdmin(organization, w, r) {
 		return
 	}
 
-	dockerImages, err := server.imageCreator.GetImages(imageSpace, application)
+	dockerImages, err := server.imageCreator.GetImages(organization, application)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for imageSpace %s and application %s.  Error is %s", imageSpace, application, err)
+		message := fmt.Sprintf("Could not get images for organization %s and application %s.  Error is %s", organization, application, err)
 		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -518,19 +518,19 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	imageSpace := vars["org"]
+	organization := vars["org"]
 	application := vars["name"]
 	revision := vars["revision"]
 
 	//not an admin, exit
-	if !validateAdmin(imageSpace, w, r) {
+	if !validateAdmin(organization, w, r) {
 		return
 	}
 
-	image, err := server.getImageInternal(imageSpace, application, revision)
+	image, err := server.getImageInternal(organization, application, revision)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.  Error is %s", imageSpace, application, revision, err)
+		message := fmt.Sprintf("Could not get images for organization %s,  application %s, and revision %s.  Error is %s", organization, application, revision, err)
 		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -538,7 +538,7 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 
 	//not found, return a 404
 	if image == nil {
-		notFound(fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.", imageSpace, application, revision), w)
+		notFound(fmt.Sprintf("Could not get images for organization %s,  application %s, and revision %s.", organization, application, revision), w)
 		return
 	}
 
@@ -550,19 +550,19 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
-	imageSpace := vars["org"]
+	organization := vars["org"]
 	application := vars["name"]
 	revision := vars["revision"]
 
 	//not an admin, exit
-	if !validateAdmin(imageSpace, w, r) {
+	if !validateAdmin(organization, w, r) {
 		return
 	}
 
-	image, err := server.getImageInternal(imageSpace, application, revision)
+	image, err := server.getImageInternal(organization, application, revision)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.  Error is %s", imageSpace, application, revision, err)
+		message := fmt.Sprintf("Could not get images for organization %s,  application %s, and revision %s.  Error is %s", organization, application, revision, err)
 		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
@@ -570,12 +570,12 @@ func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 
 	//not found, return a 404
 	if image == nil {
-		notFound(fmt.Sprintf("Could not get images for imageSpace %s,  application %s, and revision %s.", imageSpace, application, revision), w)
+		notFound(fmt.Sprintf("Could not get images for organization %s,  application %s, and revision %s.", organization, application, revision), w)
 		return
 	}
 
 	dockerInfo := &kiln.DockerInfo{
-		RepoName:  imageSpace,
+		RepoName:  organization,
 		ImageName: application,
 		Revision:  revision,
 	}
@@ -595,10 +595,10 @@ func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 }
 
 //getImageInternal get an image.  Image can be nil if not found, or an error will be returned if
-func (server *Server) getImageInternal(imageSpace string, application string, revision string) (*Image, error) {
+func (server *Server) getImageInternal(organization string, application string, revision string) (*Image, error) {
 
 	dockerInfo := &kiln.DockerInfo{
-		RepoName:  imageSpace,
+		RepoName:  organization,
 		ImageName: application,
 		Revision:  revision,
 	}
@@ -670,7 +670,7 @@ func notFound(message string, w http.ResponseWriter) {
 }
 
 //validateAdmin Validate the requestor is an admin in the namepace.  If returns false, the caller should halt and return.  True if the request should continue.  TODO make this cleaner
-func validateAdmin(imageSpace string, w http.ResponseWriter, r *http.Request) bool {
+func validateAdmin(organization string, w http.ResponseWriter, r *http.Request) bool {
 
 	//validate this user has a token and is org admin
 	token, err := authsdk.NewJWTTokenFromRequest(r)
@@ -682,9 +682,9 @@ func validateAdmin(imageSpace string, w http.ResponseWriter, r *http.Request) bo
 		return false
 	}
 
-	kiln.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), imageSpace)
+	kiln.LogInfo.Printf("Checking to see if user %s has admin authority for namepace %s", token.GetUsername(), organization)
 
-	isAdmin, err := token.IsOrgAdmin(imageSpace)
+	isAdmin, err := token.IsOrgAdmin(organization)
 
 	if err != nil {
 		message := fmt.Sprintf("Unable to get permission token %s", err)
@@ -695,12 +695,12 @@ func validateAdmin(imageSpace string, w http.ResponseWriter, r *http.Request) bo
 
 	//if not an admin, give access denied
 	if !isAdmin {
-		kiln.LogInfo.Printf("User %s is not an admin for imageSpace %s", token.GetUsername(), imageSpace)
-		writeErrorResponse(http.StatusForbidden, fmt.Sprintf("You do not have admin permisison for imageSpace %s", imageSpace), w)
+		kiln.LogInfo.Printf("User %s is not an admin for organization %s", token.GetUsername(), organization)
+		writeErrorResponse(http.StatusForbidden, fmt.Sprintf("You do not have admin permisison for organization %s", organization), w)
 		return false
 	}
 
-	kiln.LogInfo.Printf("User %s is an admin for imageSpace %s", token.GetUsername(), imageSpace)
+	kiln.LogInfo.Printf("User %s is an admin for organization %s", token.GetUsername(), organization)
 
 	return true
 }

@@ -62,8 +62,8 @@ func newEnvClient() (*client.Client, error) {
 	return client.NewEnvClient()
 }
 
-//GetImagespaces get all remote repositories
-func (imageCreator LocalImageCreator) GetImagespaces() (*[]string, error) {
+//GetOrganizations get all remote repositories
+func (imageCreator LocalImageCreator) GetOrganizations() (*[]string, error) {
 	opts := types.ImageListOptions{All: false}
 
 	images, err := imageCreator.client.ImageList(context.Background(), opts)
@@ -279,7 +279,7 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild) (chan 
 		Tags:        []string{name},
 		ForceRemove: true,
 		Remove:      true,
-		NoCache: true,
+		NoCache:     true,
 	}
 
 	response, err := imageCreator.client.ImageBuild(context.Background(), imageBuildOptions)
