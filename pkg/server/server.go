@@ -104,11 +104,11 @@ func (server *Server) Start(port int, timeout time.Duration) {
 // getDockerFile replies with the Dockerfile kiln uses to build images
 func (server *Server) getDockerfile(w http.ResponseWriter, r *http.Request) {
 	dockerInfo := &kiln.DockerInfo{
-		RepoName:    "<organization>",
-		ImageName:   "<imageName>",
-		Revision:    "<revision>",
-		EnvVars:     []string{"var1=val1", "var2=val2"},
-		NodeVersion: "<nodeVersion>",
+		RepoName:  "<organization>",
+		ImageName: "<imageName>",
+		Revision:  "<revision>",
+		EnvVars:   []string{"var1=val1", "var2=val2"},
+		BaseImage: "<baseImage>",
 	}
 
 	resp, err := kiln.GetExampleDockerfile(dockerInfo)
@@ -178,12 +178,21 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	baseImage, err := kiln.DetermineBaseImage(createImage.Runtime)
+
+	if err != nil {
+		message := fmt.Sprintf("Failed parsing runtime selection: %s", err)
+		kiln.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
 	dockerInfo := &kiln.DockerInfo{
-		RepoName:    createImage.Organization,
-		ImageName:   createImage.Application,
-		Revision:    createImage.Revision,
-		EnvVars:     createImage.EnvVars,
-		NodeVersion: createImage.NodeVersion,
+		RepoName:  createImage.Organization,
+		ImageName: createImage.Application,
+		Revision:  createImage.Revision,
+		EnvVars:   createImage.EnvVars,
+		BaseImage: baseImage,
 	}
 
 	//check if the image exists, if it does, return a 409

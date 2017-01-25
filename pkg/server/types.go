@@ -9,8 +9,8 @@ import (
 
 var regex = regexp.MustCompile(`\d+:\/[\w+(\/)?]?`)
 
-// DefaultNodeVersion the default version of alpine-node image
-const DefaultNodeVersion = "4"
+// DefaultRuntime the default version of alpine-node image
+const DefaultRuntime = "node:4"
 
 //Image represents an image struct
 type Image struct {
@@ -41,9 +41,8 @@ type CreateImage struct {
 	Organization string
 	Application  string   `schema:"name"`
 	Revision     string   `schema:"revision"`
-	PublicPath   string   `schema:"publicPath"`
 	EnvVars      []string `schema:"envVar"`
-	NodeVersion  string   `schema:"nodeVersion"`
+	Runtime      string   `schema:"runtime"`
 }
 
 //Validate validate the application input is correct
@@ -64,16 +63,8 @@ func (createImage *CreateImage) Validate() *Validation {
 		errors.Add("Revision", "Please enter a valid revision")
 	}
 
-	if createImage.PublicPath == "" {
-		errors.Add("PublicPath", "Please enter a valid publicPath.  None was specified.")
-	}
-
-	if !regex.Match([]byte(createImage.PublicPath)) {
-		errors.Add("PublicPath", "Public path must match the format of [PORT]:/[URL SEGMENT/]?")
-	}
-
-	if createImage.NodeVersion == "" {
-		createImage.NodeVersion = DefaultNodeVersion // default to alpine-node:4
+	if createImage.Runtime == "" {
+		createImage.Runtime = DefaultRuntime // default to node:4
 	}
 
 	return errors

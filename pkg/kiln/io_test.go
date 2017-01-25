@@ -91,6 +91,7 @@ var _ = Describe("Io", func() {
 			RepoName:  "testRepo",
 			ImageName: "testImage",
 			Revision:  "v1.0",
+			BaseImage: "mhart/alpine-node:4",
 		}
 
 		err = sourceInfo.CreateDockerFile(dockerInfo)
@@ -107,9 +108,9 @@ var _ = Describe("Io", func() {
 			`FROM mhart/alpine-node:4
 
       ADD . .
-      RUN npm install
-      #Taken from the runtime on start
-      EXPOSE 9000
+      RUN apk add --no-cache git && \
+      npm install && \
+      apk del git
 
       LABEL com.github.30x.kiln.repo=testRepo
       LABEL com.github.30x.kiln.app=testImage
@@ -126,6 +127,34 @@ var _ = Describe("Io", func() {
 		fileAsString := strings.Replace(string(bytes), " ", "", -1)
 
 		Expect(fileAsString).Should(Equal(expected), "File is not as excepcted.  Received \n %s \n but expected \n %s \n ", fileAsString, expected)
+	})
+
+	It("Test Runtime selection", func() {
+
+		// test default runtime version
+		baseImage, err := DetermineBaseImage("node")
+
+		Expect(err).Should(BeNil(), "Failed parsing a valid runtime selection %s", err)
+
+		expected := "mhart/alpine-node:4"
+
+		Expect(baseImage).To(Equal(expected), "Base image not as expected. Received \n %s \n but expected \n %s \n", baseImage, expected)
+
+		// test provided runtime version
+		baseImage, err = DetermineBaseImage("node:5")
+
+		Expect(err).Should(BeNil(), "Failed parsing valid runtime selection %s", err)
+
+		expected = "mhart/alpine-node:5"
+
+		Expect(baseImage).To(Equal(expected), "Base image not as expected. Received \n %s \n but expected \n %s \n", baseImage, expected)
+
+		// test invalid runtime selection
+		baseImage, err = DetermineBaseImage("java:3")
+
+		Expect(baseImage).Should(Equal(""), "Incorrectly generated a base image for an unsupported runtime selection")
+
+		Expect(err).ShouldNot(BeNil(), "No error produced from unsupported runtime selection")
 	})
 
 })

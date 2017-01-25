@@ -3,13 +3,15 @@ package kiln
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
-	"bytes"
+
+	"fmt"
 
 	uuid "github.com/nu7hatch/gouuid"
 )
@@ -21,6 +23,9 @@ const DEFAULT_FILE_MODE = 0775
 const TAG_REPO = "com.github.30x.kiln.repo"
 const TAG_APPLICATION = "com.github.30x.kiln.app"
 const TAG_REVISION = "com.github.30x.kiln.revision"
+
+const DefaultNodeBaseImage = "mhart/alpine-node:4"
+const NodeImageRepo = "mhart/alpine-node"
 
 //SourceInfo The description of the source package
 type SourceInfo struct {
@@ -227,7 +232,7 @@ func (sourceInfo *SourceInfo) Clean() error {
 }
 
 //The TEMPLATE for generating a go file
-const templateString = `FROM mhart/alpine-node:{{.NodeVersion}}
+const templateString = `FROM {{.BaseImage}}
 
 ADD . .
 RUN apk add --no-cache git && \
@@ -294,4 +299,23 @@ func GetExampleDockerfile(dockerInfo *DockerInfo) (buf *bytes.Buffer, err error)
 	}
 
 	return buf, nil
+}
+
+// DetermineBaseImage consumes a given runtime selection and determines the base image for the Dockerfile
+func DetermineBaseImage(runtimeSelection string) (baseImage string, err error) {
+	runtimeSplit := strings.Split(runtimeSelection, ":")
+
+	switch runtimeSplit[0] {
+	case "node":
+		if len(runtimeSplit) > 1 {
+			baseImage = fmt.Sprintf("%s:%s", NodeImageRepo, runtimeSplit[1])
+		} else {
+			baseImage = DefaultNodeBaseImage
+		}
+		break
+	default:
+		return "", fmt.Errorf("Unsupported runtime selection: %s", runtimeSelection)
+	}
+
+	return
 }
