@@ -25,16 +25,18 @@ var _ = Describe("docker", func() {
 				repoName := "test" + UUIDString()
 				imageName := "test"
 				revision := "v1.0"
+				baseImage := "mhart/alpine-node:4"
 
-				createImage(imageCreator, repoName, imageName, revision)
+				createImage(imageCreator, repoName, imageName, revision, baseImage)
 			})
 
 			It("Tag and Push", func() {
 				repoName := "test" + UUIDString()
 				imageName := "test"
 				revision := "v1.0"
+				baseImage := "mhart/alpine-node:4"
 
-				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision)
+				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision, baseImage)
 
 				stream, err := imageCreator.PushImage(dockerInfo)
 
@@ -52,8 +54,9 @@ var _ = Describe("docker", func() {
 				repoName := "test" + UUIDString()
 				imageName1 := "test1"
 				revision10 := "v1.0"
+				baseImage := "mhart/alpine-node:4"
 
-				_, dockerInfo10 := createImage(imageCreator, repoName, imageName1, revision10)
+				_, dockerInfo10 := createImage(imageCreator, repoName, imageName1, revision10, baseImage)
 
 				stream, err := imageCreator.PushImage(dockerInfo10)
 
@@ -63,7 +66,7 @@ var _ = Describe("docker", func() {
 
 				revision11 := "v1.1"
 
-				_, dockerInfo11 := createImage(imageCreator, repoName, imageName1, revision11)
+				_, dockerInfo11 := createImage(imageCreator, repoName, imageName1, revision11, baseImage)
 
 				stream, err = imageCreator.PushImage(dockerInfo11)
 
@@ -74,7 +77,7 @@ var _ = Describe("docker", func() {
 				//push second image
 				imageName2 := "test2"
 
-				_, dockerInfo2 := createImage(imageCreator, repoName, imageName2, revision10)
+				_, dockerInfo2 := createImage(imageCreator, repoName, imageName2, revision10, baseImage)
 
 				stream, err = imageCreator.PushImage(dockerInfo2)
 
@@ -99,8 +102,9 @@ var _ = Describe("docker", func() {
 				imageName1 := "test1"
 				imageName2 := "test2"
 				revision := "v1.0"
+				baseImage := "mhart/alpine-node:4"
 
-				_, dockerInfo1 := createImage(imageCreator, repoName1, imageName1, revision)
+				_, dockerInfo1 := createImage(imageCreator, repoName1, imageName1, revision, baseImage)
 
 				stream, err := imageCreator.PushImage(dockerInfo1)
 
@@ -108,7 +112,7 @@ var _ = Describe("docker", func() {
 
 				channelToOutput(stream)
 
-				_, dockerInfo2 := createImage(imageCreator, repoName2, imageName2, revision)
+				_, dockerInfo2 := createImage(imageCreator, repoName2, imageName2, revision, baseImage)
 
 				stream, err = imageCreator.PushImage(dockerInfo2)
 
@@ -141,10 +145,11 @@ var _ = Describe("docker", func() {
 				repoName := "test" + UUIDString()
 				imageName := "test"
 				revision := "v1.0"
+				baseImage := "mhart/alpine-node:4"
 
-				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision)
+				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision, baseImage)
 
-				exists := searchLocalImages(imageCreator, dockerInfo, dockerInfo)
+				exists := searchLocalImages(imageCreator, dockerInfo)
 
 				Expect(exists).Should(BeTrue(), "Image should exist locally")
 
@@ -155,7 +160,7 @@ var _ = Describe("docker", func() {
 				Expect(err).Should(BeNil(), "Unable to reap images.  Error is %s", err)
 
 				//now it should be deleted, see if it exists
-				exists = searchLocalImages(imageCreator, dockerInfo, dockerInfo)
+				exists = searchLocalImages(imageCreator, dockerInfo)
 
 				Expect(exists).Should(BeFalse(), "Image should not exist locally")
 
@@ -176,28 +181,28 @@ var _ = Describe("docker", func() {
 			AssertImageTests()
 		})
 
-		Context("Amazon ECS", func() {
-			BeforeEach(func() {
-				var error error
-				imageCreator, error = NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
+		// Context("Amazon ECS", func() {
+		// 	BeforeEach(func() {
+		// 		var error error
+		// 		imageCreator, error = NewEcsImageCreator("977777657611.dkr.ecr.us-east-1.amazonaws.com", "us-east-1")
 
-				Expect(error).Should(BeNil(), "Could not create local docker image creator")
+		// 		Expect(error).Should(BeNil(), "Could not create local docker image creator")
 
-			})
+		// 	})
 
-			AssertImageTests()
-		})
+		// 	AssertImageTests()
+		// })
 
 	})
 
 })
 
 //helper functions called within the tests
-func createImage(imageCreator ImageCreator, repoName string, appName string, revision string) (*SourceInfo, *DockerInfo) {
+func createImage(imageCreator ImageCreator, repoName string, appName string, revision string, baseImage string) (*SourceInfo, *DockerInfo) {
 
 	const validTestZip = "../../testresources/echo-test.zip"
 
-	workspace, dockerInfo := doSetup(validTestZip, repoName, appName, revision)
+	workspace, dockerInfo := doSetup(validTestZip, repoName, appName, revision, baseImage)
 
 	//clean up the workspace after the test.  Comment this out for debugging
 	//defer workspace.Clean()
@@ -215,26 +220,16 @@ func createImage(imageCreator ImageCreator, repoName string, appName string, rev
 
 	channelToOutput(stream)
 
-	//get the image from docker and ensure it exists
-
-	assertLocalImageExists(imageCreator, dockerImage.DockerInfo, &DockerInfo{})
-
 	//pull by label
 
-	search := &DockerInfo{
-		RepoName:  dockerInfo.RepoName,
-		ImageName: dockerInfo.ImageName,
-		Revision:  dockerInfo.Revision,
-	}
-
-	assertLocalImageExists(imageCreator, dockerImage.DockerInfo, search)
+	assertLocalImageExists(imageCreator, dockerImage.DockerInfo)
 
 	return workspace, dockerImage.DockerInfo
 
 }
 
 //DoSetup Copies the specified inputZip file into the source directory and adds the docker file to it
-func doSetup(inputZip string, repoName string, appName string, revision string) (*SourceInfo, *DockerInfo) {
+func doSetup(inputZip string, repoName string, appName string, revision string, baseImage string) (*SourceInfo, *DockerInfo) {
 
 	//copy over our docker file.  These tests assume io has been tested and works properly
 
@@ -260,6 +255,7 @@ func doSetup(inputZip string, repoName string, appName string, revision string) 
 		RepoName:  repoName,
 		ImageName: appName,
 		Revision:  revision,
+		BaseImage: baseImage,
 	}
 
 	err = workspace.CreateDockerFile(dockerInfo)
@@ -357,16 +353,16 @@ func assertImageExists(imageCreator ImageCreator, expectedImage *DockerInfo) {
 }
 
 //assertLocalImageExists search local images and ensures they exist
-func assertLocalImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) {
+func assertLocalImageExists(imageCreator ImageCreator, dockerInfo *DockerInfo) {
 
-	result := searchLocalImages(imageCreator, dockerInfo, imageSearch)
+	result := searchLocalImages(imageCreator, dockerInfo)
 
-	Expect(result).Should(BeTrue(), "Could not find image with the docker tags", imageSearch.GetTagName())
+	Expect(result).Should(BeTrue(), "Could not find image with the docker tags", dockerInfo.GetTagName())
 
 }
 
 //returns true if the image exists, false otherwise
-func searchLocalImages(imageCreator ImageCreator, dockerInfo *DockerInfo, imageSearch *DockerInfo) bool {
+func searchLocalImages(imageCreator ImageCreator, dockerInfo *DockerInfo) bool {
 
 	images, err := imageCreator.GetLocalImages()
 

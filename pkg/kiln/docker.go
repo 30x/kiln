@@ -5,7 +5,7 @@ import "github.com/docker/engine-api/types"
 //ImageCreator the interface an ImageCreator instance must implement
 type ImageCreator interface {
 	//GetRepositories get all remote Namespaces
-	GetImagespaces() (*[]string, error)
+	GetOrganizations() (*[]string, error)
 
 	//GetApplications get all remote application for the specified repository
 	GetApplications(repository string) (*[]string, error)

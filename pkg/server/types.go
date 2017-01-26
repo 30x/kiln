@@ -9,8 +9,8 @@ import (
 
 var regex = regexp.MustCompile(`\d+:\/[\w+(\/)?]?`)
 
-// DefaultNodeVersion the default version of alpine-node image
-const DefaultNodeVersion = "4"
+// DefaultRuntime the default version of alpine-node image
+const DefaultRuntime = "node:4"
 
 //Image represents an image struct
 type Image struct {
@@ -19,8 +19,8 @@ type Image struct {
 	ImageID  string     `json:"imageId,omitempty"`
 }
 
-//Imagespace represents an image struct
-type Imagespace NamedObject
+//Organization represents an image struct
+type Organization NamedObject
 
 //Application represents an image struct
 type Application NamedObject
@@ -38,12 +38,11 @@ type Link struct {
 
 //CreateImage the structure for creating an appliction via form
 type CreateImage struct {
-	Imagespace  string
-	Application string   `schema:"name"`
-	Revision    string   `schema:"revision"`
-	PublicPath  string   `schema:"publicPath"`
-	EnvVars     []string `schema:"envVar"`
-	NodeVersion string   `schema:"nodeVersion"`
+	Organization string
+	Application  string   `schema:"name"`
+	Revision     string   `schema:"revision"`
+	EnvVars      []string `schema:"envVar"`
+	Runtime      string   `schema:"runtime"`
 }
 
 //Validate validate the application input is correct
@@ -52,8 +51,8 @@ func (createImage *CreateImage) Validate() *Validation {
 		messages: make(map[string]string),
 	}
 
-	if createImage.Imagespace == "" {
-		errors.Add("Imagespace", "Imagespace must be specified")
+	if createImage.Organization == "" {
+		errors.Add("Organization", "Organization must be specified")
 	}
 
 	if createImage.Application == "" {
@@ -64,16 +63,8 @@ func (createImage *CreateImage) Validate() *Validation {
 		errors.Add("Revision", "Please enter a valid revision")
 	}
 
-	if createImage.PublicPath == "" {
-		errors.Add("PublicPath", "Please enter a valid publicPath.  None was specified.")
-	}
-
-	if !regex.Match([]byte(createImage.PublicPath)) {
-		errors.Add("PublicPath", "Public path must match the format of [PORT]:/[URL SEGMENT/]?")
-	}
-
-	if createImage.NodeVersion == "" {
-		createImage.NodeVersion = DefaultNodeVersion // default to alpine-node:4
+	if createImage.Runtime == "" {
+		createImage.Runtime = DefaultRuntime // default to node:4
 	}
 
 	return errors
