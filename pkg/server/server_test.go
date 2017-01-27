@@ -40,9 +40,9 @@ var _ = Describe("Server Test", func() {
 
 			organization := "test" + kiln.UUIDString()
 			application := "application"
-			revision := "v1.0"
+			revision := "1"
 
-			response, _, err := newFileUploadRequest(hostBase, organization, application, revision, "../../testresources/echo-test.zip")
+			response, _, err := newFileUploadRequest(hostBase, organization, application, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -83,9 +83,8 @@ var _ = Describe("Server Test", func() {
 
 			organization := "test" + kiln.UUIDString()
 			application := "application"
-			revision := "v1.0"
 
-			response, _, err := newFileUploadRequest(hostBase, organization, application, revision, "../../testresources/echo-test.zip")
+			response, _, err := newFileUploadRequest(hostBase, organization, application, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -103,46 +102,12 @@ var _ = Describe("Server Test", func() {
 
 		})
 
-		It("Create Duplicate Application ", func() {
-			//upload the first image
-			organization := "test" + kiln.UUIDString()
-			application := "application"
-			revision := "v1.0"
-
-			response, _, err := newFileUploadRequest(hostBase, organization, application, revision, "../../testresources/echo-test.zip")
-
-			//do basic assertion before continuing
-			Expect(err).Should(BeNil(), "Upload should be successfull")
-
-			//now check the resposne code
-			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
-
-			//now ensure it is created
-			httpResponse, applications, err := getApplications(hostBase, organization)
-
-			Expect(httpResponse.StatusCode).Should(Equal(200), "Response should be 200")
-
-			assertContainsApplication(applications, application)
-
-			//now try to post again, should get a 409
-
-			response, _, err = newFileUploadRequest(hostBase, organization, application, revision, "../../testresources/echo-test.zip")
-
-			//do basic assertion before continuing
-			Expect(err).Should(BeNil(), "Upload should be successfull")
-
-			//now check the resposne code
-			Expect(response.StatusCode).Should(Equal(409), "409 should be returned")
-
-		})
-
 		It("Test Application Images", func() {
 			//upload the first image
 			organization := "test" + kiln.UUIDString()
 			application := "application"
-			revision := "v1.0"
 
-			response, _, err := newFileUploadRequest(hostBase, organization, application, revision, "../../testresources/echo-test.zip")
+			response, _, err := newFileUploadRequest(hostBase, organization, application, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -163,9 +128,7 @@ var _ = Describe("Server Test", func() {
 
 			//now try to post again, with a new revision
 
-			revision2 := "v1.1"
-
-			response, _, err = newFileUploadRequest(hostBase, organization, application, revision2, "../../testresources/echo-test.zip")
+			response, _, err = newFileUploadRequest(hostBase, organization, application, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -196,9 +159,7 @@ var _ = Describe("Server Test", func() {
 			organization2 := "test" + kiln.UUIDString()
 			application2 := "application2"
 
-			revision := "v1.0"
-
-			response, _, err := newFileUploadRequest(hostBase, organization1, application1, revision, "../../testresources/echo-test.zip")
+			response, _, err := newFileUploadRequest(hostBase, organization1, application1, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -207,7 +168,7 @@ var _ = Describe("Server Test", func() {
 			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
 
 			//upload to organization 2 and ensure we can't see it
-			response, _, err = newFileUploadRequest(hostBase, organization2, application2, revision, "../../testresources/echo-test.zip")
+			response, _, err = newFileUploadRequest(hostBase, organization2, application2, "../../testresources/echo-test.zip")
 
 			//do basic assertion before continuing
 			Expect(err).Should(BeNil(), "Upload should be successfull")
@@ -253,7 +214,7 @@ var _ = Describe("Server Test", func() {
 
 	// 		organization := "test" + kiln.UUIDString()
 	// 		application := "application"
-	// 		revision := "v1.0"
+	// 		revision := "1"
 
 	// 		response, _, err := newFileUploadRequest(hostBase, organization, application, revision, "../../testresources/echo-test.zip")
 
@@ -536,7 +497,7 @@ func deleteImage(hostBase string, namespace string, application string, revision
 }
 
 //newfileUploadRequest upload a file form request. Returns the response, the fully read body as a string, and an error
-func newFileUploadRequest(hostBase string, organization string, application string, revision string, path string) (*http.Response, *string, error) {
+func newFileUploadRequest(hostBase string, organization string, application string, path string) (*http.Response, *string, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, nil, err
@@ -557,7 +518,6 @@ func newFileUploadRequest(hostBase string, organization string, application stri
 	}
 
 	writer.WriteField("name", application)
-	writer.WriteField("revision", revision)
 
 	//set the content type
 	writer.FormDataContentType()

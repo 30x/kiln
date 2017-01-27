@@ -40,7 +40,6 @@ type Link struct {
 type CreateImage struct {
 	Organization string
 	Application  string   `schema:"name"`
-	Revision     string   `schema:"revision"`
 	EnvVars      []string `schema:"envVar"`
 	Runtime      string   `schema:"runtime"`
 }
@@ -57,10 +56,6 @@ func (createImage *CreateImage) Validate() *Validation {
 
 	if createImage.Application == "" {
 		errors.Add("Application", "Application must be specified")
-	}
-
-	if createImage.Revision == "" {
-		errors.Add("Revision", "Please enter a valid revision")
 	}
 
 	if createImage.Runtime == "" {
