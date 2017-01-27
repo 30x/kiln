@@ -24,7 +24,7 @@ var _ = Describe("docker", func() {
 			It("Should create image successfully", func() {
 				repoName := "test" + UUIDString()
 				imageName := "test"
-				revision := "v1.0"
+				revision := "1"
 				baseImage := "mhart/alpine-node:4"
 
 				createImage(imageCreator, repoName, imageName, revision, baseImage)
@@ -33,7 +33,7 @@ var _ = Describe("docker", func() {
 			It("Tag and Push", func() {
 				repoName := "test" + UUIDString()
 				imageName := "test"
-				revision := "v1.0"
+				revision := "1"
 				baseImage := "mhart/alpine-node:4"
 
 				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision, baseImage)
@@ -48,12 +48,63 @@ var _ = Describe("docker", func() {
 
 			})
 
+			It("Test DetermineBaseImage", func() {
+				baseImage, err := DetermineBaseImage("node")
+
+				Expect(err).Should(BeNil(), "Error in \"node\" runtime case.", err)
+
+				Expect(baseImage).Should(Equal(DefaultNodeBaseImage), "Incorrect base image for \"node\" case")
+
+				baseImage, err = DetermineBaseImage("node:6")
+
+				Expect(err).Should(BeNil(), "Error in \"node:6\" runtime case.", err)
+
+				Expect(baseImage).Should(Equal(NodeImageRepo+":6"), "Incorrect base image for \"node:6\" case")
+
+				baseImage, err = DetermineBaseImage("java")
+
+				Expect(err).ShouldNot(BeNil(), "Should have error for invalid runtime selection, but didn't.")
+
+				Expect(baseImage).Should(Equal(""), "Incorrect base image for \"java\" case")
+			})
+
+			It("Test AutoRevision", func() {
+				repoName := "test" + UUIDString()
+				imageName := "test"
+				revision := "1"
+				baseImage := "mhart/alpine-node:4"
+
+				// should be first revision because nothing exists in repo yet
+				autoRev, err := AutoRevision(repoName, imageName, imageCreator)
+
+				Expect(err).Should(BeNil(), "Unable to get an auto-revision", err)
+
+				Expect(autoRev).Should(Equal("1"), "Generated auto-revision is incorrect for initial case")
+
+				// now add an actual image and ensure it increments to 2
+				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision, baseImage)
+
+				stream, err := imageCreator.PushImage(dockerInfo)
+
+				Expect(err).Should(BeNil(), "Unable to push image", err)
+
+				channelToOutput(stream)
+
+				assertImageExists(imageCreator, dockerInfo)
+
+				autoRev, err = AutoRevision(repoName, imageName, imageCreator)
+
+				Expect(err).Should(BeNil(), "Unable to get an auto-revision", err)
+
+				Expect(autoRev).Should(Equal("2"), "Generated auto-revision is incorrect for second rev case")
+			})
+
 			It("Test Search", func() {
 
 				//push first image
 				repoName := "test" + UUIDString()
 				imageName1 := "test1"
-				revision10 := "v1.0"
+				revision10 := "1"
 				baseImage := "mhart/alpine-node:4"
 
 				_, dockerInfo10 := createImage(imageCreator, repoName, imageName1, revision10, baseImage)
@@ -101,7 +152,7 @@ var _ = Describe("docker", func() {
 				repoName2 := "test" + UUIDString()
 				imageName1 := "test1"
 				imageName2 := "test2"
-				revision := "v1.0"
+				revision := "1"
 				baseImage := "mhart/alpine-node:4"
 
 				_, dockerInfo1 := createImage(imageCreator, repoName1, imageName1, revision, baseImage)
@@ -144,7 +195,7 @@ var _ = Describe("docker", func() {
 			It("Reap", func() {
 				repoName := "test" + UUIDString()
 				imageName := "test"
-				revision := "v1.0"
+				revision := "1"
 				baseImage := "mhart/alpine-node:4"
 
 				_, dockerInfo := createImage(imageCreator, repoName, imageName, revision, baseImage)

@@ -164,8 +164,6 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Do something with person.Name or person.Phone
-
 	validation := createImage.Validate()
 
 	if validation.HasErrors() {
@@ -175,6 +173,15 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 
 	//not an admin, exit
 	if !validateAdmin(createImage.Organization, w, r) {
+		return
+	}
+
+	revision, err := kiln.AutoRevision(createImage.Organization, createImage.Application, server.imageCreator)
+
+	if err != nil {
+		message := fmt.Sprintf("Unable to provide auto-revision to %s: %s", createImage.Application, err)
+		kiln.LogError.Printf(message)
+		internalError(message, w)
 		return
 	}
 
@@ -190,26 +197,9 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	dockerInfo := &kiln.DockerInfo{
 		RepoName:  createImage.Organization,
 		ImageName: createImage.Application,
-		Revision:  createImage.Revision,
 		EnvVars:   createImage.EnvVars,
+		Revision:  revision,
 		BaseImage: baseImage,
-	}
-
-	//check if the image exists, if it does, return a 409
-
-	existingImage, err := server.imageCreator.GetImageRevision(dockerInfo)
-
-	if err != nil {
-		message := fmt.Sprintf("Unable to check if image exists for %v", dockerInfo)
-		kiln.LogError.Printf(message)
-		internalError(message, w)
-		return
-	}
-
-	//image exists, don't allow the user to create it
-	if existingImage != nil {
-		writeErrorResponse(http.StatusConflict, fmt.Sprintf("An image in organization %s with application %s and revision %s already exists", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision), w)
-		return
 	}
 
 	workspace, err := kiln.CreateNewWorkspace()
@@ -332,7 +322,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	image, err := server.getImageInternal(createImage.Organization, createImage.Application, createImage.Revision)
+	image, err := server.getImageInternal(createImage.Organization, createImage.Application, dockerInfo.Revision)
 
 	if err != nil {
 		message := fmt.Sprintf("Could not retrieve image for verification.  Error is %s", err)
@@ -348,7 +338,8 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeStringAndFlush(w, flusher, "Done.\n")
+	message := fmt.Sprintf("\nOrganization: %s | Application: %s | Revision: %s\n", dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	writeStringAndFlush(w, flusher, message)
 
 }
 
