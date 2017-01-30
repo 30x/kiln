@@ -55,8 +55,8 @@ func NewServer(imageCreator kiln.ImageCreator) *Server {
 	routes.Methods("GET").Path("/organizations/{org}/apps/{name}").HandlerFunc(server.getImages)
 	routes.Methods("GET").Path("/organizations/{org}/apps/{name}/version/{revision}/").HandlerFunc(server.getImage) // get image by revision
 	routes.Methods("GET").Path("/organizations/{org}/apps/{name}/version/{revision}").HandlerFunc(server.getImage)
-	routes.Methods("DELETE").Path("/organizations/{org}/apps/{name}/version/{revision}/").HandlerFunc(server.deleteImage) // delete image by revision
-	routes.Methods("DELETE").Path("/organizations/{org}/apps/{name}/version/{revision}").HandlerFunc(server.deleteImage)
+	routes.Methods("DELETE").Path("/organizations/{org}/apps/{name}/").HandlerFunc(server.deleteApplication) // delete all app images
+	routes.Methods("DELETE").Path("/organizations/{org}/apps/{name}").HandlerFunc(server.deleteApplication)
 
 	// dockerfile
 	routes.Methods("GET").Path("/organizations/kiln/Dockerfile/").HandlerFunc(server.getDockerfile)
@@ -546,41 +546,39 @@ func (server *Server) getImage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(image)
 }
 
-//GetImage get the image
-func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
+//deleteApplication deletes all image revisions for an app
+func (server *Server) deleteApplication(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	organization := vars["org"]
 	application := vars["name"]
-	revision := vars["revision"]
 
 	//not an admin, exit
 	if !validateAdmin(organization, w, r) {
 		return
 	}
 
-	image, err := server.getImageInternal(organization, application, revision)
+	dockerImages, err := server.imageCreator.GetImages(organization, application)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not get images for organization %s,  application %s, and revision %s.  Error is %s", organization, application, revision, err)
+		message := fmt.Sprintf("Could not get images for organization %s and application %s.  Error is %s", organization, application, err)
 		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
 	}
 
 	//not found, return a 404
-	if image == nil {
-		notFound(fmt.Sprintf("Could not get images for organization %s,  application %s, and revision %s.", organization, application, revision), w)
+	if len(*dockerImages) == 0 {
+		notFound(fmt.Sprintf("No images present for organization %s,  application %s.", organization, application), w)
 		return
 	}
 
 	dockerInfo := &kiln.DockerInfo{
 		RepoName:  organization,
 		ImageName: application,
-		Revision:  revision,
 	}
 
-	err = server.imageCreator.DeleteImageRevision(dockerInfo)
+	err = server.imageCreator.DeleteApplication(dockerInfo, dockerImages)
 
 	if err != nil {
 		writeErrorResponse(http.StatusInternalServerError, err.Error(), w)
@@ -591,7 +589,7 @@ func (server *Server) deleteImage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 
-	json.NewEncoder(w).Encode(image)
+	json.NewEncoder(w).Encode(dockerImages)
 }
 
 //getImageInternal get an image.  Image can be nil if not found, or an error will be returned if

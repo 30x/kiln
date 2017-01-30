@@ -182,25 +182,19 @@ func (imageCreator EcsImageCreator) GetImageRevision(dockerInfo *DockerInfo) (*t
 	return &dockerImage, nil
 }
 
-//DeleteImageRevisionLocal Delete the image revision from the local repo
-func (imageCreator EcsImageCreator) DeleteImageRevisionLocal(sha string) error {
-	//just delegate to the local docker impl
-
-	return imageCreator.dockerCreator.DeleteImageRevisionLocal(sha)
-}
-
-//DeleteImageRevision Delete the image from the remote repository.  Return an error if unable to do so.
-func (imageCreator EcsImageCreator) DeleteImageRevision(dockerInfo *DockerInfo) error {
+//DeleteApplication Delete all images of the application from the remote repository.  Return an error if unable to do so.
+func (imageCreator EcsImageCreator) DeleteApplication(dockerInfo *DockerInfo, images *[]types.Image) error {
 
 	repositoryName := dockerInfo.GetImageName()
 
-	imageID := &ecr.ImageIdentifier{
-		ImageTag: &dockerInfo.Revision,
+	imageIDs := make([]*ecr.ImageIdentifier, len(*images))
+	for ndx, image := range *images {
+		imageIDs[ndx].ImageDigest = &image.ID
 	}
 
 	input := &ecr.BatchDeleteImageInput{
 		RepositoryName: &repositoryName,
-		ImageIds:       []*ecr.ImageIdentifier{imageID},
+		ImageIds:       imageIDs,
 	}
 
 	deleteOutput, err := imageCreator.awsClient.BatchDeleteImage(input)
@@ -218,6 +212,13 @@ func (imageCreator EcsImageCreator) DeleteImageRevision(dockerInfo *DockerInfo) 
 	}
 
 	return nil
+}
+
+//DeleteImageRevisionLocal Delete the image revision from the local repo
+func (imageCreator EcsImageCreator) DeleteImageRevisionLocal(sha string) error {
+	//just delegate to the local docker impl
+
+	return imageCreator.dockerCreator.DeleteImageRevisionLocal(sha)
 }
 
 //GetLocalImages return all local images

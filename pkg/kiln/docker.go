@@ -19,8 +19,8 @@ type ImageCreator interface {
 	//DeleteImageRevisionLocal Delete the image from the local machine repository.  Return an error if unable to do so.  Should not be called from outside the package
 	DeleteImageRevisionLocal(sha string) error
 
-	//DeleteImageRevision Delete the image from the remote repository.  Return an error if unable to do so.
-	DeleteImageRevision(dockerInfo *DockerInfo) error
+	//DeleteApplication Delete all images of the application from the remote repository.  Return an error if unable to do so.
+	DeleteApplication(dockerInfo *DockerInfo, images *[]types.Image) error
 
 	//GetLocalImages return all local images
 	GetLocalImages() (*[]types.Image, error)
