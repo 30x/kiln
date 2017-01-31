@@ -567,10 +567,9 @@ func (server *Server) deleteApplication(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if active {
-		w.WriteHeader(http.StatusConflict)
-		w.Header().Set("Content-Type", "text/plain charset=utf-8")
 		message := fmt.Sprintf("Unable to delete application reivions for \"%s\" in \"%s\" because they are in use by an active deployment.\n", application, organization)
-		w.Write([]byte(message))
+		kiln.LogError.Printf(message)
+		writeErrorResponse(http.StatusConflict, message, w)
 		return
 	}
 
