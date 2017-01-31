@@ -21,6 +21,22 @@ type ClusterConfig struct {
 	AppLabelName string
 }
 
+// NewClusterConfigFromEnv retrieves a new cluster config based on the environment
+func NewClusterConfigFromEnv() (*ClusterConfig, error) {
+	envState := os.Getenv("DEPLOY_STATE")
+
+	switch envState {
+	case "PROD":
+		return NewClusterConfig()
+	case "DEV_CONTAINER":
+		return NewClusterConfig()
+	case "DEV":
+		return NewLocalClusterConfig()
+	default:
+		return NewLocalClusterConfig()
+	}
+}
+
 // NewClusterConfig creates a new k8s in-cluster client
 func NewClusterConfig() (*ClusterConfig, error) {
 	clusterConfig := &ClusterConfig{}
