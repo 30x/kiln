@@ -3,8 +3,6 @@ package kiln
 import (
 	"fmt"
 	"os"
-	"os/user"
-	"path"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api"
@@ -79,18 +77,16 @@ func NewLocalClusterConfig() (*ClusterConfig, error) {
 		return nil, fmt.Errorf("Missing required APP_NAME_LABEL environment variable")
 	}
 
-	usr, err := user.Current()
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{}
+	config := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+	tmpKubeConfig, err := config.ClientConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load local kube config: %v", err)
 	}
 
-	// uses the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", path.Join(usr.HomeDir, ".kube/config"))
-	if err != nil {
-		panic(err.Error())
-	}
 	// creates the clientset
-	clusterConfig.Client, err = kubernetes.NewForConfig(config)
+	clusterConfig.Client, err = kubernetes.NewForConfig(tmpKubeConfig)
 	if err != nil {
 		return nil, err
 	}
