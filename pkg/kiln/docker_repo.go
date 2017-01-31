@@ -167,7 +167,20 @@ func (imageCreator LocalImageCreator) DeleteImageRevisionLocal(sha string) error
 
 //DeleteApplication Delete all images of the application from the remote repository.  Return an error if unable to do so.
 func (imageCreator LocalImageCreator) DeleteApplication(dockerInfo *DockerInfo, images *[]types.Image) error {
-	return fmt.Errorf("Deleting an application's images from the local registry is not supported")
+	for _, image := range *images {
+
+		_, err := imageCreator.client.ImageRemove(context.Background(), types.ImageRemoveOptions{
+			Force:         true,
+			ImageID:       image.ID,
+			PruneChildren: true,
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 //parse the tag out of the returned image
@@ -318,9 +331,7 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (s
 
 //GenerateRepoURI generate the repo uri
 func (imageCreator LocalImageCreator) GenerateRepoURI(dockerInfo *DockerInfo) string {
-	if os.Getenv("LOCAL_REGISTRY_ONLY") != "" {
-		return dockerInfo.GetTagName()
-	}
+
 	return dockerInfo.GetRemoteTagName(imageCreator.remoteRepo)
 }
 

@@ -53,6 +53,11 @@ func main() {
 
 	kiln.LogInfo.Printf("ImageCreator set up.")
 
+	clusterConfig, err := kiln.NewClusterConfig()
+	if err != nil {
+		kiln.LogError.Fatalf("Unable to get a cluster config %s", err)
+	}
+
 	//start the reaper process in the background
 	if os.Getenv("NO_REAP") == "" {
 		reaperIntervalString := os.Getenv("REAP_INTERVAL")
@@ -93,7 +98,7 @@ func main() {
 
 	kiln.LogInfo.Printf("Successfully configured server and validated configuration. Starting server.")
 
-	server := server.NewServer(imageCreator)
+	server := server.NewServer(imageCreator, clusterConfig)
 
 	server.Start(port, time.Duration(timeout)*time.Second)
 }

@@ -23,13 +23,14 @@ const basePath = "/organizations"
 
 //Server struct to create an instance of hte server
 type Server struct {
-	router       http.Handler
-	decoder      *schema.Decoder
-	imageCreator kiln.ImageCreator
+	router        http.Handler
+	decoder       *schema.Decoder
+	imageCreator  kiln.ImageCreator
+	clusterConfig *kiln.ClusterConfig
 }
 
 //NewServer Create a new server using the provided Image creator.
-func NewServer(imageCreator kiln.ImageCreator) *Server {
+func NewServer(imageCreator kiln.ImageCreator, clusterConfig *kiln.ClusterConfig) *Server {
 	routes := mux.NewRouter()
 
 	//allow the trailing slash
@@ -40,8 +41,9 @@ func NewServer(imageCreator kiln.ImageCreator) *Server {
 	decoder := schema.NewDecoder()
 
 	server := &Server{
-		decoder:      decoder,
-		imageCreator: imageCreator,
+		decoder:       decoder,
+		imageCreator:  imageCreator,
+		clusterConfig: clusterConfig,
 	}
 
 	//a bit hacky, but need the pointer to the server
@@ -302,24 +304,22 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	//defer cleaning up the image
 	// defer server.imageCreator.CleanImageRevision(dockerInfo)
 
-	if os.Getenv("LOCAL_REGISTRY_ONLY") == "" {
-		pushChannel, err := server.imageCreator.PushImage(dockerInfo)
+	pushChannel, err := server.imageCreator.PushImage(dockerInfo)
 
-		if err != nil {
-			message := fmt.Sprintf("Could not push image from docker info %+v.  Error is %s", dockerInfo, err)
-			kiln.LogError.Printf(message)
-			internalError(message, w)
-			return
-		}
+	if err != nil {
+		message := fmt.Sprintf("Could not push image from docker info %+v.  Error is %s", dockerInfo, err)
+		kiln.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
 
-		err = chunkData(w, flusher, pushChannel)
+	err = chunkData(w, flusher, pushChannel)
 
-		if err != nil {
-			message := fmt.Sprintf("Could not flush data.  Error is %s", err)
-			kiln.LogError.Printf(message)
-			internalError(message, w)
-			return
-		}
+	if err != nil {
+		message := fmt.Sprintf("Could not flush data.  Error is %s", err)
+		kiln.LogError.Printf(message)
+		internalError(message, w)
+		return
 	}
 
 	image, err := server.getImageInternal(createImage.Organization, createImage.Application, dockerInfo.Revision)
@@ -558,6 +558,22 @@ func (server *Server) deleteApplication(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	active, err := server.clusterConfig.CheckActiveDeployments(organization, application)
+	if err != nil {
+		message := fmt.Sprintf("Could not check deployments for organization %s and application %s.  Error is %s", organization, application, err)
+		kiln.LogError.Printf(message)
+		internalError(message, w)
+		return
+	}
+
+	if active {
+		w.WriteHeader(http.StatusConflict)
+		w.Header().Set("Content-Type", "text/plain charset=utf-8")
+		message := fmt.Sprintf("Unable to delete application reivions for \"%s\" in \"%s\" because they are in use by an active deployment.\n", application, organization)
+		w.Write([]byte(message))
+		return
+	}
+
 	dockerImages, err := server.imageCreator.GetImages(organization, application)
 
 	if err != nil {
@@ -587,9 +603,6 @@ func (server *Server) deleteApplication(w http.ResponseWriter, r *http.Request) 
 
 	//now write the response
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-
-	json.NewEncoder(w).Encode(dockerImages)
 }
 
 //getImageInternal get an image.  Image can be nil if not found, or an error will be returned if
