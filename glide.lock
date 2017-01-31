@@ -1,5 +1,5 @@
-hash: b933b8595fc4de6ee56a8c989d5bb3725eacb4ff353366af1aaeeb036463256c
-updated: 2017-01-30T13:50:52.450200135-08:00
+hash: 50ddc0aa822fb4081064ab4321b64dc8743e24e317c5c4fed2de5eb9a61afc09
+updated: 2017-01-31T15:07:21.095622848-08:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -7,7 +7,7 @@ imports:
   - compute/metadata
   - internal
 - name: github.com/30x/authsdk
-  version: 50e1bb8adac0afdac021b4b08091876d1a70324c
+  version: 7155155e41124a0ed1974f068669a8cee120dca7
   vcs: git
 - name: github.com/aws/aws-sdk-go
   version: 15bd33ce2edbdb46acdec779652ed39926682a9f
@@ -131,6 +131,10 @@ imports:
   vcs: git
 - name: github.com/gorilla/schema
   version: d68043406bea8bd90f7b38e9c54fab18d903ea25
+- name: github.com/howeyc/gopass
+  version: 3ca23474a7c7203e0a0a070fd33508f6efdb9b3d
+- name: github.com/imdario/mergo
+  version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/jmespath/go-jmespath
   version: 3433f3ea46d9f8019119e7dd41274e112a2359a9
 - name: github.com/jonboulle/clockwork
@@ -184,6 +188,10 @@ imports:
   version: f1f1a805ed361a0e078bb537e4ea78cd37dcf065
   subpackages:
   - codec
+- name: golang.org/x/crypto
+  version: 1f22c0103821b9390939b6776727195525381532
+  subpackages:
+  - ssh/terminal
 - name: golang.org/x/net
   version: e90d6d0afc4c315a0d87a568ae68577cc15149a0
   subpackages:
@@ -323,6 +331,7 @@ imports:
   - pkg/util/errors
   - pkg/util/flowcontrol
   - pkg/util/framer
+  - pkg/util/homedir
   - pkg/util/integer
   - pkg/util/intstr
   - pkg/util/json
@@ -346,7 +355,11 @@ imports:
   - plugin/pkg/client/auth/gcp
   - plugin/pkg/client/auth/oidc
   - rest
+  - tools/auth
+  - tools/clientcmd
   - tools/clientcmd/api
+  - tools/clientcmd/api/latest
+  - tools/clientcmd/api/v1
   - tools/metrics
   - transport
 testImports:

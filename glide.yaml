@@ -21,7 +21,7 @@ import:
   version: v1.2.5
   vcs: git
 - package: github.com/30x/authsdk
-  version: 50e1bb8adac0afdac021b4b08091876d1a70324c
+  version: 7155155e41124a0ed1974f068669a8cee120dca7
   vcs: git
 - package: github.com/onsi/ginkgo
   version: ^1.2.0
