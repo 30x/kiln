@@ -250,6 +250,36 @@ var _ = Describe("Server Test", func() {
 	// 	})
 	// }
 
+	ClusterDependent := func(testServer *server.Server, hostBase string, dockerRegistryURL string) {
+		It("Delete Application ", func() {
+			//upload the first image
+			organization := "test-app-deletion-org"
+			application := "deletemeplease"
+
+			response, _, err := newFileUploadRequest(hostBase, organization, application, "../../testresources/echo-test.zip")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			//upload the second image
+			response, _, err = newFileUploadRequest(hostBase, organization, application, "../../testresources/echo-test.zip")
+
+			//do basic assertion before continuing
+			Expect(err).Should(BeNil(), "Upload should be successfull")
+
+			//now check the resposne code
+			Expect(response.StatusCode).Should(Equal(201), "201 should be returned")
+
+			// delete all images of application
+			response = deleteApplication(hostBase, organization, application)
+
+			Expect(response.StatusCode).Should(Equal(200), "200 should be returned")
+		})
+	}
+
 	Context("Local Docker", func() {
 		//set up the provider
 
@@ -261,7 +291,7 @@ var _ = Describe("Server Test", func() {
 		//Use our test provider for jwt tokens
 		os.Setenv("JWTTOKENIMPL", "test")
 
-		server, hostBase, err := doSetup(5280)
+		server, hostBase, err := doSetup(5280, &kiln.ClusterConfig{})
 
 		if err != nil {
 			Fail(fmt.Sprintf("Could not start server %s", err))
@@ -292,10 +322,38 @@ var _ = Describe("Server Test", func() {
 	// 	ECROnly(server, hostBase, dockerRegistryURL)
 	// })
 
+	Context("With Local Cluster Config", func() {
+		//set up the provider
+
+		dockerRegistryURL := "localhost:5000"
+
+		os.Setenv("DOCKER_PROVIDER", "docker")
+		os.Setenv("DOCKER_REGISTRY_URL", dockerRegistryURL)
+
+		os.Setenv("ORG_LABEL", "org")
+		os.Setenv("APP_NAME_LABEL", "appName")
+
+		//Use our test provider for jwt tokens
+		os.Setenv("JWTTOKENIMPL", "test")
+
+		clusterConfig, err := kiln.NewLocalClusterConfig()
+		if err != nil {
+			Fail(fmt.Sprintf("Could not get cluster config %s", err))
+		}
+
+		server, hostBase, err := doSetup(5282, clusterConfig)
+
+		if err != nil {
+			Fail(fmt.Sprintf("Could not start server %s", err))
+		}
+
+		ClusterDependent(server, hostBase, dockerRegistryURL)
+	})
+
 })
 
 //create a new instance of the server based on the env vars and the image creator.  Return them to be tested
-func doSetup(port int) (*server.Server, string, error) {
+func doSetup(port int, clusterConfig *kiln.ClusterConfig) (*server.Server, string, error) {
 	imageCreator, err := kiln.NewImageCreatorFromEnv()
 
 	if err != nil {
@@ -304,7 +362,7 @@ func doSetup(port int) (*server.Server, string, error) {
 
 	baseHost := fmt.Sprintf("http://localhost:%d", port)
 
-	testServer := server.NewServer(imageCreator)
+	testServer := server.NewServer(imageCreator, clusterConfig)
 
 	//start server in the background
 	go func() {
@@ -474,6 +532,23 @@ func getImage(hostBase string, namespace string, application string, revision st
 
 	return response, image
 
+}
+
+func deleteApplication(hostBase string, namespace string, application string) *http.Response {
+	url := getApplicationURL(hostBase, namespace, application)
+	req, _ := http.NewRequest("DELETE", url, nil)
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", "e30K.e30K.e30K"))
+	req.Header.Add("Accept", "application/json")
+	client := &http.Client{}
+	response, _ := client.Do(req)
+
+	bytes, _ := ioutil.ReadAll(response.Body)
+
+	body := string(bytes)
+
+	kiln.LogInfo.Printf("Response is %s", body)
+
+	return response
 }
 
 func deleteImage(hostBase string, namespace string, application string, revision string) (*http.Response, *server.Image) {

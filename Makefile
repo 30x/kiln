@@ -48,8 +48,5 @@ push-to-hub:
 	docker tag thirtyx/kiln thirtyx/kiln:$(IMAGE_VERSION)
 	docker push thirtyx/kiln:$(IMAGE_VERSION)
 
-deploy-to-kube:
-	kubectl run kiln --image=localhost:5000/thirtyx/kiln:latest
-
-deploy-dev:
-	kubectl create -f kubernetes/dev-deployment.yaml --namespace=shipyard
+run-dev:
+	env DEPLOY_STATE=DEV NO_REAP="true" PORT=5280 SHUTDOWN_TIMEOUT="0" DOCKER_PROVIDER=docker DOCKER_REGISTRY_URL="localhost:5000" ORG_LABEL=org APP_NAME_LABEL=app go run main.go

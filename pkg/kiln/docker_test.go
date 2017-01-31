@@ -99,6 +99,33 @@ var _ = Describe("docker", func() {
 				Expect(autoRev).Should(Equal("2"), "Generated auto-revision is incorrect for second rev case")
 			})
 
+			It("Test DeleteApplication", func() {
+				repoName := "test" + UUIDString()
+				imageName := "test"
+				revision1 := "1"
+				revision2 := "2"
+				baseImage := "mhart/alpine-node:4"
+
+				createImage(imageCreator, repoName, imageName, revision1, baseImage)
+				createImage(imageCreator, repoName, imageName, revision2, baseImage)
+
+				images, err := imageCreator.GetImages(repoName, imageName)
+				Expect(err).Should(BeNil(), "Unable to verify images exist")
+
+				dockerInfo := &DockerInfo{
+					RepoName:  repoName,
+					ImageName: imageName,
+				}
+
+				err = imageCreator.DeleteApplication(dockerInfo, images)
+				Expect(err).Should(BeNil(), "Unexpected error in deleting application revisions")
+
+				// verify that the images were deleted
+				images, err = imageCreator.GetImages(repoName, imageName)
+				Expect(err).Should(BeNil(), "Unexpected error in verifying application deletion")
+				Expect(len(*images)).Should(Equal(0), "Unexpected image(s) remaining after deletion")
+			})
+
 			It("Test Search", func() {
 
 				//push first image
@@ -115,7 +142,7 @@ var _ = Describe("docker", func() {
 
 				channelToOutput(stream)
 
-				revision11 := "v1.1"
+				revision11 := "2"
 
 				_, dockerInfo11 := createImage(imageCreator, repoName, imageName1, revision11, baseImage)
 

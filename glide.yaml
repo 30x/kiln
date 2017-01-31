@@ -31,3 +31,9 @@ import:
   vcs: git
 - package: github.com/aws/aws-sdk-go
   version: v1.6.15
+- package: gopkg.in/inf.v0
+  version: v0.9.0
+  repo: https://github.com/go-inf/inf.git
+  vcs: git
+- package: k8s.io/client-go
+  version: ^2.0.0-alpha.1
