@@ -15,7 +15,7 @@ const DefaultRuntime = "node:4"
 //Image represents an image struct
 type Image struct {
 	Created  *time.Time `json:"created,omitempty"`
-	Revision []string   `json:"revision,omitempty"`
+	Revision string     `json:"revision,omitempty"`
 	ImageID  string     `json:"imageId,omitempty"`
 }
 

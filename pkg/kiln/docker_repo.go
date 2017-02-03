@@ -341,7 +341,7 @@ func generateAuthConfiguration(remoteRepo string) string {
 	authConfig, exists := getAuthConfig(remoteRepo)
 
 	if !exists {
-		LogWarn.Printf("Could not find repo %s in auth configuration.  Returning empty auth", authConfig)
+		LogWarn.Printf("Could not find repo %s in auth configuration.  Returning empty auth", remoteRepo)
 		authConfig = &types.AuthConfig{}
 	}
 

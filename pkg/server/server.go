@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/30x/authsdk"
@@ -504,7 +505,7 @@ func (server *Server) getImages(w http.ResponseWriter, r *http.Request) {
 	for i, image := range *dockerImages {
 
 		resultImage := &Image{
-			Revision: image.RepoTags,
+			Revision: parseRevisionNumber(image.RepoTags[0]),
 		}
 
 		images[i] = resultImage
@@ -626,7 +627,7 @@ func (server *Server) getImageInternal(organization string, application string, 
 	created := time.Unix(image.Created, 0)
 
 	imageResponse := &Image{
-		Revision: image.RepoTags,
+		Revision: parseRevisionNumber(image.RepoTags[0]),
 		ImageID:  image.ID,
 		Created:  &created,
 	}
@@ -646,6 +647,11 @@ func (server *Server) generateImageURL(dockerInfo *kiln.DockerInfo, hostname str
 func (server *Server) status(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte("OK"))
+}
+
+func parseRevisionNumber(tag string) string {
+	lastNdx := strings.LastIndex(tag, ":")
+	return tag[lastNdx+1:]
 }
 
 //write a non 200 error response
