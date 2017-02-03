@@ -638,7 +638,7 @@ func (server *Server) getImageInternal(organization string, application string, 
 //generatePodSpec get the image
 func (server *Server) generateImageURL(dockerInfo *kiln.DockerInfo, hostname string) string {
 
-	endpoint := fmt.Sprintf("%s%s/%s/images/%s/version/%s", hostname, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	endpoint := fmt.Sprintf("%s%s/%s/apps/%s/version/%s", hostname, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
 
 	return endpoint
 }
