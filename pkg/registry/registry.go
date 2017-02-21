@@ -24,6 +24,9 @@ type Registry interface {
 	// DeleteImageManifest deletes the image identified by the name and tag
 	DeleteImageManifest(name, reference string) error
 
+	// DeleteImageTag deletes the image's tag
+	DeleteImageTag(name, tag string) error
+
 	// GetProjectName returns the GCR Project Name, private registry doesn't have this property
 	GetProjectName() string
 }

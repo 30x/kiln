@@ -50,7 +50,7 @@ func (reg *PrivateRegistry) ListRepositories(name string) ([]string, error) {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("Non-OK status code received in ListRepositories: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -80,7 +80,7 @@ func (reg *PrivateRegistry) ListImageTags(name string) ([]string, error) {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("Non-OK status code received in ListImageTags: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -105,7 +105,7 @@ func (reg *PrivateRegistry) GetImageBlob(name, reference string) (*ImageBlob, er
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("Non-OK status code received in GetImageBlob: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -138,7 +138,7 @@ func (reg *PrivateRegistry) GetImageManifest(name, tag string) (*ManifestRespons
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("Non-OK status code received in GetImageManifest: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -171,7 +171,7 @@ func (reg *PrivateRegistry) DeleteImageManifest(name, reference string) error {
 	}
 
 	if res.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return fmt.Errorf("Non-OK status code received in DeleteImageManifest: %d", res.StatusCode)
 	}
 
 	return nil
@@ -195,7 +195,7 @@ func (reg *PrivateRegistry) GetImageManifestDigest(name, tag string) (string, er
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return "", fmt.Errorf("Non-OK status code received in GetImageManifestDigest: %d", res.StatusCode)
 	}
 
 	return res.Header.Get("Docker-Content-Digest"), nil
@@ -219,7 +219,7 @@ func (reg *PrivateRegistry) GetImageBlobDigest(name, tag string) (string, string
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return "", "", fmt.Errorf("Non-OK status code received in GetImageBlobDigest: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -237,4 +237,9 @@ func (reg *PrivateRegistry) GetImageBlobDigest(name, tag string) (string, string
 // GetProjectName returns an empty string b.c this is only needed for GCR
 func (reg *PrivateRegistry) GetProjectName() string {
 	return ""
+}
+
+// DeleteImageTag deletes the image's specified tag
+func (reg *PrivateRegistry) DeleteImageTag(name, tag string) error {
+	return fmt.Errorf("Deleting an image manfiest by tag is not supported in a private registry")
 }

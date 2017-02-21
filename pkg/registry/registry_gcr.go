@@ -84,7 +84,7 @@ func (reg *GoogleContainerRegistry) ListRepositories(name string) ([]string, err
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("Non-OK status code received in ListRepositories: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -109,7 +109,7 @@ func (reg *GoogleContainerRegistry) ListImageTags(name string) ([]string, error)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("Non-OK status code received in ListImageTags: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -134,7 +134,7 @@ func (reg *GoogleContainerRegistry) GetImageBlob(name, reference string) (*Image
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("Non-OK status code received in GetImageBlob: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -167,7 +167,7 @@ func (reg *GoogleContainerRegistry) GetImageManifest(name, tag string) (*Manifes
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return nil, fmt.Errorf("Non-OK status code received in GetImageManifest: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -199,8 +199,8 @@ func (reg *GoogleContainerRegistry) DeleteImageManifest(name, reference string) 
 		return err
 	}
 
-	if res.StatusCode != http.StatusAccepted {
-		return fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("Non-OK status code received in DeleteImageManifest: %d", res.StatusCode)
 	}
 
 	return nil
@@ -224,7 +224,7 @@ func (reg *GoogleContainerRegistry) GetImageManifestDigest(name, tag string) (st
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return "", fmt.Errorf("Non-OK status code received in GetImageManifestDigest: %d", res.StatusCode)
 	}
 
 	return res.Header.Get("Docker-Content-Digest"), nil
@@ -248,7 +248,7 @@ func (reg *GoogleContainerRegistry) GetImageBlobDigest(name, tag string) (string
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("Non-OK status code received: %d", res.StatusCode)
+		return "", "", fmt.Errorf("Non-OK status code received in GetImageBlobDigest: %d", res.StatusCode)
 	}
 
 	defer res.Body.Close()
@@ -261,4 +261,27 @@ func (reg *GoogleContainerRegistry) GetImageBlobDigest(name, tag string) (string
 	}
 
 	return manifest.Config.Digest, res.Header.Get("Docker-Content-Digest"), nil
+}
+
+// DeleteImageTag deletes the image's specified tag
+func (reg *GoogleContainerRegistry) DeleteImageTag(name, tag string) error {
+	target := fmt.Sprintf("%s/%s/%s/manifests/%s", reg.getRegistryURLWithAPIVersionV2(), reg.ProjectName, name, tag)
+
+	req, err := http.NewRequest(http.MethodDelete, target, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Accept", "application/vnd.docker.distribution.manifest.v2+json")
+
+	res, err := reg.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("Non-OK status code received in DeleteImageTag: %d", res.StatusCode)
+	}
+
+	return nil
 }

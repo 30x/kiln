@@ -2,6 +2,8 @@ package kiln
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/30x/kiln/pkg/registry"
 	"github.com/docker/engine-api/types"
@@ -71,8 +73,19 @@ func (imageCreator RegistryImageCreator) DeleteApplication(dockerInfo *DockerInf
 	name := fmt.Sprintf("%s/%s", dockerInfo.RepoName, dockerInfo.ImageName)
 
 	for _, image := range *images {
+		// with GCR Docker Registry, you must delete the tag before the manifest
+		if os.Getenv("DOCKER_PROVIDER") == "gcr" {
+			tag := strings.Split(image.RepoTags[0], ":")[1]
+			err := imageCreator.client.DeleteImageTag(name, tag)
+			if err != nil {
+				LogError.Printf("Error received deleting a tag for %s: %v", name, err)
+				return err
+			}
+		}
+
 		err := imageCreator.client.DeleteImageManifest(name, image.ID)
 		if err != nil {
+			LogError.Printf("Error received deleting a manifest for %s: %v", name, err)
 			return err
 		}
 	}
