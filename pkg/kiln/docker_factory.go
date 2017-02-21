@@ -3,6 +3,8 @@ package kiln
 import (
 	"errors"
 	"os"
+
+	"github.com/30x/kiln/pkg/registry"
 )
 
 //NewImageCreatorFromEnv instanciate the image creator from the environment variables.  If an env is missing, an error will be logged and execution will halt
@@ -21,6 +23,10 @@ func NewImageCreatorFromEnv() (ImageCreator, error) {
 	}
 
 	switch creatorValue {
+	case "private":
+		return getPrivateImpl(repoURL)
+	case "gcr":
+		return getGcrImpl(repoURL)
 	case "docker":
 		return NewLocalImageCreator(repoURL)
 	case "ecr":
@@ -40,4 +46,33 @@ func getEcrImpl(dockerRegistryURL string) (ImageCreator, error) {
 	}
 
 	return NewEcsImageCreator(dockerRegistryURL, ecrRegion)
+}
+
+func getPrivateImpl(dockerRegistryURL string) (ImageCreator, error) {
+	// registry API is exposed via a svc
+	// e.g. running hosted reg in k8s, push images to localhost:5000, but API server is elsewhere
+	regAPIServer := os.Getenv("REGISTRY_API_SERVER")
+
+	if regAPIServer == "" {
+		return nil, errors.New("You must set the REGISTRY_API_SERVER environment variable.  An example would be 'https://gcr.io'")
+	}
+
+	reg := registry.NewPrivateRegistryClient(regAPIServer)
+
+	return NewRegistryImageCreator(dockerRegistryURL, reg)
+}
+
+func getGcrImpl(dockerRegistryURL string) (ImageCreator, error) {
+	regAPIServer := os.Getenv("REGISTRY_API_SERVER")
+
+	if regAPIServer == "" {
+		return nil, errors.New("You must set the REGISTRY_API_SERVER environment variable.  An example would be 'https://gcr.io'")
+	}
+
+	reg, err := registry.NewGoogleContainerRegistryClient(regAPIServer)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewRegistryImageCreator(dockerRegistryURL, reg)
 }
