@@ -113,7 +113,21 @@ func (parser *PushStreamParser) Parse() {
 		}
 
 		if pushStatusMessage.ProgressDetail.Current == 0 && pushStatusMessage.ProgressDetail.Total == 0 {
-			continue;
+			// empty push status message, so lets try unmarshalling into an error message
+			pushErrorMessage := pushErrorMessage{}
+			err := json.Unmarshal(scanner.Bytes(), &pushErrorMessage)
+			if err != nil {
+				continue
+			}
+
+			// this line was actually an error, lets log/send it
+			if pushErrorMessage.Error != "" {
+				text := fmt.Sprintf("Found an error in the push stream: %v\n", pushErrorMessage)
+
+				parser.outputChannel <- text
+			}
+
+			continue
 		} else {
 			text := fmt.Sprintf("current uploaded:%d, total size:%d\n", pushStatusMessage.ProgressDetail.Current, pushStatusMessage.ProgressDetail.Total)
 
@@ -166,4 +180,14 @@ type pushStatusMessage struct {
 
 type streamStatusMessage struct {
 	Stream string `json:"stream"`
+}
+
+// {"errorDetail":{"message":"denied: Access denied."},"error":"denied: Access denied."}
+type pushErrorMessage struct {
+	Detail errorDetail `json:"errorDetail"`
+	Error  string      `json:"error"`
+}
+
+type errorDetail struct {
+	Message string `json:"message"`
 }

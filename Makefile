@@ -1,6 +1,6 @@
 #Format is MAJOR . MINOR . PATCH
 
-IMAGE_VERSION=0.1.18
+IMAGE_VERSION=0.1.20
 
 
 test-build-and-package: test-source build-and-package
@@ -49,4 +49,4 @@ push-to-hub:
 	docker push thirtyx/kiln:$(IMAGE_VERSION)
 
 run-dev:
-	env DEPLOY_STATE=DEV NO_REAP="true" PORT=5280 SHUTDOWN_TIMEOUT="0" DOCKER_PROVIDER=docker DOCKER_REGISTRY_URL="localhost:5000" ORG_LABEL=org APP_NAME_LABEL=app go run main.go
+	env AUTH_API_HOST="https://api.e2e.apigee.net/" REGISTRY_API_SERVER="http://api.shipyard.dev:31222" DEPLOY_STATE=DEV NO_REAP="true" PORT=5280 SHUTDOWN_TIMEOUT="0" DOCKER_PROVIDER=private DOCKER_REGISTRY_URL="localhost:5000" ORG_LABEL=org APP_NAME_LABEL=app go run main.go
