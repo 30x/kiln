@@ -1,0 +1,82 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kiln
+  labels:
+    name: kiln
+  namespace: shipyard
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: kiln
+        edge/routable: "true"
+      annotations:
+        edge/paths: '[{"basePath": "/organizations", "containerPort": "5280"}]'
+    spec:
+      containers:
+      - image: thirtyx/kiln:dev
+        imagePullPolicy: Always
+        name: kiln
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /organizations/status
+            port: 5280
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 1
+        ports:
+        - containerPort: 5280
+        env:
+        - name: PORT
+          value: "5280"
+        - name: DEPLOY_STATE
+          value: "DEV_CONTAINER"
+        - name: DOCKER_PROVIDER
+          value: gcr
+        - name: DOCKER_REGISTRY_URL
+          value: gcr.io
+        - name: REGISTRY_API_SERVER
+          value: https://gcr.io
+        - name: DOCKER_HOST
+          value: unix:///var/run/docker.sock
+        - name: SHUTDOWN_TIMEOUT
+          value: "60"
+        - name: REAP_INTERVAL
+          value: "60"
+          # Leave images < 5 minutes old
+        - name: REAP_MIN_AGE
+          value: "300"
+        - name: AUTH_API_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: shipyard-config
+              key: AUTH_API_HOST
+        - name: ORG_LABEL
+          valueFrom:
+            configMapKeyRef:
+              name: shipyard-config
+              key: ORG_LABEL
+        - name: APP_NAME_LABEL
+          valueFrom:
+            configMapKeyRef:
+              name: shipyard-config
+              key: APP_NAME_LABEL
+        - name: APP_REV_LABEL
+          valueFrom:
+            configMapKeyRef:
+              name: shipyard-config
+              key: APP_REV_LABEL
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: dockersocket
+          readOnly: false
+
+      volumes:
+      - name: dockersocket
+        hostPath:
+          path: /var/run/docker.sock

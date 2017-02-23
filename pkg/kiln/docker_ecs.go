@@ -364,11 +364,6 @@ func (imageCreator EcsImageCreator) PushImage(dockerInfo *DockerInfo) (chan (str
 	return imageCreator.dockerCreator.PushImage(dockerInfo)
 }
 
-//GenerateRepoURI generate the repo uri
-func (imageCreator EcsImageCreator) GenerateRepoURI(dockerInfo *DockerInfo) string {
-	return imageCreator.dockerCreator.GenerateRepoURI(dockerInfo)
-}
-
 //return true if the image exists
 func (imageCreator EcsImageCreator) imageExists(imageName string) (bool, error) {
 	describeRequest := &ecr.DescribeRepositoriesInput{

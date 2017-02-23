@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"golang.org/x/net/context"
+	"golang.org/x/oauth2/google"
 	// "io"
 
 	"encoding/base64"
@@ -329,20 +330,23 @@ func (imageCreator LocalImageCreator) PushImage(dockerInfo *DockerInfo) (chan (s
 	return streamParser.Channel(), nil
 }
 
-//GenerateRepoURI generate the repo uri
-func (imageCreator LocalImageCreator) GenerateRepoURI(dockerInfo *DockerInfo) string {
-
-	return dockerInfo.GetRemoteTagName(imageCreator.remoteRepo)
-}
-
 //generateAuthConfiguration Create an auth configuration from the environment variables
 func generateAuthConfiguration(remoteRepo string) string {
+	var authConfig *types.AuthConfig
+	var exists bool
 
-	authConfig, exists := getAuthConfig(remoteRepo)
+	// we will use GCR when deployed on GCP, so we will need to access Google Service Account token
+	if os.Getenv("DOCKER_PROVIDER") == "gcr" {
+		authConfig, exists = getGCEAuthConfig()
+	}
 
 	if !exists {
-		LogWarn.Printf("Could not find repo %s in auth configuration.  Returning empty auth", remoteRepo)
-		authConfig = &types.AuthConfig{}
+		authConfig, exists = getAuthConfig(remoteRepo)
+
+		if !exists {
+			LogWarn.Printf("Could not find repo %s in auth configuration.  Returning empty auth", remoteRepo)
+			authConfig = &types.AuthConfig{}
+		}
 	}
 
 	encoded, err := encodeAuthToBase64(authConfig)
@@ -361,6 +365,24 @@ func encodeAuthToBase64(authConfig *types.AuthConfig) (string, error) {
 		return "", err
 	}
 	return base64.URLEncoding.EncodeToString(buf), nil
+}
+
+// getGCEAuthConfig creates a Docker AuthConfig with the host instance's service account token in order to push to GCR
+func getGCEAuthConfig() (*types.AuthConfig, bool) {
+	tokenSource := google.ComputeTokenSource("")
+	token, err := tokenSource.Token()
+	if err != nil {
+		LogWarn.Printf("Could not generate token from GCE service account: %v.", err)
+		return nil, false
+	}
+
+	LogInfo.Println("Using GCE service account access token.")
+	return &types.AuthConfig{
+		Username: "oauth2accesstoken", // this field is unimportant to GCR in authentication a push
+		Password: token.AccessToken,
+		Auth:     token.AccessToken,
+		Email:    "dumby@email.com", // this field is unimportant to GCR in authenticating a push
+	}, true
 }
 
 //getAuthConfig return the auth config if it exists.  Nil and false otherwise

@@ -30,7 +30,4 @@ type ImageCreator interface {
 
 	//PushImage pushes the remotely tagged image to docker. Returns a reader of the stream, or an error
 	PushImage(dockerInfo *DockerInfo) (chan (string), error)
-
-	//GenerateRepoURI Generate the absolute repo uri from the docker info
-	GenerateRepoURI(dockerInfo *DockerInfo) string
 }
