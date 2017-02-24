@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	// "io"
 
@@ -369,20 +370,33 @@ func encodeAuthToBase64(authConfig *types.AuthConfig) (string, error) {
 
 // getGCEAuthConfig creates a Docker AuthConfig with the host instance's service account token in order to push to GCR
 func getGCEAuthConfig() (*types.AuthConfig, bool) {
-	tokenSource := google.ComputeTokenSource("")
-	token, err := tokenSource.Token()
+	token, err := getGCPServiceAccountToken()
 	if err != nil {
 		LogWarn.Printf("Could not generate token from GCE service account: %v.", err)
 		return nil, false
 	}
 
-	LogInfo.Println("Using GCE service account access token.")
 	return &types.AuthConfig{
 		Username: "oauth2accesstoken", // this field is unimportant to GCR in authentication a push
 		Password: token.AccessToken,
 		Auth:     token.AccessToken,
 		Email:    "dumby@email.com", // this field is unimportant to GCR in authenticating a push
 	}, true
+}
+
+func getGCPServiceAccountToken() (*oauth2.Token, error) {
+	if jsonServiceAccount := os.Getenv("GCP_SERVICE_ACCOUNT"); jsonServiceAccount != "" {
+		config, err := google.JWTConfigFromJSON([]byte(jsonServiceAccount),
+			"https://www.googleapis.com/auth/devstorage.full_control")
+		if err != nil {
+			return nil, err
+		}
+
+		LogInfo.Println("Attempting to push image to GCR with service account from GCP_SERVICE_ACCOUNT.")
+		return (config.TokenSource(context.Background())).Token()
+	}
+
+	return (google.ComputeTokenSource("")).Token()
 }
 
 //getAuthConfig return the auth config if it exists.  Nil and false otherwise
