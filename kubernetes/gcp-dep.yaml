@@ -42,6 +42,11 @@ spec:
           value: gcr.io
         - name: REGISTRY_API_SERVER
           value: https://gcr.io
+        # - name: GCP_PROJECT_NAME
+        #   value: shipyard-integrationtest
+        # - name: GCP_SERVICE_ACCOUNT
+        #   valueFrom:
+        #     secretKeyRef:
         - name: DOCKER_HOST
           value: unix:///var/run/docker.sock
         - name: SHUTDOWN_TIMEOUT

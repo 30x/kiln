@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
@@ -19,10 +21,8 @@ type GoogleContainerRegistry struct {
 
 // NewGoogleContainerRegistryClient returns a newly configured Google Container Registry client
 func NewGoogleContainerRegistryClient(registryURL string) (Registry, error) {
-	ctx := context.Background()
-
 	//Get our authn'd client
-	client, err := google.DefaultClient(ctx)
+	client, err := createGoogleClient()
 	if err != nil {
 		fmt.Printf("Error getting GCR client: %v\n", err)
 		return nil, err
@@ -45,6 +45,10 @@ func NewGoogleContainerRegistryClient(registryURL string) (Registry, error) {
 }
 
 func getGCPProjectName() (string, error) {
+	if project := os.Getenv("GCP_PROJECT_NAME"); project != "" {
+		return project, nil
+	}
+
 	// curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/project/project-id
 	req, err := http.NewRequest(http.MethodGet, "http://metadata.google.internal/computeMetadata/v1/project/project-id", nil)
 	if err != nil {
@@ -284,4 +288,24 @@ func (reg *GoogleContainerRegistry) DeleteImageTag(name, tag string) error {
 	}
 
 	return nil
+}
+
+func createGoogleClient() (*http.Client, error) {
+
+	// we want to use a provided service account JSON key first if provided
+	if jsonServiceAccount := os.Getenv("GCP_SERVICE_ACCOUNT"); jsonServiceAccount != "" {
+		config, err := google.JWTConfigFromJSON([]byte(jsonServiceAccount),
+			"https://www.googleapis.com/auth/devstorage.full_control")
+		if err != nil {
+			return nil, err
+		}
+
+		ts := config.TokenSource(context.Background())
+
+		fmt.Println("Using service account key provided by GCP_SERVICE_ACCOUNT.")
+		return oauth2.NewClient(context.Background(), ts), nil
+	}
+
+	fmt.Println("Using default service account.")
+	return google.DefaultClient(context.Background())
 }
