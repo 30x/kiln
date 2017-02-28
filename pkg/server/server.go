@@ -11,6 +11,7 @@ import (
 
 	"github.com/30x/authsdk"
 	"github.com/30x/kiln/pkg/kiln"
+	url "github.com/30x/url-helper"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -276,7 +277,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain charset=utf-8")
 	//turn this off so browsers render the response as it comes in
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("Location", server.generateImageURL(dockerInfo, r.Host))
+	w.Header().Set("Location", server.generateImageURL(dockerInfo, r))
 	//turn off proxy buffering in nginx (http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering)
 	w.Header().Set("X-Accel-Buffering", "no")
 
@@ -636,11 +637,17 @@ func (server *Server) getImageInternal(organization string, application string, 
 }
 
 //generatePodSpec get the image
-func (server *Server) generateImageURL(dockerInfo *kiln.DockerInfo, hostname string) string {
+func (server *Server) generateImageURL(dockerInfo *kiln.DockerInfo, req *http.Request) string {
 
-	endpoint := fmt.Sprintf("%s%s/%s/apps/%s/version/%s", hostname, basePath, dockerInfo.RepoName, dockerInfo.ImageName, dockerInfo.Revision)
+	endpoint := fmt.Sprintf("%s/version/%s", dockerInfo.ImageName, dockerInfo.Revision)
 
-	return endpoint
+	u, err := url.NewURLHelper(req)
+	if err != nil {
+		kiln.LogError.Printf("Error while parsing request URL for Location header: %v", err)
+		return ""
+	}
+
+	return u.Join(endpoint)
 }
 
 //returns a 200 with "OK" body for health check
