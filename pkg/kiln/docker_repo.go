@@ -261,7 +261,7 @@ func (imageCreator LocalImageCreator) BuildImage(dockerInfo *DockerBuild) (chan 
 	response, err := imageCreator.client.ImageBuild(context.Background(), imageBuildOptions)
 
 	if err != nil {
-		LogInfo.Fatal(err)
+		LogError.Println(err)
 		return nil, err
 	}
 

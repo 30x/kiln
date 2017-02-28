@@ -266,7 +266,7 @@ func (server *Server) postApplication(w http.ResponseWriter, r *http.Request) {
 	outputChannel, err := server.imageCreator.BuildImage(dockerBuild)
 
 	if err != nil {
-		message := fmt.Sprintf("Could not build image from docker info %+v.  Error is %s", dockerInfo, err)
+		message := fmt.Sprintf("Could not build image from docker info %+v.  Error is %s", *dockerInfo, err)
 		kiln.LogError.Printf(message)
 		internalError(message, w)
 		return
